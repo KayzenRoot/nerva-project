@@ -1,6 +1,6 @@
 # NERVA Source Hierarchy
 
-Status: CANONICAL — NERVA-WO-001
+Status: CANONICAL — NERVA-WO-002
 
 When sources disagree, use this order:
 1. `.engineering/CHECKPOINT.md`
@@ -27,7 +27,9 @@ Git, code, tests, deployed artifacts and objective provider evidence override co
 ## Current bindings
 - Repository: `KayzenRoot/nerva-project`
 - GEF: `@gef-bootstrap/cli@1.1.2`
-- M00 execution base: `d9f20cdd6d7bcc024d5c13ead2eceeb7c73eab6c`
-- Last approved planning Work Order: `NERVA-WO-001`
-- Next implementation module: M01 — Work Order NOT_ADMITTED
-- Product implementation: NOT_STARTED
+- M01 execution base: `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955`
+- Last approved Work Order: `NERVA-WO-002`
+- M01: APPROVED
+- Next implementation module: M02 — Work Order NOT_ADMITTED
+- Product implementation: STARTED / M01 PLATFORM FOUNDATION
+- M01 Context Lock is historical after promotion; M02 requires a fresh Context Lock against the merged M01 baseline.
