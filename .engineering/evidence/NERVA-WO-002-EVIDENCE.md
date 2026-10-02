@@ -1,15 +1,16 @@
 # NERVA-WO-002 Evidence Bundle
 
-Status: M01 IMPLEMENTED — LOCAL GATES PASS; FINAL EXACT-HEAD EVIDENCE RECORDED IN PR #6
+Status: M01 IMPLEMENTED — FINAL EXACT-HEAD GATES PASS; AUDIT CANDIDATE
 Work Order: NERVA-WO-002
 Module: M01
 Issue: #5
 Pull request: #6
 Branch: `feat/nerva-wo-002-m01-safety-kernel`
 Execution base: `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955`
+Audited implementation head before this evidence-only correction: `0c9b1736da60f27023699b978fb05d3a5ee01365`
 Stop condition: `NERVA_M01_PLATFORM_FOUNDATION_READY_FOR_AUDIT`
 
-The final PR head SHA, exact-head CI run URLs, proof-case results, changed-file inventory, and final security-scan decision are cross-linked in the PR #6 draft and GitHub Checks. The implementation branch remains unmerged and no source changes follow those exact-head checks.
+Exact-head implementation evidence for `0c9b1736da60f27023699b978fb05d3a5ee01365`: Linux CI `37052127423` SUCCESS; Windows bounded CI in the same run SUCCESS; GEF validation `37052127516` SUCCESS; Source Pack validation `37052127606` SUCCESS; Socket Security PR Alerts and Project Report SUCCESS. Final Codex Security scan `afaba4c1-a2bc-45f3-bf77-325520e66484` reports 0 reportable findings and 0 CRITICAL/HIGH. This correction changes evidence text only and does not alter runtime source.
 
 ## Authority and exact state
 
@@ -64,6 +65,10 @@ The exact `c34e1289d9c269a1efc1ba21b9b04c4b56f8db92` security review reproduced 
 ### CD-006 — Environment template placeholders
 
 A final literal check against NERVA-WO-002 lines 294-301 found that `.env.example` contained fixed local values where the Work Order requires placeholders only. The sample now uses matching `replace-me` placeholders for PostgreSQL and `DATABASE_URL`; Compose builds the worker URL from the same configurable database variables while retaining documented local-only fallbacks. `docker compose --env-file .env.example config --format json` confirms that DB and worker credentials resolve consistently and that PostgreSQL remains loopback-bound. The sample remains explicitly development-only; production values still belong in the deployment secret store.
+
+### CD-007 — Final exact-head evidence reconciliation
+
+After exact-head hosted checks completed successfully on `0c9b1736da60f27023699b978fb05d3a5ee01365`, the Evidence Bundle still contained two stale `hosted CI pending` labels. This governance-only correction records the completed Linux/Windows, GEF, Source Pack and Socket results plus the final Codex Security scan identity. No runtime/product source, dependency, migration, test or architecture behavior changes in CD-007.
 
 ## Implemented architecture
 
@@ -130,8 +135,8 @@ Tests were written and run against missing modules before implementations. Domai
 | `M01-SEC-002`    | PASS         | Client bundle scan examined 12 assets with one synthetic `DATABASE_URL` value; none appeared in client output.                                                               |
 | `M01-DB-001`     | PASS         | Schema test plus clean PostgreSQL 18.6 migration smoke verified five tables, append-only/audit triggers, and disabled seed.                                                  |
 | `M01-DET-001`    | PASS         | Canonical bytes/hash are key-order independent; bounded integer and bigint serialization checked in the domain test.                                                         |
-| `M01-CI-001`     | PASS locally | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths. Hosted CI pending.                                            |
-| `M01-BOOT-001`   | PASS locally | Live/ready route tests, worker safe-mode test and production boot smoke; hosted CI pending.                                                                                  |
+| `M01-CI-001`     | PASS exact-head | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths; Linux exact-head CI passed in run `37052127423`.             |
+| `M01-BOOT-001`   | PASS exact-head | Live/ready route tests, worker safe-mode test and production boot smoke passed in exact-head Linux CI run `37052127423`.                                                    |
 
 ### Complete changed-file inventory
 
@@ -222,7 +227,7 @@ Inherited read-only GEF observations from the baseline: `drift.changed=true`, `d
 - Plan authority now includes immutable action family, network, protocol capability, market selector, slippage, amount, fraction, and expiry bindings. No execution caller exists in M01.
 - `generic-risk-preview-v0` is not evidence that a protocol is integrated or that market data is current.
 - Moderate transitive audit findings remain below the required HIGH/CRITICAL gate and will be checked again on the final lock.
-- Independent audit and governance decisions remain pending.
+- Independent audit and governance promotion remain pending after this evidence-only correction.
 - No merge, Checkpoint promotion, M01 approval, or M02 work is included.
 
 ## Proposed Checkpoint Delta
