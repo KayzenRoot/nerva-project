@@ -1,6 +1,6 @@
 # NERVA Migration & Recovery
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Principle
 Application state can be rolled back; confirmed blockchain financial effects generally cannot. Recovery must distinguish software rollback from financial compensation/forward recovery.
