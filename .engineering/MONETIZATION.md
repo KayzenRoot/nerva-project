@@ -1,6 +1,6 @@
 # NERVA Monetization
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Business principle
 NERVA earns because it provides monitoring, policy automation and infrastructure, not because users take more risk or lose more money.
