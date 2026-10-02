@@ -1,6 +1,6 @@
 # NERVA Test & Benchmark Plan
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Test strategy by risk
 All implementation modules are at least STANDARD. M03/M04/M06 are HIGH_ASSURANCE.
