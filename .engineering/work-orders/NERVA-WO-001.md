@@ -1,6 +1,6 @@
 # NERVA-WO-001 — M00 Product, Competition & Source Pack Lock
 
-**Status:** ADMITTED  
+**Status:** APPROVED  
 **Risk:** HIGH_ASSURANCE  
 **Module:** M00  
 **Mode:** PLANNING_ONLY  
