@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "project": "NERVA",
+  "repository": "KayzenRoot/nerva-project",
+  "gefVersion": "1.1.2",
+  "phase": "PRODUCT_PLANNING",
+  "activeModule": "M00",
+  "activeWorkOrder": "NERVA-WO-001",
+  "implementationStatus": "NOT_STARTED",
+  "runtimeProductCode": "NONE",
+  "lastApprovedWorkOrder": "NERVA-WO-000",
+  "acceptedBootstrapMerge": "d9f20cdd6d7bcc024d5c13ead2eceeb7c73eab6c",
+  "candidateState": "SOURCE_PACK_UNDER_AUDIT",
+  "nextLegalAction": "COMPLETE_M00_EVIDENCE_AND_AUDIT",
+  "blocks": [
+    "M01_NOT_ADMITTED_UNTIL_M00_APPROVED_AND_MERGED"
+  ],
+  "knownCritical": 0,
+  "knownHigh": 0
+}
