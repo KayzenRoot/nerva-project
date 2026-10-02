@@ -1,6 +1,6 @@
 # NERVA V0.1 Traceability Matrix
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 | Requirement cluster | Owner module | Architecture plane | Primary proof |
 |---|---|---|---|
