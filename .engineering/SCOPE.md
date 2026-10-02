@@ -1,6 +1,6 @@
 # NERVA Scope
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## V0.1 NECESSARY
 - Monad network support.
