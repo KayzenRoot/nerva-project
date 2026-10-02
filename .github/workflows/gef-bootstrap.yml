@@ -1,27 +1,27 @@
-name: GEF 1.1.2 bootstrap validation
+name: GEF 1.1.2 validation
 
 on:
-  push:
-    branches:
-      - chore/nerva-wo-000-gef-1.1.2-bootstrap
   pull_request:
+    branches:
+      - main
+  push:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  gef-bootstrap:
+  gef-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Checkout exact head branch
+      - name: Checkout exact audited head
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Use Node 22
         uses: actions/setup-node@v4
@@ -29,22 +29,8 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Configure governed commit identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Install exact GEF dependency
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci --no-fund --no-audit
-          else
-            npm install --no-fund --no-audit
-            git add package-lock.json
-            git commit -m "chore(gef): lock GEF Bootstrap 1.1.2"
-          fi
+      - name: Clean install
+        run: npm ci --no-fund --no-audit
 
       - name: Verify immutable package identity
         shell: bash
@@ -53,25 +39,8 @@ jobs:
           node .github/scripts/verify-gef-bootstrap.mjs package
           node node_modules/@gef-bootstrap/cli/bin/gef.mjs --version | tee /tmp/gef-version.json
 
-      - name: Governed GREENFIELD init when absent
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f .gef/init-state.json ]; then
-            test -z "$(git status --porcelain)"
-            node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --json > /tmp/gef-init-preview.json
-            test ! -f .gef/init-state.json
-            node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --apply --json > /tmp/gef-init-apply.json
-            node .github/scripts/verify-gef-bootstrap.mjs state
-            git add .gef/init-state.json .gef/receipts/*.json
-            git commit -m "chore(gef): initialize governed GEF 1.1.2 state"
-          fi
-
-      - name: Verify persisted generated state
-        shell: bash
-        run: |
-          set -euo pipefail
-          node .github/scripts/verify-gef-bootstrap.mjs state
+      - name: Verify persisted generated GEF state
+        run: node .github/scripts/verify-gef-bootstrap.mjs state
 
       - name: Doctor, deterministic status and dependency audit
         shell: bash
@@ -84,23 +53,14 @@ jobs:
           npm audit --audit-level=high
           test -z "$(git status --porcelain)"
 
-      - name: Push generated lock and GEF receipts
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARGET_BRANCH="${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}"
-          git push origin HEAD:"${TARGET_BRANCH}"
-
-      - name: Preserve bootstrap evidence
+      - name: Preserve validation evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gef-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}
+          name: gef-validation-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: ignore
           path: |
             /tmp/gef-version.json
-            /tmp/gef-init-preview.json
-            /tmp/gef-init-apply.json
             /tmp/gef-doctor.json
             /tmp/gef-status-1.json
             /tmp/gef-status-2.json
