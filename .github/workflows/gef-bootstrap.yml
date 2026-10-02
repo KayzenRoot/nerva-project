@@ -1,0 +1,66 @@
+name: GEF 1.1.2 validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  gef-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact audited head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Clean install
+        run: npm ci --no-fund --no-audit
+
+      - name: Verify immutable package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/scripts/verify-gef-bootstrap.mjs package
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs --version | tee /tmp/gef-version.json
+
+      - name: Verify persisted generated GEF state
+        run: node .github/scripts/verify-gef-bootstrap.mjs state
+
+      - name: Doctor, deterministic status and dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs doctor --target . --json > /tmp/gef-doctor.json
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs status --target . --json > /tmp/gef-status-1.json
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs status --target . --json > /tmp/gef-status-2.json
+          cmp /tmp/gef-status-1.json /tmp/gef-status-2.json
+          npm audit --audit-level=high
+          test -z "$(git status --porcelain)"
+
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gef-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          path: |
+            /tmp/gef-version.json
+            /tmp/gef-doctor.json
+            /tmp/gef-status-1.json
+            /tmp/gef-status-2.json

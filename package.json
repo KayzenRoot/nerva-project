@@ -1,0 +1,21 @@
+{
+  "name": "nerva-project",
+  "version": "0.0.0",
+  "private": true,
+  "description": "NERVA — Monad-native autonomous risk and policy execution platform",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "gef": "gef",
+    "gef:version": "gef --version",
+    "gef:init": "gef init --target . --json",
+    "gef:init:apply": "gef init --target . --apply --json",
+    "gef:doctor": "gef doctor --target . --json",
+    "gef:status": "gef status --target . --json",
+    "gef:verify": "npm run gef:version && npm run gef:doctor && npm run gef:status"
+  },
+  "devDependencies": {
+    "@gef-bootstrap/cli": "1.1.2"
+  }
+}
