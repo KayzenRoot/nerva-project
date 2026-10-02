@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "nerva.context-lock",
+  "workOrder": "NERVA-WO-001",
+  "module": "M00",
+  "status": "LOCKED",
+  "executionBase": "d9f20cdd6d7bcc024d5c13ead2eceeb7c73eab6c",
+  "repository": "KayzenRoot/nerva-project",
+  "gef": "@gef-bootstrap/cli@1.1.2",
+  "criticalInputs": {
+    "README.md": "cf3979da8471d7be3e4e14c7a65795d6a65d4d91",
+    ".engineering/work-orders/NERVA-WO-000.md": "df1acb6dfaf3965bf492d5c5bac9bbe7ce5b890b",
+    ".engineering/evidence/NERVA-WO-000-EVIDENCE.md": "9225213668123291cc2d18c5e5707d0cc20da8aa",
+    "package.json": "b6831425945b5bb03e8074b6949178628e22915b",
+    "package-lock.json": "bd44268fd23afa298ec7450cbcc6b15f198b2a77",
+    ".gef/init-state.json": "55731bca46f61574d7acecc860aa6bd492dcb4d4",
+    ".gef/receipts/run-1-a2be9ac4152d.json": "a2effcda53b0d4318f7dc79da53ff4466ed1e5d1"
+  },
+  "externalSources": [
+    {
+      "name": "Monad Metropolis portal",
+      "url": "https://hackathon.monad.xyz/",
+      "observed": "2026-10-02",
+      "facts": [
+        "1 Sep to 13 Oct",
+        "$250,000+ prize pool"
+      ]
+    },
+    {
+      "name": "Monad developer documentation",
+      "url": "https://docs.monad.xyz/",
+      "observed": "2026-10-02"
+    },
+    {
+      "name": "Perpl API documentation",
+      "url": "https://github.com/PerplFoundation/api-docs",
+      "observed": "2026-10-02"
+    },
+    {
+      "name": "MetaMask Agent Wallet developer docs",
+      "url": "https://docs.metamask.io/",
+      "observed": "2026-10-02"
+    },
+    {
+      "name": "Envio documentation",
+      "url": "https://docs.envio.dev/",
+      "observed": "2026-10-02"
+    }
+  ],
+  "staleIf": [
+    "execution base changes before planning begins",
+    "accepted WO-000 or GEF state changes",
+    "Metropolis deadline/track/submission rules materially change",
+    "Perpl/MetaMask/Envio capabilities required by V0.1 materially change"
+  ]
+}
