@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
 const lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-002.json', 'utf8'));
+const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
 const base = lock.executionBase;
 const auditedHead = '068120fd423b3b01ec2c2b5f17b5df6ad94586a0';
 
@@ -9,16 +10,10 @@ if (lock.status !== 'LOCKED' || base !== '4dcdd3fd0cdd1ac7c8933839e7d70e60b925a9
   throw new Error('Context Lock identity/status changed');
 }
 
-const main = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
-if (main !== base) {
-  throw new Error(`Context Lock base moved before merge: origin/main is ${main}, expected ${base}`);
-}
-
 function blobAt(ref, file) {
   return execFileSync('git', ['rev-parse', `${ref}:${file}`], { encoding: 'utf8' }).trim();
 }
 
-let executionLockStillCurrent = true;
 for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
   const baseBlob = blobAt(base, file);
   if (baseBlob !== expectedBlob) {
@@ -26,7 +21,37 @@ for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
       `Context Lock base fingerprint mismatch for ${file}: base=${baseBlob} expected=${expectedBlob}`,
     );
   }
+}
 
+const main = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
+const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const postMergeMain =
+  process.env.GITHUB_EVENT_NAME === 'push' &&
+  main === head &&
+  main !== base &&
+  checkpoint.m01Status === 'APPROVED' &&
+  checkpoint.activeNextModule === 'M02' &&
+  checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED';
+
+if (postMergeMain) {
+  console.log(
+    JSON.stringify({
+      ok: true,
+      executionBase: base,
+      mergedHead: head,
+      criticalInputs: Object.keys(lock.criticalInputs).length,
+      state: 'POST_MERGE_CONTEXT_LOCK_HISTORICAL',
+    }),
+  );
+  process.exit(0);
+}
+
+if (main !== base) {
+  throw new Error(`Context Lock base moved before merge: origin/main is ${main}, expected ${base}`);
+}
+
+let executionLockStillCurrent = true;
+for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
   const worktreeBlob = execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim();
   if (worktreeBlob !== expectedBlob) executionLockStillCurrent = false;
 }
