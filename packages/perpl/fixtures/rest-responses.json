@@ -1,0 +1,10 @@
+{
+  "kind": "synthetic-sanitized",
+  "cases": [
+    { "status": 429, "expected": "RATE_LIMITED" },
+    { "status": 503, "expected": "DEGRADED" },
+    { "status": 401, "expected": "AUTHENTICATION_FAILED" },
+    { "status": 403, "expected": "SCOPE_REFUSED" },
+    { "status": 404, "expected": "NO_ACCOUNT" }
+  ]
+}

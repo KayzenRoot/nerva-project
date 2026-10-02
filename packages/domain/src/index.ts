@@ -64,8 +64,13 @@ export interface RiskMetric {
   readonly name: string;
   /** Percentages use integer basis points. Unknown values are represented with quality, never zero. */
   readonly valueBps?: BasisPoints;
+  readonly value?: string;
+  readonly unit?: 'basis-points' | 'micro-units' | 'milliseconds' | 'count' | 'status';
   readonly quality: ObservationQuality;
   readonly observedAt: string;
+  readonly source?: string;
+  readonly reason?: string;
+  readonly metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface RiskSnapshot {
@@ -74,6 +79,86 @@ export interface RiskSnapshot {
   readonly observedAt: string;
   readonly quality: ObservationQuality;
   readonly metrics: readonly RiskMetric[];
+  readonly actionable?: boolean;
+  readonly generatedAt?: string;
+  readonly correlationId?: string;
+  readonly sourceSnapshotHashes?: readonly string[];
+  readonly snapshotHash?: string;
+  readonly limitations?: readonly string[];
+}
+
+export type IntegrationHealthStatus = 'UNKNOWN' | 'HEALTHY' | 'DEGRADED' | 'STALE' | 'UNAVAILABLE';
+export type ObservationSource = Readonly<{
+  source: string;
+  network: SafetyNetwork;
+  chainId: number;
+  observedAt: string;
+  receivedAt: string;
+  sourceBlock?: string;
+  sequence?: string;
+  sessionId?: string;
+  quality: ObservationQuality;
+  correlationId: string;
+  contentHash: string;
+}>;
+
+export interface ObservationEnvelope {
+  readonly schemaVersion: '0.1';
+  readonly source: ObservationSource;
+}
+
+export interface MarketSnapshot extends ObservationEnvelope {
+  readonly snapshotId: string;
+  readonly marketId: string;
+  readonly symbol: string;
+  readonly priceDecimals: number;
+  readonly sizeDecimals: number;
+  readonly markPriceScaled: string;
+  readonly oraclePriceScaled?: string;
+  readonly quoteToken: string;
+  readonly fundingIntervalId?: string;
+  readonly fundingRateMicros?: string;
+}
+
+export interface PositionSnapshot extends ObservationEnvelope {
+  readonly snapshotId: string;
+  readonly positionId: string;
+  readonly marketId: string;
+  readonly symbol: string;
+  readonly side: 'LONG' | 'SHORT';
+  readonly sizeScaled: string;
+  readonly sizeDecimals: number;
+  readonly entryPriceScaled: string;
+  readonly entryPriceDecimals: number;
+  readonly markPriceScaled?: string;
+  readonly markPriceDecimals?: number;
+  readonly collateralMicros: string;
+  readonly quoteToken: string;
+}
+
+export interface AccountSnapshot extends ObservationEnvelope {
+  readonly snapshotId: string;
+  readonly status: 'AVAILABLE' | 'NO_ACCOUNT' | 'UNAVAILABLE';
+  readonly collateralMicros?: string;
+}
+
+export interface PortfolioSeriesSnapshot extends ObservationEnvelope {
+  readonly snapshotId: string;
+  readonly period: 'day';
+  readonly points: readonly Readonly<{ at: string; valueMicros: string }>[];
+}
+
+export interface ProviderCheckpoint {
+  readonly schemaVersion: '0.1';
+  readonly provider: string;
+  readonly stream: string;
+  readonly chainId: number;
+  readonly sessionId?: string;
+  readonly sequence?: string;
+  readonly sourceBlock?: string;
+  readonly observedAt: string;
+  readonly quality: ObservationQuality;
+  readonly reconnectCount: number;
 }
 
 export interface Policy {
@@ -167,9 +252,14 @@ export interface ExecutionReceipt {
 export interface IntegrationHealth {
   readonly schemaVersion: '0.1';
   readonly integration: string;
-  readonly status: 'HEALTHY' | 'DEGRADED' | 'STALE' | 'UNKNOWN';
+  readonly status: IntegrationHealthStatus;
   readonly observedAt: string;
   readonly correlationId: CorrelationId;
+  readonly reason?: string;
+  readonly lastGoodAt?: string;
+  readonly ageMs?: number;
+  readonly reconnectCount?: number;
+  readonly checkpoint?: ProviderCheckpoint;
 }
 
 const policyTransitions: Readonly<Record<PolicyState, readonly PolicyState[]>> = {

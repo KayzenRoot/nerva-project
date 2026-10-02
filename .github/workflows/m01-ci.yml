@@ -1,4 +1,4 @@
-name: NERVA M01 foundation
+name: NERVA M01/M02 observation and risk foundation
 
 on:
   pull_request:
@@ -54,7 +54,7 @@ jobs:
           npm run sourcepack:validate
           npm run gef:package:verify
           npm run gef:verify
-      - name: Validate workspace graph and M01 boundaries
+      - name: Validate workspace graph and observation-only boundaries
         run: |
           npm run workspace:validate
           npm run deps:boundary
@@ -63,8 +63,10 @@ jobs:
           npm run format:check
           npm run lint
           npm run typecheck
-      - name: Unit and invariant tests
+      - name: Unit, replay and invariant tests
         run: npm test -- --reporter=dot
+      - name: Deterministic risk p95 benchmark
+        run: npm run risk:benchmark
       - name: Build web and worker
         run: npm run build
       - name: Scan client assets
@@ -75,6 +77,10 @@ jobs:
         run: |
           npm run db:check
           npm run db:smoke
+      - name: Upgrade migration from accepted M01 schema
+        run: npm run db:upgrade-smoke
+        env:
+          NERVA_ALLOW_DISPOSABLE_DATABASE: 'true'
       - name: Safe-mode boot smoke
         run: npm run smoke:boot
 
@@ -94,7 +100,7 @@ jobs:
           cache: npm
       - name: Clean install
         run: npm ci --no-audit --no-fund
-      - name: Bounded domain, contracts, and config tests
-        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/config/src/environment.test.ts
+      - name: Bounded domain, contracts, config, Perpl and risk tests
+        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/contracts/src/observation.test.ts packages/config/src/environment.test.ts packages/perpl/src/client.test.ts packages/perpl/src/normalizer.test.ts packages/risk/src/engine.test.ts
       - name: Strict typecheck
         run: npm run typecheck

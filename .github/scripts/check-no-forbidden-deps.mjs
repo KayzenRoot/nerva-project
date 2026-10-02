@@ -33,6 +33,8 @@ const sourceExtensions = new Set(['.ts', '.tsx', '.js', '.mjs']);
 const ignoredDirectories = new Set(['node_modules', '.next', 'dist', 'coverage', '.turbo']);
 const forbiddenCode =
   /(?:eth_sendRawTransaction|eth_sendTransaction|sendTransaction\s*\(|signTransaction\s*\(|wallet\.sign|process\.env\.(?:PRIVATE|SEED|MNEMONIC)|const\s+(?:privateKey|seedPhrase|mnemonic)\s*=)/i;
+const forbiddenPerplCapability =
+  /(?:\/v1\/trading\/orders?|\bOrderRequest\b|\bmt\s*:\s*(?:22|30|31)\b|\bmethod\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"])/i;
 const files = [];
 function collect(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -56,6 +58,34 @@ for (const file of files) {
       `M01 source contains a signing/submission or secret-material path: ${path.relative(root, file)}`,
     );
 }
+const perplSources = files.filter((file) =>
+  path.relative(root, file).replaceAll('\\', '/').startsWith('packages/perpl/'),
+);
+const perplText = perplSources.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+if (forbiddenPerplCapability.test(perplText))
+  throw new Error(
+    'Perpl observation adapter contains an order/write capability or trade-scope message',
+  );
+if (!/readonly\s+method:\s*'GET'/.test(perplText) || !/method:\s*'GET'/.test(perplText))
+  throw new Error('Perpl authenticated REST adapter must expose and send only GET');
+if (!/Object\.freeze\(\{\s*mt:\s*5,/.test(perplText) || !/mt:\s*29,/.test(perplText))
+  throw new Error(
+    'Perpl WebSocket may send public subscription and read-only API sign-in frames only',
+  );
+const orderRoutes = [];
+const apiRoot = path.join(root, 'apps/web/src/app/api');
+if (fs.existsSync(apiRoot)) {
+  for (const file of files) {
+    const relative = path.relative(apiRoot, file);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+      continue;
+    const source = fs.readFileSync(file, 'utf8');
+    if (/export\s+(?:async\s+)?function\s+(?:POST|PUT|PATCH|DELETE)\b/.test(source))
+      orderRoutes.push(path.relative(root, file));
+  }
+}
+if (orderRoutes.length > 0)
+  throw new Error(`M02 API surface contains mutating route handlers: ${orderRoutes.join(', ')}`);
 console.log(
   JSON.stringify({
     ok: true,
@@ -63,5 +93,8 @@ console.log(
     sourceFiles: files.length,
     forbiddenImports: 0,
     executionPaths: 0,
+    perplRestMethods: ['GET'],
+    perplWebSocketOutboundMessageTypes: [5, 29],
+    mutatingApiRoutes: orderRoutes.length,
   }),
 );

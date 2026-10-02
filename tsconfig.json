@@ -22,7 +22,10 @@
       "@nerva/config": ["packages/config/src/index.ts"],
       "@nerva/observability": ["packages/observability/src/index.ts"],
       "@nerva/db": ["packages/db/src/index.ts"],
-      "@nerva/testing": ["packages/testing/src/index.ts"]
+      "@nerva/testing": ["packages/testing/src/index.ts"],
+      "@nerva/perpl": ["packages/perpl/src/client.ts"],
+      "@nerva/perpl/normalizer": ["packages/perpl/src/normalizer.ts"],
+      "@nerva/risk": ["packages/risk/src/index.ts"]
     }
   },
   "include": [

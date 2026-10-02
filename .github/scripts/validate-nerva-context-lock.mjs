@@ -1,123 +1,112 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-002.json', 'utf8'));
+const lockPath = '.engineering/context-locks/NERVA-WO-003.json';
+const expectedBase = '166789a107dff6700b7dfab8f240184be14fe3c4';
+const expectedBranch = 'feat/nerva-wo-003-m02-data-risk';
+const admittedHead = '9e329e78ab4ff3ab0b0b96deed29064a6a03126a';
+const expectedLockBlob = 'f01dd4453a7fc4045bde44a1fbce1fc4f944be9d';
+const workOrderPath = '.engineering/work-orders/NERVA-WO-003.md';
+const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
-const base = lock.executionBase;
-const auditedHead = '068120fd423b3b01ec2c2b5f17b5df6ad94586a0';
 
-if (lock.status !== 'LOCKED' || base !== '4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955') {
-  throw new Error('Context Lock identity/status changed');
+if (
+  lock.kind !== 'nerva.context-lock' ||
+  lock.workOrder !== 'NERVA-WO-003' ||
+  lock.module !== 'M02' ||
+  lock.status !== 'LOCKED' ||
+  lock.repository !== 'KayzenRoot/nerva-project' ||
+  lock.executionBase !== expectedBase
+)
+  throw new Error('NERVA-WO-003 Context Lock identity, status, repository or base mismatch');
+
+function git(args) {
+  return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
-
 function blobAt(ref, file) {
-  return execFileSync('git', ['rev-parse', `${ref}:${file}`], { encoding: 'utf8' }).trim();
+  return git(['rev-parse', `${ref}:${file}`]);
 }
 
-for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
-  const baseBlob = blobAt(base, file);
-  if (baseBlob !== expectedBlob) {
-    throw new Error(
-      `Context Lock base fingerprint mismatch for ${file}: base=${baseBlob} expected=${expectedBlob}`,
-    );
-  }
-}
-
-const main = execFileSync('git', ['rev-parse', 'origin/main'], { encoding: 'utf8' }).trim();
-const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const base = lock.executionBase;
+const head = git(['rev-parse', 'HEAD']);
+const main = git(['rev-parse', 'origin/main']);
+const branch = process.env.GITHUB_HEAD_REF || git(['branch', '--show-current']);
 const postMergeMain =
   process.env.GITHUB_EVENT_NAME === 'push' &&
+  process.env.GITHUB_REF === 'refs/heads/main' &&
   main === head &&
-  main !== base &&
-  checkpoint.m01Status === 'APPROVED' &&
-  checkpoint.activeNextModule === 'M02' &&
-  checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED';
+  main !== base;
+if (!postMergeMain && main !== base)
+  throw new Error(`Context Lock base moved before audit: origin/main=${main}, expected=${base}`);
+if (branch && branch !== expectedBranch && !postMergeMain)
+  throw new Error(`Execution branch mismatch: ${branch}`);
+git(['merge-base', '--is-ancestor', base, 'HEAD']);
+git(['merge-base', '--is-ancestor', admittedHead, 'HEAD']);
+if (
+  blobAt(admittedHead, lockPath) !== expectedLockBlob ||
+  blobAt(admittedHead, workOrderPath) !==
+    git(['hash-object', `--path=${workOrderPath}`, workOrderPath])
+)
+  throw new Error('NERVA-WO-003 or its Context Lock differs from the admitted branch copy');
+if (blobAt(admittedHead, lockPath) !== git(['hash-object', `--path=${lockPath}`, lockPath]))
+  throw new Error('Context Lock document changed during execution');
 
-if (postMergeMain) {
-  console.log(
-    JSON.stringify({
-      ok: true,
-      executionBase: base,
-      mergedHead: head,
-      criticalInputs: Object.keys(lock.criticalInputs).length,
-      state: 'POST_MERGE_CONTEXT_LOCK_HISTORICAL',
-    }),
-  );
-  process.exit(0);
-}
-
-if (main !== base) {
-  throw new Error(`Context Lock base moved before merge: origin/main is ${main}, expected ${base}`);
-}
-
-let executionLockStillCurrent = true;
 for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
-  const worktreeBlob = execFileSync('git', ['hash-object', file], { encoding: 'utf8' }).trim();
-  if (worktreeBlob !== expectedBlob) executionLockStillCurrent = false;
-}
-
-if (executionLockStillCurrent) {
-  console.log(
-    JSON.stringify({
-      ok: true,
-      executionBase: base,
-      criticalInputs: Object.keys(lock.criticalInputs).length,
-      state: 'LOCKED',
-    }),
-  );
-  process.exit(0);
-}
-
-// After an objective M01 audit, promotion necessarily changes canonical checkpoint inputs.
-// Prove the lock was intact at the exact audited head, then permit only governance-promotion paths.
-execFileSync('git', ['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
-for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
-  const auditedBlob = blobAt(auditedHead, file);
-  if (auditedBlob !== expectedBlob) {
+  const actual = blobAt(base, file);
+  if (actual !== expectedBlob)
     throw new Error(
-      `Audited-head Context Lock fingerprint mismatch for ${file}: audited=${auditedBlob} expected=${expectedBlob}`,
+      `Critical input fingerprint mismatch at base for ${file}: ${actual} != ${expectedBlob}`,
     );
-  }
 }
 
-const allowedPromotionPaths = new Set([
-  '.engineering/BACKLOG.md',
-  '.engineering/CHECKPOINT.json',
+// The Work Order authorizes M02 runtime edits to some criticalInputs. Stale-if
+// governance and already accepted M01 artifacts remain immutable throughout.
+const immutablePaths = [
   '.engineering/CHECKPOINT.md',
-  '.engineering/SOURCE-HIERARCHY.md',
-  '.engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md',
-  '.engineering/evidence/NERVA-WO-002-EVIDENCE.md',
-  '.engineering/work-orders/NERVA-WO-002.md',
-  '.github/scripts/validate-nerva-context-lock.mjs',
-  '.github/scripts/validate-source-pack.mjs',
-  'README.md',
-]);
-
-const promotionDiff = execFileSync('git', ['diff', '--name-only', `${auditedHead}..HEAD`], {
-  encoding: 'utf8',
-})
-  .split(/\r?\n/)
-  .map((entry) => entry.trim())
-  .filter(Boolean);
-
-if (promotionDiff.length === 0) {
-  throw new Error('Context Lock drift exists but no audited promotion delta is present');
+  '.engineering/CHECKPOINT.json',
+  '.engineering/DECISIONS-LEDGER.md',
+  '.engineering/SCOPE.md',
+  '.engineering/DEFINITION-OF-DONE.md',
+  '.engineering/ARCHITECTURE.md',
+  '.engineering/REQUIREMENTS.md',
+  '.engineering/SECURITY.md',
+  '.engineering/DATA-MODEL.md',
+  '.engineering/API-CONTRACTS.md',
+  '.engineering/INTEGRATION-CONTRACTS.md',
+  '.engineering/TEST-BENCHMARK-PLAN.md',
+  '.engineering/MODULE-ROADMAP.md',
+  '.engineering/decisions/ADR-0001-AUTHORIZATION-BOUNDARY.md',
+  '.engineering/decisions/ADR-0002-GUARDIAN-NERVA-BOUNDARY.md',
+];
+for (const file of immutablePaths) {
+  if (blobAt(base, file) !== git(['hash-object', `--path=${file}`, file]))
+    throw new Error(`Stale-if governance input changed during M02: ${file}`);
 }
 
-const forbidden = promotionDiff.filter((file) => !allowedPromotionPaths.has(file));
-if (forbidden.length > 0) {
-  throw new Error(
-    `Post-audit Context Lock drift includes non-promotion paths: ${forbidden.join(', ')}`,
-  );
-}
+if (
+  checkpoint.phase !== 'IMPLEMENTATION_IN_PROGRESS' ||
+  checkpoint.m00Status !== 'APPROVED' ||
+  checkpoint.m01Status !== 'APPROVED' ||
+  checkpoint.sourcePackStatus !== 'CANONICAL_V0_1' ||
+  checkpoint.activeNextModule !== 'M02' ||
+  checkpoint.nextModuleWorkOrder !== 'NOT_ADMITTED' ||
+  checkpoint.implementationStatus !== 'STARTED' ||
+  checkpoint.runtimeProductCode !== 'M01_PLATFORM_FOUNDATION' ||
+  checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-002'
+)
+  throw new Error('Checkpoint changed from the admitted pre-M02 state');
 
 console.log(
   JSON.stringify({
     ok: true,
     executionBase: base,
-    auditedHead,
+    admittedHead,
+    head,
+    originMain: main,
+    postMergeMain,
+    branch,
     criticalInputs: Object.keys(lock.criticalInputs).length,
-    promotionFiles: promotionDiff.length,
-    state: 'PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
+    immutableGovernanceFiles: immutablePaths.length,
+    state: 'M02_EXECUTION_LOCK_VALIDATED_CHECKPOINT_UNPROMOTED',
   }),
 );

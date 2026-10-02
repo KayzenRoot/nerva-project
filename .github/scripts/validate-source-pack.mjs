@@ -29,7 +29,12 @@ const required = [
   ".engineering/context-locks/NERVA-WO-001.json",
   ".engineering/work-orders/NERVA-WO-002.md",
   ".engineering/context-locks/NERVA-WO-002.json",
-  ".engineering/evidence/NERVA-WO-002-EVIDENCE.md"
+  ".engineering/evidence/NERVA-WO-002-EVIDENCE.md",
+  ".engineering/work-orders/NERVA-WO-003.md",
+  ".engineering/context-locks/NERVA-WO-003.json",
+  ".engineering/execution-briefs/NERVA-WO-003-CODEX.md",
+  ".engineering/evidence/NERVA-WO-003-EVIDENCE.md",
+  ".engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md"
 ];
 
 const missing = required.filter((p) => !fs.existsSync(p));

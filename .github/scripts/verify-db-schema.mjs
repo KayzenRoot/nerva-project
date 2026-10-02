@@ -3,8 +3,14 @@ import pg from 'pg';
 const expectedTables = [
   'audit_events',
   'integration_health_samples',
+  'market_snapshots',
   'policies',
   'policy_versions',
+  'portfolio_snapshots',
+  'position_snapshots',
+  'provider_checkpoints',
+  'risk_metrics',
+  'risk_snapshots',
   'runtime_controls',
 ].sort();
 const pool = new pg.Pool({
@@ -17,7 +23,7 @@ try {
   );
   const names = tables.rows.map((row) => row.table_name);
   if (JSON.stringify(names) !== JSON.stringify(expectedTables))
-    throw new Error(`Unexpected M01 table set: ${names.join(',')}`);
+    throw new Error(`Unexpected M01/M02 table set: ${names.join(',')}`);
   const triggers = await pool.query(
     'SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname',
   );
@@ -26,9 +32,26 @@ try {
     'policy_versions_immutable',
     'audit_events_append_only',
     'runtime_controls_audit',
+    'market_snapshots_append_only',
+    'position_snapshots_append_only',
+    'portfolio_snapshots_append_only',
+    'risk_snapshots_append_only',
+    'risk_metrics_append_only',
   ]) {
     if (!triggerNames.includes(required)) throw new Error(`Missing integrity trigger ${required}`);
   }
+  const forbiddenColumns = await pool.query(
+    "SELECT table_name,column_name FROM information_schema.columns WHERE table_schema='public' AND column_name ~* '(api.?key|secret|signature|private|mnemonic|seed)' ORDER BY table_name,column_name",
+  );
+  if (forbiddenColumns.rows.length > 0)
+    throw new Error('Credential-shaped database columns are forbidden');
+  const writeTables = await pool.query(
+    "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name ~* '(order|execution|wallet_key)'",
+  );
+  if (writeTables.rows.length > 0)
+    throw new Error(
+      `M02 write-path tables are forbidden: ${writeTables.rows.map((row) => row.table_name).join(',')}`,
+    );
   const control = await pool.query(
     "SELECT enabled, reason FROM runtime_controls WHERE control_key = 'GLOBAL_EXECUTION_DISABLED'",
   );
@@ -83,6 +106,25 @@ try {
     }
     if (!immutable) throw new Error('Append-only audit trigger did not reject mutation');
     await client.query('ROLLBACK TO SAVEPOINT append_only_check');
+    await client.query(
+      "INSERT INTO risk_snapshots (snapshot_id,generated_at,quality,actionable,content_hash,correlation_id,source_snapshot_hashes,payload) VALUES ('m02-integrity-probe',now(),'FRESH',false,$1,'m02-integrity-probe',ARRAY[$1],'{\"schemaVersion\":\"0.1\"}'::jsonb)",
+      ['c'.repeat(64)],
+    );
+    await client.query(
+      "INSERT INTO risk_metrics (metric_id,snapshot_id,name,quality,observed_at,payload) VALUES ('m02-integrity-probe:0','m02-integrity-probe','LIQUIDATION_DISTANCE_BPS','UNKNOWN',now(),'{\"quality\":\"UNKNOWN\"}'::jsonb)",
+    );
+    await client.query('SAVEPOINT m02_append_only_check');
+    let riskSnapshotImmutable = false;
+    try {
+      await client.query(
+        "UPDATE risk_snapshots SET quality='FRESH' WHERE snapshot_id='m02-integrity-probe'",
+      );
+    } catch {
+      riskSnapshotImmutable = true;
+    }
+    if (!riskSnapshotImmutable)
+      throw new Error('Risk snapshot append-only trigger did not reject mutation');
+    await client.query('ROLLBACK TO SAVEPOINT m02_append_only_check');
     await client.query('SAVEPOINT runtime_control_audit_check');
     await client.query(
       "UPDATE runtime_controls SET reason = reason, actor = 'm01-integrity-probe', source = 'test', correlation_id = 'm01-integrity-probe' WHERE control_key = 'GLOBAL_EXECUTION_DISABLED'",
@@ -106,6 +148,9 @@ try {
       policyVersionsImmutable: true,
       auditEventsAppendOnly: true,
       runtimeControlChangesAudited: true,
+      m02EvidenceAppendOnly: true,
+      credentialColumns: 0,
+      writePathTables: 0,
     }),
   );
 } finally {

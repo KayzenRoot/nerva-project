@@ -1,8 +1,8 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. **M01 Safety Kernel & Platform Foundation is approved for merge**; M02 Monad/Perpl Data & Risk Intelligence is the next module and remains NOT_ADMITTED until its own Work Order is compiled after the M01 merge.
+NERVA is a Monad-native, non-custodial risk and policy platform. **M01 Safety Kernel & Platform Foundation is approved. NERVA-WO-003 implements M02 Monad/Perpl Data & Risk Intelligence on its audit PR; this change is not yet merged or audited.**
 
-M01 is a safe foundation only: it does not connect to wallets, trading providers, an LLM, or a chain; it does not construct or submit transactions; and financial execution remains disabled. The web and worker surfaces report only platform and dependency health. M02 has not started.
+M02 adds read-only Perpl observation, normalized market/account/position records, deterministic risk snapshots, GET-only APIs, and a read-only dashboard. Financial execution remains disabled. The Perpl adapter may sign its documented API read requests with exact `read` scope; it does not use wallet keys or sign/submit transactions or orders. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) for configuration, API states, risk units and limitations.
 
 ## Governance
 
@@ -20,7 +20,7 @@ Start here:
 8. [Security](.engineering/SECURITY.md)
 9. [Module Roadmap](.engineering/MODULE-ROADMAP.md)
 
-Implementation evidence for this increment is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. The proposed post-audit Checkpoint delta is kept separate in `.engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md`; it does not change the canonical Checkpoint.
+M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 implementation evidence and its proposed Checkpoint delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`; the canonical Checkpoint remains unchanged pending audit.
 
 ## Local development
 
@@ -35,7 +35,7 @@ npm run db:smoke
 npm run dev:web
 ```
 
-The web shell runs at `http://localhost:3000`. `/api/health/live` reports process liveness. `/api/health/ready` returns ready only after PostgreSQL responds. The Compose worker runs in safe mode and has no external integrations. To run it outside Compose, use `npm run worker:start`.
+The web shell runs at `http://localhost:3000`. `/api/health/live` reports process liveness. `/api/health/ready` returns ready only after PostgreSQL responds. The worker defaults to observation disabled. To enable Perpl public collection, configure the server-only variables in `.env` and set `PERPL_OBSERVATION_ENABLED=true`; PostgreSQL must also be configured. Account and position reads remain unavailable without the optional API key, secret, and exact `read` scope. To run the worker outside Compose, use `npm run worker:start`.
 
 The product interface defaults to English and includes Brazilian Portuguese and Spanish. Use the `EN`, `PT`, and `ES` links in the shell to switch language; unsupported locale values fall back to English.
 
@@ -49,7 +49,7 @@ The `.env.example` contains `replace-me` placeholders for local development; Com
 - `MAINNET_EXECUTION` is rejected at process startup. Execution defaults OFF; the persisted `GLOBAL_EXECUTION_DISABLED` control is seeded enabled.
 - Audit events and policy versions are append-only in PostgreSQL. M01 creates only `policies`, `policy_versions`, `audit_events`, `integration_health_samples`, and `runtime_controls`.
 - Logs carry a correlation ID and redact common authorization, token, key, seed, and password fields.
-- Demo-only state cannot satisfy execution eligibility or authorization. There is no signing or submission code path.
+- Demo-only state cannot satisfy execution eligibility or authorization. There is no wallet/transaction signing, order submission, or financial execution path.
 
 ## Validation commands
 
@@ -64,6 +64,7 @@ npm test
 npm run build
 npm run db:check
 npm run db:smoke
+npm run risk:benchmark
 npm run security:audit
 npm run security:client-bundle
 npm run smoke:boot
@@ -72,7 +73,7 @@ npm run gef:package:verify
 npm run gef:verify
 ```
 
-Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance and a bounded Windows lane for domain, policy-contract, and configuration tests.
+Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance, including a disposable M01-to-M02 migration upgrade, deterministic replay fixtures, and a one-position p95 risk benchmark. A bounded Windows lane covers domain, contracts, config, Perpl adapter, risk engine, and strict type checks. External provider availability and API credentials are not required in CI.
 
 ## Additional contracts
 
