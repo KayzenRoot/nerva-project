@@ -1,6 +1,6 @@
 # NERVA Definition of Done
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Work Order Done
 A Work Order is done only when:
