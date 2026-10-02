@@ -1,6 +1,6 @@
 # NERVA Deployment
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Environments
 1. LOCAL — developer fixtures, no production signing.
