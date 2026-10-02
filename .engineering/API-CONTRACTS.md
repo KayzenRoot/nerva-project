@@ -1,6 +1,6 @@
 # NERVA API Contracts
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 Planning-level interface contracts. Transport/framework and exact paths are frozen in owning Work Orders.
 
 ## Read surfaces
