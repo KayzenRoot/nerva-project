@@ -1,6 +1,6 @@
 # NERVA 90-Second Demo Contract
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Goal
 Prove the complete NERVA idea in <=90 seconds with no hidden manual repair.
