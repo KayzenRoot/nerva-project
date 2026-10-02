@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "nerva.context-lock",
+  "workOrder": "NERVA-WO-002",
+  "module": "M01",
+  "status": "LOCKED",
+  "executionBase": "4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955",
+  "repository": "KayzenRoot/nerva-project",
+  "gef": "@gef-bootstrap/cli@1.1.2",
+  "criticalInputs": {
+    ".engineering/CHECKPOINT.md": "ad5a7c6df3ee88e1e1b64800c3b5458354a0b024",
+    ".engineering/CHECKPOINT.json": "069e31c9336b93e82ce1acae10f97975b9be06d3",
+    ".engineering/DECISIONS-LEDGER.md": "e40b4308f4042d394b82e54c8ab6627c9a24395e",
+    ".engineering/SCOPE.md": "1416765ecca2833c38296a0f44f88eb8abe155a1",
+    ".engineering/DEFINITION-OF-DONE.md": "bf793a6c427d83bcb78c02b0052452c1cb47a797",
+    ".engineering/ARCHITECTURE.md": "9c080da081d11ec9563bb4acf7691f265e7d5c8a",
+    ".engineering/REQUIREMENTS.md": "d4e90452a018512a041f8a149df1558ba3f51361",
+    ".engineering/SECURITY.md": "270a351c4e1e1533b451b41b4e74268cbd1fea06",
+    ".engineering/DATA-MODEL.md": "e37bd0b347292c693d213ce892820e8d69cfead8",
+    ".engineering/API-CONTRACTS.md": "7c78707e65cd2e60ac5b59d8ba72015ca1e05482",
+    ".engineering/INTEGRATION-CONTRACTS.md": "61e9094a1fed7ca0f242438880a7e5706f8b3659",
+    ".engineering/TEST-BENCHMARK-PLAN.md": "a45dfcc3aa23fa7e237bd8e5c79b605efdc2557b",
+    ".engineering/DEPLOYMENT.md": "e029e606ea9aca128172087407cfd37f4a27e314",
+    ".engineering/MODULE-ROADMAP.md": "fadb11e99bf9137076ec88eec63769ea3beeec6d",
+    ".engineering/SOURCE-HIERARCHY.md": "4c3ae8d813ce20873f3cc3baafc1a8804ac16aa5",
+    ".engineering/decisions/ADR-0001-AUTHORIZATION-BOUNDARY.md": "8755d5f7eacfc3f4ab7da987dc9a3db0db7a6042",
+    ".engineering/decisions/ADR-0002-GUARDIAN-NERVA-BOUNDARY.md": "5f881e9cf8afd335e1b4d359b5721838a3841d8f"
+  },
+  "externalSources": [
+    {
+      "name": "Next.js official release/security material",
+      "url": "https://nextjs.org/blog",
+      "observed": "2026-10-02",
+      "facts": ["16.3.8 Active LTS is the September 2026 security-patched line"]
+    },
+    {
+      "name": "npm registry metadata",
+      "url": "https://www.npmjs.com/",
+      "observed": "2026-10-02",
+      "facts": [
+        "typescript 7.0.2",
+        "zod 4.6.5",
+        "vitest 5.0.3",
+        "drizzle-orm 0.45.3",
+        "drizzle-kit 0.31.11",
+        "pino 10.3.1",
+        "eslint 10.10.0",
+        "react 19.3.0"
+      ]
+    },
+    {
+      "name": "Monad current network facts",
+      "url": "https://docs.monad.xyz/",
+      "observed": "2026-10-02",
+      "facts": ["mainnet chainId 143", "testnet chainId 10143"]
+    }
+  ],
+  "staleIf": [
+    "main changes before executor admission/preflight",
+    "Checkpoint, Decisions Ledger, Scope, DoD, Architecture or relevant approved ADR changes",
+    "GEF governed state/version changes",
+    "a selected package has a new security advisory or incompatible stable release requiring architecture change",
+    "Monad network identity required by M01 changes"
+  ]
+}
