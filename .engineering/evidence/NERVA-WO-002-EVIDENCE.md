@@ -135,8 +135,10 @@ Tests were written and run against missing modules before implementations. Domai
 | `M01-SEC-002`    | PASS         | Client bundle scan examined 12 assets with one synthetic `DATABASE_URL` value; none appeared in client output.                                                               |
 | `M01-DB-001`     | PASS         | Schema test plus clean PostgreSQL 18.6 migration smoke verified five tables, append-only/audit triggers, and disabled seed.                                                  |
 | `M01-DET-001`    | PASS         | Canonical bytes/hash are key-order independent; bounded integer and bigint serialization checked in the domain test.                                                         |
-| `M01-CI-001`     | PASS exact-head | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths; Linux exact-head CI passed in run `37052127423`.             |
-| `M01-BOOT-001`   | PASS exact-head | Live/ready route tests, worker safe-mode test and production boot smoke passed in exact-head Linux CI run `37052127423`.                                                    |
+| `M01-CI-001`     | PASS locally | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths. Hosted CI pending.                                            |
+| `M01-BOOT-001`   | PASS locally | Live/ready route tests, worker safe-mode test and production boot smoke; hosted CI pending.                                                                                  |
+
+**Final exact-head override for the two rows above:** after the implementation push, both `M01-CI-001` and `M01-BOOT-001` completed successfully in Linux run `37052127423`; the bounded Windows lane also passed. The earlier `PASS locally / Hosted CI pending` text is retained as chronological pre-hosted evidence and is superseded by this exact-head result.
 
 ### Complete changed-file inventory
 
