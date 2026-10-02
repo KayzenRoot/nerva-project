@@ -1,6 +1,6 @@
 # NERVA Project Overview
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Product
 NERVA is a non-custodial autonomous risk and policy execution layer for onchain finance, initially built for Monad.
