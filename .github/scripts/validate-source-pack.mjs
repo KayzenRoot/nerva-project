@@ -33,8 +33,11 @@ const missing = required.filter((p) => !fs.existsSync(p));
 if (missing.length) throw new Error("Missing Source Pack files: " + missing.join(", "));
 
 const checkpoint = JSON.parse(fs.readFileSync(".engineering/CHECKPOINT.json", "utf8"));
-if (checkpoint.activeModule !== "M00") throw new Error("Checkpoint activeModule drift");
-if (checkpoint.activeWorkOrder !== "NERVA-WO-001") throw new Error("Checkpoint activeWorkOrder drift");
+if (checkpoint.phase !== "IMPLEMENTATION_READY") throw new Error("Checkpoint phase drift");
+if (checkpoint.m00Status !== "APPROVED") throw new Error("M00 approval not promoted");
+if (checkpoint.sourcePackStatus !== "CANONICAL_V0_1") throw new Error("Source Pack is not canonical");
+if (checkpoint.activeNextModule !== "M01") throw new Error("Next module drift");
+if (checkpoint.nextModuleWorkOrder !== "NOT_ADMITTED") throw new Error("M01 must remain unadmitted");
 if (checkpoint.implementationStatus !== "NOT_STARTED") throw new Error("M00 must not claim implementation");
 if (checkpoint.knownCritical !== 0 || checkpoint.knownHigh !== 0) throw new Error("Checkpoint has unresolved CRITICAL/HIGH");
 
@@ -52,4 +55,4 @@ for (const id of ["D-0004","D-0005","D-0006","D-0011","D-0016","D-0018","D-0020"
   if (!decisions.includes(id)) throw new Error("Critical decision missing " + id);
 }
 
-console.log(JSON.stringify({ok:true, requiredFiles:required.length, modules:7, implementation:"NOT_STARTED"}));
+console.log(JSON.stringify({ok:true, requiredFiles:required.length, modules:7, sourcePack:"CANONICAL_V0_1", nextModule:"M01", nextWorkOrder:"NOT_ADMITTED", implementation:"NOT_STARTED"}));
