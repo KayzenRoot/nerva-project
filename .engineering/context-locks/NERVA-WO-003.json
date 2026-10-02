@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "nerva.context-lock",
+  "workOrder": "NERVA-WO-003",
+  "module": "M02",
+  "status": "LOCKED",
+  "executionBase": "166789a107dff6700b7dfab8f240184be14fe3c4",
+  "repository": "KayzenRoot/nerva-project",
+  "gef": "@gef-bootstrap/cli@1.1.2",
+  "criticalInputs": {
+    ".engineering/CHECKPOINT.md": "abd29919e9245c39982d819310b475851fc2f912",
+    ".engineering/CHECKPOINT.json": "67d512a678aa122dbf856d53ae1f795e004859f4",
+    ".engineering/DECISIONS-LEDGER.md": "e40b4308f4042d394b82e54c8ab6627c9a24395e",
+    ".engineering/SCOPE.md": "1416765ecca2833c38296a0f44f88eb8abe155a1",
+    ".engineering/DEFINITION-OF-DONE.md": "bf793a6c427d83bcb78c02b0052452c1cb47a797",
+    ".engineering/ARCHITECTURE.md": "9c080da081d11ec9563bb4acf7691f265e7d5c8a",
+    ".engineering/REQUIREMENTS.md": "d4e90452a018512a041f8a149df1558ba3f51361",
+    ".engineering/SECURITY.md": "270a351c4e1e1533b451b41b4e74268cbd1fea06",
+    ".engineering/DATA-MODEL.md": "e37bd0b347292c693d213ce892820e8d69cfead8",
+    ".engineering/API-CONTRACTS.md": "7c78707e65cd2e60ac5b59d8ba72015ca1e05482",
+    ".engineering/INTEGRATION-CONTRACTS.md": "61e9094a1fed7ca0f242438880a7e5706f8b3659",
+    ".engineering/TEST-BENCHMARK-PLAN.md": "a45dfcc3aa23fa7e237bd8e5c79b605efdc2557b",
+    ".engineering/MODULE-ROADMAP.md": "fadb11e99bf9137076ec88eec63769ea3beeec6d",
+    "package.json": "a4abc2122f1d583dbe2a041579e5ad20170ba743",
+    "packages/domain/src/index.ts": "2442dc30691b2beed8ee4b3be9b0ed42d748805b",
+    "packages/contracts/src/index.ts": "eb5df3da3824019b5f3106544508ad9434fc29ee",
+    "packages/config/src/index.ts": "9f0e3d77f3012a8bf6faba3bfd485881a711259a",
+    "packages/db/src/schema.ts": "cfc0b9e3a1e48c8c9eda628df38e5791d47c1bb5",
+    "apps/worker/src/worker.ts": "6fea6303502bfef89e753880b3a8d4c2066d3798"
+  },
+  "externalSources": [
+    {
+      "name": "Perpl API docs",
+      "repository": "PerplFoundation/api-docs",
+      "observedRevision": "25ab6e2c75c8f84d0550da8c3be30af49ad631f2",
+      "observed": "2026-10-02",
+      "facts": [
+        "public REST and market-data WebSocket available without auth",
+        "positions/wallet/portfolio reads accept API-key auth with read scope",
+        "read-scoped trading WebSocket receives snapshots/updates but cannot place orders",
+        "mainnet chain 143, testnet 10143",
+        "sequence gaps require reconnect/fresh snapshot",
+        "position API does not publish a direct liquidation-price field"
+      ]
+    },
+    {
+      "name": "Perpl SDK/contract reference",
+      "observed": "2026-10-02",
+      "facts": [
+        "may be used only as authoritative formula/scaling reference after executor verification",
+        "generic venue liquidation formulas are not accepted"
+      ]
+    },
+    {
+      "name": "Envio docs",
+      "observed": "2026-10-02",
+      "facts": [
+        "Metropolis Envio track exists",
+        "HyperIndex supports EVM indexing with HyperSync or RPC sources",
+        "Envio remains optional/IMPORTANT in M02 pending target-specific preflight"
+      ]
+    }
+  ],
+  "staleIf": [
+    "main changes before executor preflight",
+    "Checkpoint, Decisions Ledger, Scope, DoD, Architecture or relevant ADR changes",
+    "M01 accepted runtime or GEF state changes",
+    "Perpl authentication/REST/WebSocket/position semantics materially change",
+    "Monad network identity changes",
+    "a new security advisory changes selected dependency or credential architecture"
+  ]
+}
