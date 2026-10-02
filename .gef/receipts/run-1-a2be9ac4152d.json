@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "gef.cli.receipt",
+  "runId": "run-1-a2be9ac4152d",
+  "commandId": "gef.init.run",
+  "contractVersion": "1.0",
+  "productVersion": "1.1.2",
+  "effectStatus": "CONFIRMED",
+  "lifecyclePhases": [
+    "RECEIVED",
+    "VALIDATING",
+    "PREFLIGHTING",
+    "READY",
+    "EXECUTING",
+    "VERIFYING",
+    "RECEIPTING"
+  ],
+  "resultDigest": "cc339d3678df5b2b8b0277aa04978ff03213ba49c4917f8188809ccea13821eb",
+  "transaction": {
+    "planDigest": "2b5196b676230963ad82a31e4175569577009de4519f00c26465f43794b33d43",
+    "outcome": "APPLIED",
+    "receiptDigest": "b3ba9481e8dbe42926e5c3d7eacfd00e122b337ef4c7194b7a4f991c40d2cafd",
+    "postFingerprint": "abf7d44e4a880b37bd1e486ae4ef731ffbe9d444090c13159f850c9b53dc25c8"
+  }
+}
