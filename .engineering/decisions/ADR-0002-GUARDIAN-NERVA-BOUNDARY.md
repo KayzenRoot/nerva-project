@@ -1,6 +1,6 @@
 # ADR-0002 — Guardian Thesis vs NERVA Product Boundary
 
-Status: APPROVED_CANDIDATE — NERVA-WO-001
+Status: APPROVED — NERVA-WO-001
 
 ## Context
 The initial research produced a broad Guardian concept spanning automation, risk, yield, insurance, payments and multi-protocol autonomous finance. The hackathon and company need a focused product that can ship.
