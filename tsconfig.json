@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "paths": {
+      "@nerva/domain": ["packages/domain/src/index.ts"],
+      "@nerva/contracts": ["packages/contracts/src/index.ts"],
+      "@nerva/config": ["packages/config/src/index.ts"],
+      "@nerva/observability": ["packages/observability/src/index.ts"],
+      "@nerva/db": ["packages/db/src/index.ts"],
+      "@nerva/testing": ["packages/testing/src/index.ts"]
+    }
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "vitest.config.ts",
+    "next.config.ts"
+  ],
+  "exclude": ["node_modules", ".next", "apps/web/next-env.d.ts", "**/dist/**", "coverage"]
+}

@@ -1,11 +1,11 @@
 # NERVA Backlog
 
-Status: CANONICAL — NERVA-WO-001
+Status: CANONICAL — NERVA-WO-002
 
 ## V0.1 modules
 - M00 Product, Competition & Source Pack Lock — APPROVED.
-- M01 Safety Kernel & Platform Foundation — NEXT after M00 approval.
-- M02 Monad/Perpl Data & Risk Intelligence.
+- M01 Safety Kernel & Platform Foundation — APPROVED.
+- M02 Monad/Perpl Data & Risk Intelligence — NEXT; Work Order NOT_ADMITTED.
 - M03 Policy Compiler, Simulation & Autonomous Execution.
 - M04 Agent Wallet, Permissions & Verifiable Evidence.
 - M05 Product Experience & Competition Demo.

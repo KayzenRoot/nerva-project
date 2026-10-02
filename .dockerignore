@@ -1,0 +1,12 @@
+.git
+.gef
+.gef-private
+node_modules
+**/node_modules
+**/.next
+coverage
+**/coverage
+.env
+.env.*
+!.env.example
+*.log

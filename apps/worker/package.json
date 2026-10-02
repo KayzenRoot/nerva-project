@@ -1,0 +1,17 @@
+{
+  "name": "@nerva/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "build": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nerva/config": "0.1.0",
+    "@nerva/db": "0.1.0",
+    "@nerva/domain": "0.1.0",
+    "@nerva/observability": "0.1.0"
+  }
+}

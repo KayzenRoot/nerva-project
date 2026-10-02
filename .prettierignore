@@ -1,0 +1,10 @@
+node_modules
+.next
+apps/web/next-env.d.ts
+.github/scripts/validate-source-pack.mjs
+.github/scripts/verify-gef-bootstrap.mjs
+.github/workflows/gef-bootstrap.yml
+coverage
+package-lock.json
+.gef
+*.lock

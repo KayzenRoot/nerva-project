@@ -1,21 +1,60 @@
 {
   "name": "nerva-project",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "NERVA — Monad-native autonomous risk and policy execution platform",
+  "type": "module",
+  "description": "NERVA M01 safety kernel and platform foundation",
   "engines": {
     "node": ">=22"
   },
+  "workspaces": [
+    "apps/web",
+    "apps/worker",
+    "packages/domain",
+    "packages/contracts",
+    "packages/config",
+    "packages/observability",
+    "packages/db",
+    "packages/testing"
+  ],
   "scripts": {
-    "gef": "gef",
-    "gef:version": "gef --version",
-    "gef:init": "gef init --target . --json",
-    "gef:init:apply": "gef init --target . --apply --json",
-    "gef:doctor": "gef doctor --target . --json",
-    "gef:status": "gef status --target . --json",
-    "gef:verify": "npm run gef:version && npm run gef:doctor && npm run gef:status"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.mjs\" \".github/workflows/*.yml\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-002-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md\"",
+    "build": "npm run build --workspace=@nerva/web && npm run build --workspace=@nerva/worker",
+    "dev:web": "npm run dev --workspace=@nerva/web",
+    "worker:start": "node --experimental-strip-types apps/worker/src/main.ts",
+    "workspace:validate": "node .github/scripts/validate-workspaces.mjs",
+    "deps:boundary": "node .github/scripts/check-no-forbidden-deps.mjs",
+    "context:validate": "node .github/scripts/validate-nerva-context-lock.mjs",
+    "sourcepack:validate": "node .github/scripts/validate-source-pack.mjs",
+    "security:audit": "npm audit --audit-level=high",
+    "security:client-bundle": "node .github/scripts/check-client-bundle.mjs",
+    "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
+    "db:check": "drizzle-kit check --config packages/db/drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config packages/db/drizzle.config.ts",
+    "db:verify": "node .github/scripts/verify-db-schema.mjs",
+    "db:smoke": "npm run db:migrate && npm run db:verify",
+    "smoke:boot": "node .github/scripts/boot-smoke.mjs",
+    "gef:verify": "node .github/scripts/verify-gef-bootstrap.mjs state",
+    "gef:package:verify": "node .github/scripts/verify-gef-bootstrap.mjs package"
   },
   "devDependencies": {
-    "@gef-bootstrap/cli": "1.1.2"
+    "@gef-bootstrap/cli": "1.1.2",
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.11",
+    "eslint": "10.10.0",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
   }
 }

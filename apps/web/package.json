@@ -1,0 +1,21 @@
+{
+  "name": "@nerva/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nerva/config": "0.1.0",
+    "@nerva/db": "0.1.0",
+    "@nerva/domain": "0.1.0",
+    "@nerva/observability": "0.1.0",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}
