@@ -23,7 +23,6 @@ Use `.engineering/evidence/NERVA-WO-002-EVIDENCE.md` at the exact PR head. Reval
 
 This proposal is documentary only. It does not edit `.engineering/CHECKPOINT.md`, `.engineering/CHECKPOINT.json`, the Source Pack, or the admission state; it does not merge PR #6 and does not start M02.
 
-
 ## Promotion audit receipt
 
 Implementation/evidence audit: APPROVED / OWNER_AUDIT_NOT_INDEPENDENT.
