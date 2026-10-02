@@ -1,6 +1,6 @@
 # NERVA Data Model
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 Logical model only; physical database technology belongs to M01.
 
 ## Core entities
