@@ -1,6 +1,6 @@
 # NERVA UI/UX
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Product experience goal
 Make autonomous risk protection understandable before it is powerful. A user should know: current risk, what NERVA is allowed to do, why it acted, and how to stop it.
