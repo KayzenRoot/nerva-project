@@ -28,5 +28,6 @@ Git, code, tests, deployed artifacts and objective provider evidence override co
 - Repository: `KayzenRoot/nerva-project`
 - GEF: `@gef-bootstrap/cli@1.1.2`
 - M00 execution base: `d9f20cdd6d7bcc024d5c13ead2eceeb7c73eab6c`
-- Active planning Work Order: `NERVA-WO-001`
+- Last approved planning Work Order: `NERVA-WO-001`
+- Next implementation module: M01 — Work Order NOT_ADMITTED
 - Product implementation: NOT_STARTED
