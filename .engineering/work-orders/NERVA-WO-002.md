@@ -1,6 +1,6 @@
 # NERVA-WO-002 — M01 Safety Kernel & Platform Foundation
 
-**Status:** ADMITTED — OWNER AUTHORIZED  
+**Status:** APPROVED — OWNER_AUDIT_NOT_INDEPENDENT  
 **Risk:** HIGH_ASSURANCE  
 **Module:** M01  
 **Issue:** #5  
@@ -463,7 +463,7 @@ Auditor compares exact head against Source Pack + this WO, not against conversat
 
 ## STOP CONDITION
 
-Stop only at:
+Stop satisfied at:
 
 `NERVA_M01_PLATFORM_FOUNDATION_READY_FOR_AUDIT`
 
