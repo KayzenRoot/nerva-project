@@ -1,6 +1,6 @@
 # NERVA V0.1 Module Roadmap
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 The roadmap intentionally uses a small number of large modules. Each M01-M06 should normally be implemented through one large primary Work Order/PR, with bounded Correction Deltas rather than fragmented follow-up PRs.
 
