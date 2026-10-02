@@ -1,6 +1,6 @@
 # NERVA-WO-002 Evidence Bundle
 
-Status: M01 IMPLEMENTED — FINAL EXACT-HEAD GATES PASS; AUDIT CANDIDATE
+Status: M01 APPROVED — GOVERNANCE PROMOTION IN PROGRESS
 Work Order: NERVA-WO-002
 Module: M01
 Issue: #5
@@ -229,9 +229,25 @@ Inherited read-only GEF observations from the baseline: `drift.changed=true`, `d
 - Plan authority now includes immutable action family, network, protocol capability, market selector, slippage, amount, fraction, and expiry bindings. No execution caller exists in M01.
 - `generic-risk-preview-v0` is not evidence that a protocol is integrated or that market data is current.
 - Moderate transitive audit findings remain below the required HIGH/CRITICAL gate and will be checked again on the final lock.
-- Independent audit and governance promotion remain pending after this evidence-only correction.
+- Implementation audit is APPROVED / OWNER_AUDIT_NOT_INDEPENDENT; governance promotion and merge remain pending.
 - No merge, Checkpoint promotion, M01 approval, or M02 work is included.
 
 ## Proposed Checkpoint Delta
 
 See `.engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md`. It proposes only `NERVA_M01_PLATFORM_FOUNDATION_READY_FOR_AUDIT` as the executor stop marker after exact-head gates pass. It does not modify canonical Checkpoint files.
+
+
+## Auditor receipt
+
+Verdict: `APPROVED / OWNER_AUDIT_NOT_INDEPENDENT`.
+
+Audited evidence-corrected head: `068120fd423b3b01ec2c2b5f17b5df6ad94586a0`.
+
+Exact-head hosted evidence:
+- M01 foundation run `37055203686`: SUCCESS
+- GEF run `37055203719`: SUCCESS
+- Source Pack run `37055203721`: SUCCESS
+- Socket Security checks: SUCCESS
+- CRITICAL/HIGH: 0 / 0
+
+The runtime implementation remains exactly `0c9b1736da60f27023699b978fb05d3a5ee01365`; later commits before this receipt are evidence-only corrections and governance promotion.
