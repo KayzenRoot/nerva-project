@@ -1,0 +1,37 @@
+name: NERVA M00 Source Pack validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  source-pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate canonical Source Pack
+        run: node .github/scripts/validate-source-pack.mjs
+      - name: Verify M00 remains planning-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -d src
+          test ! -d app
+          test ! -d apps
+          test ! -d contracts
