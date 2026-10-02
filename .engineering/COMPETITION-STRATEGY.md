@@ -1,6 +1,6 @@
 # NERVA Metropolis Competition Strategy
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 Observed: 2026-10-02. Reverify before submission.
 
 ## Verified public program facts
