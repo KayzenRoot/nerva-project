@@ -2,7 +2,7 @@
 
 NERVA is a Monad-native, non-custodial autonomous risk and policy execution platform.
 
-> Current phase: **planning**. Product implementation is **NOT_STARTED** until M00 is objectively approved and merged.
+> Current phase: **implementation-ready after M00 merge**. Product implementation remains **NOT_STARTED** until M01 receives its own admitted Work Order.
 
 ## Product thesis
 
@@ -39,5 +39,7 @@ Additional contracts:
 ## Current execution
 
 - Accepted bootstrap: NERVA-WO-000
-- Active planning: NERVA-WO-001 / M00
-- Implementation modules M01-M06 are not yet admitted.
+- M00 Source Pack: NERVA-WO-001 APPROVED
+- Next module: M01 Safety Kernel & Platform Foundation
+- M01 Work Order: NOT_ADMITTED
+- Implementation remains NOT_STARTED.
