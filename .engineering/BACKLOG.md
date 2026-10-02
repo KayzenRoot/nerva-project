@@ -1,6 +1,6 @@
 # NERVA Backlog
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## V0.1 modules
 - M00 Product, Competition & Source Pack Lock — ACTIVE.
