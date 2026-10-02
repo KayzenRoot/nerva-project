@@ -1,6 +1,6 @@
 # ADR-0001 — Deterministic Financial Authorization Boundary
 
-Status: APPROVED_CANDIDATE — NERVA-WO-001
+Status: APPROVED — NERVA-WO-001
 
 ## Context
 NERVA accepts human intent and may use an LLM to make that intent easier to express. An LLM is probabilistic and vulnerable to malformed context/prompt injection. NERVA may cause real financial actions.
