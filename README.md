@@ -39,7 +39,7 @@ The web shell runs at `http://localhost:3000`. `/api/health/live` reports proces
 
 The product interface defaults to English and includes Brazilian Portuguese and Spanish. Use the `EN`, `PT`, and `ES` links in the shell to switch language; unsupported locale values fall back to English.
 
-The credentials in `.env.example` and Compose defaults are for isolated local development only. Keep production credentials out of source and pass them through the deployment secret store.
+The `.env.example` contains `replace-me` placeholders for local development; Compose fallback credentials are local only. Replace local values before sharing an environment, keep production credentials out of source, and pass them through the deployment secret store.
 
 ## M01 safety guarantees
 

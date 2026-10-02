@@ -61,6 +61,10 @@ The exact-head review of the first implementation found that `decideEligibility`
 
 The exact `c34e1289d9c269a1efc1ba21b9b04c4b56f8db92` security review reproduced a nested uppercase `payload.request.Authorization` value in the Pino output. A path-only pattern and argument-only sanitizer did not cover all nesting and `logger.child()` bindings. Follow-up test-first cases also showed that common variants such as `accessToken`, `clientSecret`, and `privateKeyHex` bypass exact-key matching. Added final serialized-record sanitization that recursively normalizes credential-key names case-insensitively and redacts authorization/API-key/private-key/seed-phrase prefixes and secret/token/password suffixes before the configured stream write; Pino path redaction remains defense in depth. The new cases failed before the correction and pass after it. The focused suite passes 2 tests and the full suite passes 41 tests across 9 files.
 
+### CD-006 — Environment template placeholders
+
+A final literal check against NERVA-WO-002 lines 294-301 found that `.env.example` contained fixed local values where the Work Order requires placeholders only. The sample now uses matching `replace-me` placeholders for PostgreSQL and `DATABASE_URL`; Compose builds the worker URL from the same configurable database variables while retaining documented local-only fallbacks. `docker compose --env-file .env.example config --format json` confirms that DB and worker credentials resolve consistently and that PostgreSQL remains loopback-bound. The sample remains explicitly development-only; production values still belong in the deployment secret store.
+
 ## Implemented architecture
 
 - npm workspaces: `apps/web`, `apps/worker`, and `packages/{domain,contracts,config,observability,db,testing}`.

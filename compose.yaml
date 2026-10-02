@@ -24,7 +24,7 @@ services:
       NERVA_EXECUTION_ENABLED: 'false'
       NERVA_KILL_SWITCH_ENABLED: 'true'
       NERVA_LOG_LEVEL: info
-      DATABASE_URL: postgresql://nerva:nerva@db:5432/nerva
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nerva}:${POSTGRES_PASSWORD:-nerva}@db:5432/${POSTGRES_DB:-nerva}
     depends_on:
       db:
         condition: service_healthy
