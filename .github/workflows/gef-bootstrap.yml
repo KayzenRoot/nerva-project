@@ -50,17 +50,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('node_modules/@gef-bootstrap/cli/package.json', 'utf8'));
-          if (pkg.version !== '1.1.2') throw new Error('Expected @gef-bootstrap/cli 1.1.2, got ' + pkg.version);
-          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-          const entry = lock.packages?.['node_modules/@gef-bootstrap/cli'];
-          if (!entry) throw new Error('GEF package missing from lockfile');
-          if (entry.version !== '1.1.2') throw new Error('Lockfile version drift: ' + entry.version);
-          const expectedSri = 'sha512-zLu0oaBWqwIPviZgN0PTk1/5QlsHK8r7aCNOkMop0MnlzqFZ1um3zfkRO2l8hx005nd/2xZ/Ll/lDzYUbH01uw==';
-          if (entry.integrity !== expectedSri) throw new Error('Registry SRI mismatch: ' + entry.integrity);
-          NODE
+          node .github/scripts/verify-gef-bootstrap.mjs package
           node node_modules/@gef-bootstrap/cli/bin/gef.mjs --version | tee /tmp/gef-version.json
 
       - name: Governed GREENFIELD init when absent
@@ -72,20 +62,7 @@ jobs:
             node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --json > /tmp/gef-init-preview.json
             test ! -f .gef/init-state.json
             node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --apply --json > /tmp/gef-init-apply.json
-
-            node <<'NODE'
-            const fs = require('node:fs');
-            const state = JSON.parse(fs.readFileSync('.gef/init-state.json', 'utf8'));
-            if (state.productVersion !== '1.1.2') throw new Error('Unexpected GEF state version');
-            if (state.kind !== 'gef.init.state') throw new Error('Unexpected GEF state kind');
-            if (state.transaction?.outcome !== 'APPLIED') throw new Error('GEF init did not report APPLIED');
-            if (!state.runId) throw new Error('GEF runId missing');
-            const receiptPath = '.gef/receipts/' + state.runId + '.json';
-            const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
-            if (receipt.productVersion !== '1.1.2') throw new Error('Unexpected receipt version');
-            if (receipt.commandId !== 'gef.init.run') throw new Error('Unexpected receipt command');
-            NODE
-
+            node .github/scripts/verify-gef-bootstrap.mjs state
             git add .gef/init-state.json .gef/receipts/*.json
             git commit -m "chore(gef): initialize governed GEF 1.1.2 state"
           fi
@@ -94,17 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-          const state = JSON.parse(fs.readFileSync('.gef/init-state.json', 'utf8'));
-          if (state.productVersion !== '1.1.2' || state.transaction?.outcome !== 'APPLIED') {
-            throw new Error('Persisted GEF init state is not accepted 1.1.2/APPLIED');
-          }
-          const receipt = JSON.parse(fs.readFileSync('.gef/receipts/' + state.runId + '.json', 'utf8'));
-          if (receipt.productVersion !== '1.1.2' || receipt.commandId !== 'gef.init.run') {
-            throw new Error('Persisted GEF receipt mismatch');
-          }
-          NODE
+          node .github/scripts/verify-gef-bootstrap.mjs state
 
       - name: Doctor, deterministic status and dependency audit
         shell: bash
