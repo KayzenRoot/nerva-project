@@ -1,6 +1,6 @@
 # NERVA Security
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 Classification: HIGH_ASSURANCE
 
 ## Security objective
