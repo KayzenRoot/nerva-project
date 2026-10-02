@@ -3,6 +3,50 @@ import pino, { type Logger, type DestinationStream, type LoggerOptions } from 'p
 
 const correlation = new AsyncLocalStorage<string>();
 
+const sensitiveLogKeys = new Set([
+  'authorization',
+  'apikey',
+  'privatekey',
+  'seedphrase',
+  'secret',
+  'token',
+  'password',
+]);
+const sensitiveLogKeyPrefixes = ['authorization', 'apikey', 'privatekey', 'seedphrase'];
+const sensitiveLogKeySuffixes = ['secret', 'token', 'password'];
+
+function isSensitiveLogKey(key: string): boolean {
+  const normalizedKey = key.replaceAll(/[-_]/g, '').toLowerCase();
+  return (
+    sensitiveLogKeys.has(normalizedKey) ||
+    sensitiveLogKeyPrefixes.some((prefix) => normalizedKey.startsWith(prefix)) ||
+    sensitiveLogKeySuffixes.some((suffix) => normalizedKey.endsWith(suffix))
+  );
+}
+
+function sanitizeLogValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeLogValue);
+  if (value === null || typeof value !== 'object') return value;
+
+  const sanitized: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  for (const [key, item] of Object.entries(value)) {
+    const sanitizedItem = isSensitiveLogKey(key) ? '[REDACTED]' : sanitizeLogValue(item);
+    Object.defineProperty(sanitized, key, {
+      configurable: true,
+      enumerable: true,
+      value: sanitizedItem,
+      writable: true,
+    });
+  }
+  return sanitized;
+}
+
+function sanitizeSerializedLog(line: string): string {
+  const lineEnding = line.endsWith('\r\n') ? '\r\n' : line.endsWith('\n') ? '\n' : '';
+  const serialized = lineEnding ? line.slice(0, -lineEnding.length) : line;
+  return `${JSON.stringify(sanitizeLogValue(JSON.parse(serialized)))}${lineEnding}`;
+}
+
 export interface LoggerOptionsForNerva {
   readonly level: string;
   readonly environment: string;
@@ -58,6 +102,7 @@ export function createLogger(options: LoggerOptionsForNerva): Logger {
     timestamp: pino.stdTimeFunctions.isoTime,
     redact: { paths: redactedPaths, censor: '[REDACTED]' },
     mixin: () => ({ correlationId: correlation.getStore() ?? 'unscoped' }),
+    hooks: { streamWrite: sanitizeSerializedLog },
   };
   return options.stream ? pino(loggerOptions, options.stream) : pino(loggerOptions);
 }

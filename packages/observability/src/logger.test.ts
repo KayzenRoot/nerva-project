@@ -18,7 +18,16 @@ describe('M01-SEC-001 structured correlation logging', () => {
           authorization: 'Bearer secret-token',
           apiKey: 'api-secret',
           privateKey: 'private-material',
-          nested: { password: 'do-not-log' },
+          accessToken: 'access-token-secret',
+          clientSecret: 'client-secret',
+          privateKeyHex: 'private-key-hex-secret',
+          nested: {
+            password: 'do-not-log',
+            request: {
+              Authorization: 'nested-auth-secret',
+              headers: { Authorization: 'deep-auth-secret' },
+            },
+          },
         },
         'safety event',
       ),
@@ -28,6 +37,27 @@ describe('M01-SEC-001 structured correlation logging', () => {
     expect(JSON.stringify(record)).not.toContain('secret-token');
     expect(JSON.stringify(record)).not.toContain('api-secret');
     expect(JSON.stringify(record)).not.toContain('private-material');
+    expect(JSON.stringify(record)).not.toContain('access-token-secret');
+    expect(JSON.stringify(record)).not.toContain('client-secret');
+    expect(JSON.stringify(record)).not.toContain('private-key-hex-secret');
     expect(JSON.stringify(record)).not.toContain('do-not-log');
+    expect(JSON.stringify(record)).not.toContain('nested-auth-secret');
+    expect(JSON.stringify(record)).not.toContain('deep-auth-secret');
+  });
+
+  it('redacts deeply nested credentials in child logger bindings', () => {
+    const lines: string[] = [];
+    const sink = new Writable({
+      write(chunk, _encoding, callback) {
+        lines.push(String(chunk));
+        callback();
+      },
+    });
+    const logger = createLogger({ level: 'info', environment: 'LOCAL', stream: sink });
+    logger
+      .child({ requestContext: { headers: { Authorization: 'child-auth-secret' } } })
+      .info('child event');
+
+    expect(lines.join('')).not.toContain('child-auth-secret');
   });
 });

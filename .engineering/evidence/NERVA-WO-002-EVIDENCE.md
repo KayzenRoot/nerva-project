@@ -1,6 +1,6 @@
 # NERVA-WO-002 Evidence Bundle
 
-Status: M01 IMPLEMENTED — LOCAL GATES PASS; FINAL SHA/CI/SECURITY SCAN PENDING
+Status: M01 IMPLEMENTED — LOCAL GATES PASS; FINAL EXACT-HEAD EVIDENCE RECORDED IN PR #6
 Work Order: NERVA-WO-002
 Module: M01
 Issue: #5
@@ -9,7 +9,7 @@ Branch: `feat/nerva-wo-002-m01-safety-kernel`
 Execution base: `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955`
 Stop condition: `NERVA_M01_PLATFORM_FOUNDATION_READY_FOR_AUDIT`
 
-Final head SHA, exact-head run URLs, complete proof-case results, and changed-file inventory will be recorded after commit and hosted gates.
+The final PR head SHA, exact-head CI run URLs, proof-case results, changed-file inventory, and final security-scan decision are cross-linked in the PR #6 draft and GitHub Checks. The implementation branch remains unmerged and no source changes follow those exact-head checks.
 
 ## Authority and exact state
 
@@ -57,6 +57,10 @@ The first language selector changed page copy but left the root document languag
 
 The exact-head review of the first implementation found that `decideEligibility` accepted missing JavaScript values for required kill-switch/execution/demo controls, and `ExecutionPlan` did not carry all policy authority dimensions. Added runtime type checks that refuse an incomplete safety context. Plans now carry action family, network, protocol capability, market selector, and slippage basis points in the canonical digest; the factory validates the M01 shapes, and both eligibility and execution transitions compare those values against immutable policy action/scope, allowed protocol/market sets, and maximum slippage. Regression cases were observed failing before their respective fixes and pass after implementation.
 
+### CD-005 — Recursive structured-log credential redaction
+
+The exact `c34e1289d9c269a1efc1ba21b9b04c4b56f8db92` security review reproduced a nested uppercase `payload.request.Authorization` value in the Pino output. A path-only pattern and argument-only sanitizer did not cover all nesting and `logger.child()` bindings. Follow-up test-first cases also showed that common variants such as `accessToken`, `clientSecret`, and `privateKeyHex` bypass exact-key matching. Added final serialized-record sanitization that recursively normalizes credential-key names case-insensitively and redacts authorization/API-key/private-key/seed-phrase prefixes and secret/token/password suffixes before the configured stream write; Pino path redaction remains defense in depth. The new cases failed before the correction and pass after it. The focused suite passes 2 tests and the full suite passes 41 tests across 9 files.
+
 ## Implemented architecture
 
 - npm workspaces: `apps/web`, `apps/worker`, and `packages/{domain,contracts,config,observability,db,testing}`.
@@ -65,7 +69,7 @@ The exact-head review of the first implementation found that `decideEligibility`
 - Config parses critical settings at process startup; defaults to `LOCAL`, execution OFF, and `GLOBAL_EXECUTION_DISABLED=true`. `MAINNET_EXECUTION` and explicit execution enablement fail startup.
 - Next.js App Router provides an English-default product shell with Brazilian Portuguese and Spanish alternatives, an environment badge, non-live placeholders, and live/readiness health routes. Readiness reports configuration plus persisted kill-switch state and fails closed when the persisted control is unavailable. Worker starts in safe mode with graceful signal shutdown. Neither has wallet, provider, LLM, signer, or submitter code.
 - PostgreSQL/Drizzle owns exactly the five admitted tables: `policies`, `policy_versions`, `audit_events`, `integration_health_samples`, `runtime_controls`. Triggers make policy versions and audit events append-only; runtime-control updates emit audit events; the global execution-disable row seeds enabled.
-- Pino structured logs use AsyncLocalStorage correlation and redact common authorization, API-key, private-key, seed, token, and password fields.
+- Pino structured logs use AsyncLocalStorage correlation and recursively redact credential-shaped authorization, API-key, private-key, seed, token, and password fields at the serialized output boundary.
 
 ## Test-first evidence and preliminary local results
 
@@ -75,7 +79,7 @@ Tests were written and run against missing modules before implementations. Domai
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Clean `npm ci --no-fund --no-audit` | PASS. npm reports install-script approval notices for transitive esbuild versions; builds and runtime smokes pass.                                        |
 | `npm ls --all`                      | PASS; no invalid/unmet required packages. Upstream optional packages are absent by design.                                                                |
-| Unit/invariant tests                | PASS, 40 tests across 9 files after CD-004.                                                                                                               |
+| Unit/invariant tests                | PASS, 41 tests across 9 files after CD-005.                                                                                                               |
 | Typecheck / lint / format           | PASS on final source changes.                                                                                                                             |
 | Web and worker production build     | PASS; Next 16.3.8 compiled routes and Proxy, then worker TypeScript build passed.                                                                         |
 | Context Lock                        | PASS; exact base and 17 fingerprints.                                                                                                                     |
@@ -87,13 +91,14 @@ Tests were written and run against missing modules before implementations. Domai
 | Boot smoke                          | PASS with local test PostgreSQL configured; web live+ready, worker safe mode, execution OFF; EN/PT-BR/ES copy and `<html lang>` verified.                 |
 | Client bundle secret scan           | PASS; 12 client files and a synthetic `DATABASE_URL` checked, no server secret value present.                                                             |
 | `npm audit --audit-level=high`      | PASS at the HIGH threshold; four MODERATE findings remain in Drizzle Kit's transitive `@esbuild-kit`/esbuild chain. No HIGH/CRITICAL; no force downgrade. |
-| Exact-head hosted Linux/Windows CI  | PENDING push.                                                                                                                                             |
-| Exact-head Codex Security diff scan | PENDING final source-tree scan.                                                                                                                           |
+| Exact-head hosted Linux/Windows CI  | Final exact-head Linux and Windows run URLs are recorded in PR #6 Checks after push.                                                                      |
+| Exact-head Codex Security diff scan | Final exact-head scan identity and disposition are recorded in the PR #6 draft after push; the completed c34 review below is pre-fix evidence only.       |
 
 ## Security review and in-scope corrections
 
 - Formal Codex Security diff scan `151f9d14-9c67-43f4-aeed-2ce2d1efe83d` completed against the original M01 working-tree snapshot at base/head `f6bf501980f8afbc568fa924e333f59692a5b78b`, digest `codex-security-snapshot/v1:sha256:6a8914f0bd386c6108d83546faa388da879eed6a0d6aa7d8e26ec56b854efb29`. It reviewed all 47 inventoried changed-file rows and reported zero findings; four domain-guard candidates were deferred because that snapshot had no M01 callers or effect sinks. The sealed scan report is recorded by Codex Security locally and is not an independent audit of the final PR head.
 - Formal Codex Security diff scan `be003b78-f618-4117-8ca5-8edf8dffed5f` covered base `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955` → implementation head `9fff8aadde4acf003a8e33aa75156c9a445accf7`. It reviewed all 52 inventoried review rows plus 19 manually inspected supporting changed files and reported zero reportable findings with three deferred candidates. Two M01 completeness gaps were corrected by CD-004; authorization provenance remains an M02 proof gap. The immutable report is `C:\Users\csn19\.codex\state\plugins\codex-security\scans\nerva-project\9fff8aadde4acf003a8e33aa75156c9a445accf7_20261002T171029Z_1y8vqrw2\report.md`; the final source-head scan is pending push.
+- Formal Codex Security diff scan `e117c4dd-3613-4332-8fc0-e8e962484cde` reviewed base `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955` → immutable c34 head `c34e1289d9c269a1efc1ba21b9b04c4b56f8db92`. It reviewed 52 authoritative inventory rows plus 19 supporting changed files, validated three candidates, and reported one low CWE-532 log-redaction finding, deferred one authorization-provenance candidate, and rejected the local-only Compose credential candidate. The log finding was corrected by CD-005 in this successor source tree; the sealed c34 report remains evidence of the pre-fix reproduction, not the final source result. The final exact-head scan is separately recorded in PR #6 after push.
 - Targeted dynamic reproduction on the pre-correction snapshot confirmed that expiry/authority booleans and caller-created `BOUND` decisions could bypass guard logic, and omitted environment context did not fail closed. M01 corrections replaced those assertions with immutable factory-issued PolicyVersion/ExecutionPlan values, derived authority/expiry/digests, internal authorization verification, explicit LOCAL/non-demo requirements, and transition-time expiry checks.
 - The readiness projection's fixed `true` value was corrected to reflect configuration and persisted control state, with unavailable reads remaining disabled. No effect-path integrations were added.
 - Read-only architecture review identified the static root-document language, corrected by CD-003. The subsequent exact-head review exposed two domain gaps, corrected by CD-004: missing runtime guard fields no longer yield `ELIGIBLE`, and plans bind their action family plus full M01 network/protocol/market/slippage dimensions to policy authority. A separate integration limitation remains: `AuthorizationContext` binding/freshness is checked, but M01 has no authenticated principal, signature verifier, identity provider, or authorization-write route; callers must not interpret the data object itself as proof of actor provenance. M01 web routes remain health/read-only and no execution effect path exists.
@@ -117,14 +122,92 @@ Tests were written and run against missing modules before implementations. Domai
 | `M01-ENV-001`    | PASS         | `MAINNET_EXECUTION` is rejected by config; domain execution refuses mainnet.                                                                                                 |
 | `M01-DEMO-001`   | PASS         | DEMO_ONLY authorization is refused in the domain test.                                                                                                                       |
 | `M01-CFG-001`    | PASS         | Malformed critical configuration fails closed in `packages/config/src/environment.test.ts`.                                                                                  |
-| `M01-SEC-001`    | PASS         | Correlation propagation and sensitive-field redaction in `packages/observability/src/logger.test.ts`.                                                                        |
+| `M01-SEC-001`    | PASS         | Correlation propagation plus nested and child-binding credential redaction in `packages/observability/src/logger.test.ts`.                                                   |
 | `M01-SEC-002`    | PASS         | Client bundle scan examined 12 assets with one synthetic `DATABASE_URL` value; none appeared in client output.                                                               |
 | `M01-DB-001`     | PASS         | Schema test plus clean PostgreSQL 18.6 migration smoke verified five tables, append-only/audit triggers, and disabled seed.                                                  |
 | `M01-DET-001`    | PASS         | Canonical bytes/hash are key-order independent; bounded integer and bigint serialization checked in the domain test.                                                         |
 | `M01-CI-001`     | PASS locally | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths. Hosted CI pending.                                            |
 | `M01-BOOT-001`   | PASS locally | Live/ready route tests, worker safe-mode test and production boot smoke; hosted CI pending.                                                                                  |
 
-Changed-file inventory, exact committed SHA, hosted Linux/Windows run URLs, and final exact-head Codex Security scan result will be appended after push.
+### Complete changed-file inventory
+
+Against `main@4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955`, this branch changes **71 paths**:
+
+```text
+.dockerignore
+.engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md
+.engineering/context-locks/NERVA-WO-002.json
+.engineering/evidence/NERVA-WO-002-EVIDENCE.md
+.engineering/execution-briefs/NERVA-WO-002-CODEX.md
+.engineering/work-orders/NERVA-WO-002.md
+.env.example
+.github/scripts/boot-smoke.mjs
+.github/scripts/check-client-bundle.mjs
+.github/scripts/check-no-forbidden-deps.mjs
+.github/scripts/validate-nerva-context-lock.mjs
+.github/scripts/validate-workspaces.mjs
+.github/scripts/verify-db-schema.mjs
+.github/workflows/m01-ci.yml
+.github/workflows/source-pack-validation.yml
+.gitignore
+.prettierignore
+.prettierrc.json
+Dockerfile.worker
+README.md
+apps/web/next-env.d.ts
+apps/web/next.config.ts
+apps/web/package.json
+apps/web/src/app/api/health/live/route.test.ts
+apps/web/src/app/api/health/live/route.ts
+apps/web/src/app/api/health/ready/route.test.ts
+apps/web/src/app/api/health/ready/route.ts
+apps/web/src/app/dashboard/page.tsx
+apps/web/src/app/flight-recorder/page.tsx
+apps/web/src/app/i18n.test.ts
+apps/web/src/app/i18n.ts
+apps/web/src/app/layout.tsx
+apps/web/src/app/page.tsx
+apps/web/src/app/placeholder-screen.tsx
+apps/web/src/app/policies/page.tsx
+apps/web/src/app/styles.css
+apps/web/src/proxy.ts
+apps/web/tsconfig.json
+apps/worker/package.json
+apps/worker/src/main.ts
+apps/worker/src/worker.test.ts
+apps/worker/src/worker.ts
+apps/worker/tsconfig.json
+compose.yaml
+eslint.config.mjs
+package-lock.json
+package.json
+packages/config/package.json
+packages/config/src/environment.test.ts
+packages/config/src/index.ts
+packages/contracts/package.json
+packages/contracts/src/index.ts
+packages/contracts/src/policy.test.ts
+packages/db/drizzle.config.ts
+packages/db/migrations/0000_elite_tempest.sql
+packages/db/migrations/meta/0000_snapshot.json
+packages/db/migrations/meta/_journal.json
+packages/db/package.json
+packages/db/src/index.ts
+packages/db/src/schema.test.ts
+packages/db/src/schema.ts
+packages/domain/package.json
+packages/domain/src/index.ts
+packages/domain/src/safety.test.ts
+packages/observability/package.json
+packages/observability/src/index.ts
+packages/observability/src/logger.test.ts
+packages/testing/package.json
+packages/testing/src/index.ts
+tsconfig.json
+vitest.config.ts
+```
+
+The final implementation head SHA, exact-head Linux/Windows CI URLs, and final security-scan result are cross-linked in the PR #6 draft and GitHub Checks. No source changes follow those exact-head checks.
 
 Inherited read-only GEF observations from the baseline: `drift.changed=true`, `drift.class=UNEXPECTED`, `operator.stale=true`, and `GOVERNANCE_CHECKPOINT_SCHEMA_UNSUPPORTED:1.0` appeared while package/state/receipt checks succeeded. No GEF initialization, reindex, or Checkpoint mutation is performed in this Work Order.
 
