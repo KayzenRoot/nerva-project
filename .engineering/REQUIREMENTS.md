@@ -1,6 +1,6 @@
 # NERVA Requirements
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Functional requirements
 - FR-001 Observe supported positions and market state with source/freshness metadata.
