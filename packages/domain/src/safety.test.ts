@@ -46,12 +46,35 @@ const activePolicyPayload = {
   metadata: { label: 'Policy', description: 'Bounded policy' },
 };
 
+const planScopeDefaults = {
+  actionFamily: 'REDUCE_POSITION' as const,
+  network: 'local' as const,
+  protocolCapability: 'generic-risk-preview-v0' as const,
+  marketSelector: 'ETH-PERP',
+  slippageBps: 50,
+};
+const matchingPolicyScope = {
+  planActionFamily: 'REDUCE_POSITION' as const,
+  policyActionFamily: 'REDUCE_POSITION' as const,
+  planNetwork: 'local' as const,
+  policyNetwork: 'local' as const,
+  planProtocolCapability: 'generic-risk-preview-v0' as const,
+  policyProtocolCapability: 'generic-risk-preview-v0' as const,
+  allowedProtocols: ['generic-risk-preview-v0'],
+  planMarketSelector: 'ETH-PERP',
+  policyMarketSelector: 'ETH-PERP',
+  allowedMarkets: ['ETH-PERP'],
+  planSlippageBps: 50,
+  policyMaxSlippageBps: 100,
+};
+
 let activePolicyVersion: PolicyVersion;
 let activePlan: ExecutionPlan;
 let eligibilityBase: Parameters<typeof decideEligibility>[0];
 beforeAll(async () => {
   activePolicyVersion = await createPolicyVersion(activePolicyPayload);
   activePlan = await createExecutionPlan({
+    ...planScopeDefaults,
     planId: asPlanId('plan-1'),
     policyVersionId: activePolicyVersion.policyVersionId,
     snapshotId: asSnapshotId('snapshot-1'),
@@ -286,6 +309,7 @@ describe('M01-STATE-002 execution lifecycle', () => {
       }),
     ).toThrow(/policy.*expired/i);
     const expiredPlan = await createExecutionPlan({
+      ...planScopeDefaults,
       planId: asPlanId('plan-expired'),
       policyVersionId: activePolicyVersion.policyVersionId,
       snapshotId: asSnapshotId('snapshot-1'),
@@ -330,6 +354,7 @@ describe('M01-AUTH-001/002, DATA-001, KILL-001, ENV-001, DEMO-001', () => {
   it('permits eligibility only for an active immutable policy and bounded plan', async () => {
     expect(decideEligibility(eligibilityBase).status).toBe('ELIGIBLE');
     const excessiveActionPlan = await createExecutionPlan({
+      ...planScopeDefaults,
       planId: asPlanId('plan-excessive-action'),
       policyVersionId: activePolicyVersion.policyVersionId,
       snapshotId: asSnapshotId('snapshot-1'),
@@ -347,6 +372,7 @@ describe('M01-AUTH-001/002, DATA-001, KILL-001, ENV-001, DEMO-001', () => {
       reason: 'PLAN_EXCEEDS_POLICY',
     });
     const excessiveNotionalPlan = await createExecutionPlan({
+      ...planScopeDefaults,
       planId: asPlanId('plan-excessive-notional'),
       policyVersionId: activePolicyVersion.policyVersionId,
       snapshotId: asSnapshotId('snapshot-1'),
@@ -378,6 +404,7 @@ describe('M01-AUTH-001/002, DATA-001, KILL-001, ENV-001, DEMO-001', () => {
       decideEligibility({
         ...eligibilityBase,
         plan: await createExecutionPlan({
+          ...planScopeDefaults,
           planId: asPlanId('plan-other-version'),
           policyVersionId: asPolicyVersionId('pv-2'),
           snapshotId: asSnapshotId('snapshot-1'),
@@ -388,6 +415,7 @@ describe('M01-AUTH-001/002, DATA-001, KILL-001, ENV-001, DEMO-001', () => {
       }),
     ).toMatchObject({ status: 'REFUSED', reason: 'POLICY_VERSION_MISMATCH' });
     const expiredPlan = await createExecutionPlan({
+      ...planScopeDefaults,
       planId: asPlanId('plan-expired'),
       policyVersionId: activePolicyVersion.policyVersionId,
       snapshotId: asSnapshotId('snapshot-1'),
@@ -442,6 +470,26 @@ describe('M01-AUTH-001/002, DATA-001, KILL-001, ENV-001, DEMO-001', () => {
       status: 'REFUSED',
       reason: 'DEMO_ONLY',
     });
+  });
+
+  it('refuses missing runtime safety controls at the eligibility boundary', () => {
+    type EligibilityInput = Parameters<typeof decideEligibility>[0];
+
+    expect(
+      decideEligibility({
+        ...eligibilityBase,
+        globalExecutionDisabled: undefined,
+      } as unknown as EligibilityInput),
+    ).toMatchObject({ status: 'REFUSED', reason: 'SAFETY_CONTEXT_INVALID' });
+    expect(
+      decideEligibility({
+        ...eligibilityBase,
+        executionEnabled: undefined,
+      } as unknown as EligibilityInput),
+    ).toMatchObject({ status: 'REFUSED', reason: 'SAFETY_CONTEXT_INVALID' });
+    expect(
+      decideEligibility({ ...eligibilityBase, demoOnly: undefined } as unknown as EligibilityInput),
+    ).toMatchObject({ status: 'REFUSED', reason: 'SAFETY_CONTEXT_INVALID' });
   });
 
   it('prevents DEMO_ONLY authorization and defaults execution to off', () => {
@@ -528,6 +576,7 @@ describe('M01-AUTH-001 exact numeric policy authority', () => {
   it('compares bounded basis points and decimal micros without trusting a caller boolean', () => {
     expect(
       isPlanWithinPolicyAuthority({
+        ...matchingPolicyScope,
         planActionFractionBps: 500,
         policyMaxActionFractionBps: 1_000,
         planNotionalMicros: '9007199254740993',
@@ -536,6 +585,7 @@ describe('M01-AUTH-001 exact numeric policy authority', () => {
     ).toBe(true);
     expect(
       isPlanWithinPolicyAuthority({
+        ...matchingPolicyScope,
         planActionFractionBps: 500,
         policyMaxActionFractionBps: 1_000,
         planNotionalMicros: '9007199254740995',
@@ -544,6 +594,7 @@ describe('M01-AUTH-001 exact numeric policy authority', () => {
     ).toBe(false);
     expect(
       isPlanWithinPolicyAuthority({
+        ...matchingPolicyScope,
         planActionFractionBps: 1_001,
         policyMaxActionFractionBps: 1_000,
         planNotionalMicros: '1',
@@ -552,10 +603,94 @@ describe('M01-AUTH-001 exact numeric policy authority', () => {
     ).toBe(false);
     expect(
       isPlanWithinPolicyAuthority({
+        ...matchingPolicyScope,
         planActionFractionBps: 1,
         policyMaxActionFractionBps: 1_000,
         planNotionalMicros: '01',
         policyMaxNotionalMicros: '2',
+      }),
+    ).toBe(false);
+  });
+
+  it('refuses plans whose network, market, or slippage exceeds policy authority', async () => {
+    type PlanInput = Parameters<typeof createExecutionPlan>[0];
+    const planInput = {
+      planId: asPlanId('plan-outside-scope'),
+      policyVersionId: activePolicyVersion.policyVersionId,
+      snapshotId: asSnapshotId('snapshot-1'),
+      expiresAt: activePlan.expiresAt,
+      actionFractionBps: activePlan.actionFractionBps,
+      notionalMicros: activePlan.notionalMicros,
+      actionFamily: 'REDUCE_POSITION',
+      network: 'local',
+      protocolCapability: 'generic-risk-preview-v0',
+      marketSelector: 'BTC-PERP',
+      slippageBps: 50,
+    };
+    const outsideMarket = await createExecutionPlan(planInput as unknown as PlanInput);
+    expect(outsideMarket.digest).not.toBe(activePlan.digest);
+    expect(decideEligibility({ ...eligibilityBase, plan: outsideMarket })).toMatchObject({
+      status: 'REFUSED',
+      reason: 'PLAN_EXCEEDS_POLICY',
+    });
+    expect(() =>
+      transitionExecution('OBSERVED', 'ELIGIBLE', {
+        ...eligibilityBase,
+        plan: outsideMarket,
+      }),
+    ).toThrow(/plan exceeds/i);
+
+    const outsideNetwork = await createExecutionPlan({
+      ...planInput,
+      planId: asPlanId('plan-outside-network'),
+      network: 'monad-mainnet',
+      marketSelector: 'ETH-PERP',
+    } as unknown as PlanInput);
+    expect(decideEligibility({ ...eligibilityBase, plan: outsideNetwork })).toMatchObject({
+      status: 'REFUSED',
+      reason: 'PLAN_EXCEEDS_POLICY',
+    });
+
+    const excessiveSlippage = await createExecutionPlan({
+      ...planInput,
+      planId: asPlanId('plan-excessive-slippage'),
+      marketSelector: 'ETH-PERP',
+      slippageBps: 101,
+    } as unknown as PlanInput);
+    expect(decideEligibility({ ...eligibilityBase, plan: excessiveSlippage })).toMatchObject({
+      status: 'REFUSED',
+      reason: 'PLAN_EXCEEDS_POLICY',
+    });
+
+    const outsideAction = await createExecutionPlan({
+      ...planInput,
+      planId: asPlanId('plan-outside-action'),
+      actionFamily: 'CLOSE_POSITION',
+      marketSelector: 'ETH-PERP',
+    } as unknown as PlanInput);
+    expect(decideEligibility({ ...eligibilityBase, plan: outsideAction })).toMatchObject({
+      status: 'REFUSED',
+      reason: 'PLAN_EXCEEDS_POLICY',
+    });
+
+    await expect(
+      createExecutionPlan({
+        ...planInput,
+        protocolCapability: 'unapproved-provider',
+      } as unknown as PlanInput),
+    ).rejects.toThrow(/protocol capability/i);
+  });
+
+  it('rejects structurally invalid network values in the exported authority predicate', () => {
+    expect(
+      isPlanWithinPolicyAuthority({
+        ...matchingPolicyScope,
+        planNetwork: 'unsupported-network' as never,
+        policyNetwork: 'unsupported-network' as never,
+        planActionFractionBps: 500,
+        policyMaxActionFractionBps: 1_000,
+        planNotionalMicros: '500000',
+        policyMaxNotionalMicros: '1000000',
       }),
     ).toBe(false);
   });

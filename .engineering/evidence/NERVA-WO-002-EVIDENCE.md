@@ -53,10 +53,14 @@ Both changes preserve the admitted architecture and remove npm peer overrides. T
 
 The first language selector changed page copy but left the root document language and metadata fixed to English. Added a locale-resolving Next Proxy that overwrites an internal request header from the supported `lang` query, then render `<html lang>` and title/description metadata from that locale. The boot smoke checks English default, PT-BR, and Spanish copy and document language in server-rendered HTML. Unsupported values fall back to English.
 
+### CD-004 — Complete execution-plan authority and runtime safety context
+
+The exact-head review of the first implementation found that `decideEligibility` accepted missing JavaScript values for required kill-switch/execution/demo controls, and `ExecutionPlan` did not carry all policy authority dimensions. Added runtime type checks that refuse an incomplete safety context. Plans now carry action family, network, protocol capability, market selector, and slippage basis points in the canonical digest; the factory validates the M01 shapes, and both eligibility and execution transitions compare those values against immutable policy action/scope, allowed protocol/market sets, and maximum slippage. Regression cases were observed failing before their respective fixes and pass after implementation.
+
 ## Implemented architecture
 
 - npm workspaces: `apps/web`, `apps/worker`, and `packages/{domain,contracts,config,observability,db,testing}`.
-- Domain exports branded identifiers, bounded integer basis points, bigint-safe amounts, versioned core objects, strict policy-transition validation, explicit version-bound confirmation evidence, and fail-closed state guards. Immutable PolicyVersion and ExecutionPlan objects are issued by validated factories and tracked in-process; eligibility derives policy limits, policy expiry, plan amounts/expiry, and the authorization digest from those objects instead of caller-supplied booleans or copied limits.
+- Domain exports branded identifiers, bounded integer basis points, bigint-safe amounts, versioned core objects, strict policy-transition validation, explicit version-bound confirmation evidence, and fail-closed state guards. Immutable PolicyVersion and ExecutionPlan objects are issued by validated factories and tracked in-process; eligibility derives policy action family, amount limits, network/protocol/market/slippage scope, policy and plan expiry, and authorization digest from those objects instead of caller-supplied booleans or copied limits.
 - `PolicySchemaV0_1` is strict. It rejects unknown fields/versions, unsupported capability values, environment/network mismatch, duplicate triggers, invalid expiry/bounds, unbounded actions, and fallback behavior other than `REFUSE`. M01 admits only `generic-risk-preview-v0`, which has no provider connection or execution effect.
 - Config parses critical settings at process startup; defaults to `LOCAL`, execution OFF, and `GLOBAL_EXECUTION_DISABLED=true`. `MAINNET_EXECUTION` and explicit execution enablement fail startup.
 - Next.js App Router provides an English-default product shell with Brazilian Portuguese and Spanish alternatives, an environment badge, non-live placeholders, and live/readiness health routes. Readiness reports configuration plus persisted kill-switch state and fails closed when the persisted control is unavailable. Worker starts in safe mode with graceful signal shutdown. Neither has wallet, provider, LLM, signer, or submitter code.
@@ -71,7 +75,7 @@ Tests were written and run against missing modules before implementations. Domai
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Clean `npm ci --no-fund --no-audit` | PASS. npm reports install-script approval notices for transitive esbuild versions; builds and runtime smokes pass.                                        |
 | `npm ls --all`                      | PASS; no invalid/unmet required packages. Upstream optional packages are absent by design.                                                                |
-| Unit/invariant tests                | PASS, 37 tests across 9 files.                                                                                                                            |
+| Unit/invariant tests                | PASS, 40 tests across 9 files after CD-004.                                                                                                               |
 | Typecheck / lint / format           | PASS on final source changes.                                                                                                                             |
 | Web and worker production build     | PASS; Next 16.3.8 compiled routes and Proxy, then worker TypeScript build passed.                                                                         |
 | Context Lock                        | PASS; exact base and 17 fingerprints.                                                                                                                     |
@@ -89,35 +93,36 @@ Tests were written and run against missing modules before implementations. Domai
 ## Security review and in-scope corrections
 
 - Formal Codex Security diff scan `151f9d14-9c67-43f4-aeed-2ce2d1efe83d` completed against the original M01 working-tree snapshot at base/head `f6bf501980f8afbc568fa924e333f59692a5b78b`, digest `codex-security-snapshot/v1:sha256:6a8914f0bd386c6108d83546faa388da879eed6a0d6aa7d8e26ec56b854efb29`. It reviewed all 47 inventoried changed-file rows and reported zero findings; four domain-guard candidates were deferred because that snapshot had no M01 callers or effect sinks. The sealed scan report is recorded by Codex Security locally and is not an independent audit of the final PR head.
+- Formal Codex Security diff scan `be003b78-f618-4117-8ca5-8edf8dffed5f` covered base `4dcdd3fd0cdd1ac7c8933839e7d70e60b925a955` → implementation head `9fff8aadde4acf003a8e33aa75156c9a445accf7`. It reviewed all 52 inventoried review rows plus 19 manually inspected supporting changed files and reported zero reportable findings with three deferred candidates. Two M01 completeness gaps were corrected by CD-004; authorization provenance remains an M02 proof gap. The immutable report is `C:\Users\csn19\.codex\state\plugins\codex-security\scans\nerva-project\9fff8aadde4acf003a8e33aa75156c9a445accf7_20261002T171029Z_1y8vqrw2\report.md`; the final source-head scan is pending push.
 - Targeted dynamic reproduction on the pre-correction snapshot confirmed that expiry/authority booleans and caller-created `BOUND` decisions could bypass guard logic, and omitted environment context did not fail closed. M01 corrections replaced those assertions with immutable factory-issued PolicyVersion/ExecutionPlan values, derived authority/expiry/digests, internal authorization verification, explicit LOCAL/non-demo requirements, and transition-time expiry checks.
 - The readiness projection's fixed `true` value was corrected to reflect configuration and persisted control state, with unavailable reads remaining disabled. No effect-path integrations were added.
-- Independent read-only architecture review found no remaining concrete defect in the domain guards. It identified the static root-document language, corrected by CD-003. Review limitations recorded for audit: `AuthorizationContext` binding/freshness is checked, but M01 has no authenticated principal, signature verifier, identity provider, or authorization-write route; callers must not interpret the data object itself as proof of actor provenance. The current M01 web routes are health/read-only and there is no execution effect path. `ExecutionPlan` models bounded action fraction/notional but not slippage/protocol/market fields, which remain required to bind if executable integrations are ever proposed.
+- Read-only architecture review identified the static root-document language, corrected by CD-003. The subsequent exact-head review exposed two domain gaps, corrected by CD-004: missing runtime guard fields no longer yield `ELIGIBLE`, and plans bind their action family plus full M01 network/protocol/market/slippage dimensions to policy authority. A separate integration limitation remains: `AuthorizationContext` binding/freshness is checked, but M01 has no authenticated principal, signature verifier, identity provider, or authorization-write route; callers must not interpret the data object itself as proof of actor provenance. M01 web routes remain health/read-only and no execution effect path exists.
 
 ## Proof-case results
 
-| Work Order proof | Result       | Evidence                                                                                                                          |
-| ---------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `M01-DOM-001`    | PASS         | Branded ID compile-time `@ts-expect-error` and runtime checks in `packages/domain/src/safety.test.ts`.                            |
-| `M01-POL-001`    | PASS         | Invalid policy transition refused in `packages/contracts/src/policy.test.ts`.                                                     |
-| `M01-POL-002`    | PASS         | Material revision creates a distinct immutable version/hash in the policy test.                                                   |
-| `M01-POL-003`    | PASS         | Strict V0.1 validator rejects unknown fields/schemas and malformed constraints in the policy test.                                |
-| `M01-AUTH-001`   | PASS         | Numeric action fraction/notional exceeding policy authority is refused in `packages/domain/src/safety.test.ts`.                   |
-| `M01-AUTH-002`   | PASS         | Mismatched plan digest or policy version is refused in the domain test.                                                           |
-| `M01-STATE-001`  | PASS         | Illegal, invalid, and expired policy transitions are refused in the domain test.                                                  |
-| `M01-STATE-002`  | PASS         | Illegal execution transitions and terminal-state retry are refused in the domain test.                                            |
-| `M01-DATA-001`   | PASS         | STALE/UNKNOWN observations cannot produce eligibility in the domain test.                                                         |
-| `M01-IDEMP-001`  | PASS         | Duplicate effect identity cannot advance twice in the domain test.                                                                |
-| `M01-REC-001`    | PASS         | UNKNOWN effect refuses blind retry in the same domain test.                                                                       |
-| `M01-KILL-001`   | PASS         | Global kill switch blocks execution progression in the domain test and readiness route test.                                      |
-| `M01-ENV-001`    | PASS         | `MAINNET_EXECUTION` is rejected by config; domain execution refuses mainnet.                                                      |
-| `M01-DEMO-001`   | PASS         | DEMO_ONLY authorization is refused in the domain test.                                                                            |
-| `M01-CFG-001`    | PASS         | Malformed critical configuration fails closed in `packages/config/src/environment.test.ts`.                                       |
-| `M01-SEC-001`    | PASS         | Correlation propagation and sensitive-field redaction in `packages/observability/src/logger.test.ts`.                             |
-| `M01-SEC-002`    | PASS         | Client bundle scan examined 12 assets with one synthetic `DATABASE_URL` value; none appeared in client output.                    |
-| `M01-DB-001`     | PASS         | Schema test plus clean PostgreSQL 18.6 migration smoke verified five tables, append-only/audit triggers, and disabled seed.       |
-| `M01-DET-001`    | PASS         | Canonical bytes/hash are key-order independent; bounded integer and bigint serialization checked in the domain test.              |
-| `M01-CI-001`     | PASS locally | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths. Hosted CI pending. |
-| `M01-BOOT-001`   | PASS locally | Live/ready route tests, worker safe-mode test and production boot smoke; hosted CI pending.                                       |
+| Work Order proof | Result       | Evidence                                                                                                                                                                     |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `M01-DOM-001`    | PASS         | Branded ID compile-time `@ts-expect-error` and runtime checks in `packages/domain/src/safety.test.ts`.                                                                       |
+| `M01-POL-001`    | PASS         | Invalid policy transition refused in `packages/contracts/src/policy.test.ts`.                                                                                                |
+| `M01-POL-002`    | PASS         | Material revision creates a distinct immutable version/hash in the policy test.                                                                                              |
+| `M01-POL-003`    | PASS         | Strict V0.1 validator rejects unknown fields/schemas and malformed constraints in the policy test.                                                                           |
+| `M01-AUTH-001`   | PASS         | Action family, amount/fraction, network, protocol capability, market selector, and slippage beyond policy authority are refused; dimensions are included in the plan digest. |
+| `M01-AUTH-002`   | PASS         | Mismatched plan digest or policy version is refused in the domain test.                                                                                                      |
+| `M01-STATE-001`  | PASS         | Illegal, invalid, and expired policy transitions are refused in the domain test.                                                                                             |
+| `M01-STATE-002`  | PASS         | Illegal execution transitions and terminal-state retry are refused in the domain test.                                                                                       |
+| `M01-DATA-001`   | PASS         | STALE/UNKNOWN observations cannot produce eligibility in the domain test.                                                                                                    |
+| `M01-IDEMP-001`  | PASS         | Duplicate effect identity cannot advance twice in the domain test.                                                                                                           |
+| `M01-REC-001`    | PASS         | UNKNOWN effect refuses blind retry in the same domain test.                                                                                                                  |
+| `M01-KILL-001`   | PASS         | Global kill switch blocks execution progression in the domain test and readiness route test.                                                                                 |
+| `M01-ENV-001`    | PASS         | `MAINNET_EXECUTION` is rejected by config; domain execution refuses mainnet.                                                                                                 |
+| `M01-DEMO-001`   | PASS         | DEMO_ONLY authorization is refused in the domain test.                                                                                                                       |
+| `M01-CFG-001`    | PASS         | Malformed critical configuration fails closed in `packages/config/src/environment.test.ts`.                                                                                  |
+| `M01-SEC-001`    | PASS         | Correlation propagation and sensitive-field redaction in `packages/observability/src/logger.test.ts`.                                                                        |
+| `M01-SEC-002`    | PASS         | Client bundle scan examined 12 assets with one synthetic `DATABASE_URL` value; none appeared in client output.                                                               |
+| `M01-DB-001`     | PASS         | Schema test plus clean PostgreSQL 18.6 migration smoke verified five tables, append-only/audit triggers, and disabled seed.                                                  |
+| `M01-DET-001`    | PASS         | Canonical bytes/hash are key-order independent; bounded integer and bigint serialization checked in the domain test.                                                         |
+| `M01-CI-001`     | PASS locally | Dependency boundary validator: 9 manifests, 22 source files, 0 forbidden imports and 0 financial effect paths. Hosted CI pending.                                            |
+| `M01-BOOT-001`   | PASS locally | Live/ready route tests, worker safe-mode test and production boot smoke; hosted CI pending.                                                                                  |
 
 Changed-file inventory, exact committed SHA, hosted Linux/Windows run URLs, and final exact-head Codex Security scan result will be appended after push.
 
@@ -127,7 +132,7 @@ Inherited read-only GEF observations from the baseline: `drift.changed=true`, `d
 
 - M01 validates authorization bindings; it contains no wallet, signer, provider, or execution adapter.
 - Authorization provenance is not authenticated in this foundation: no identity provider or authorization issuer is implemented. Future integration must supply verified least-privilege authorization before allowing a transition to `AUTHORIZED`.
-- The current numeric plan boundary does not yet compare slippage/protocol/market selectors against policy; no execution caller exists in M01.
+- Plan authority now includes immutable action family, network, protocol capability, market selector, slippage, amount, fraction, and expiry bindings. No execution caller exists in M01.
 - `generic-risk-preview-v0` is not evidence that a protocol is integrated or that market data is current.
 - Moderate transitive audit findings remain below the required HIGH/CRITICAL gate and will be checked again on the final lock.
 - Independent audit and governance decisions remain pending.

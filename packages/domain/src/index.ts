@@ -40,6 +40,10 @@ export function asMicros(value: bigint): Micros {
 }
 
 export type SafetyEnvironment = 'LOCAL' | 'TESTNET_DEMO' | 'MAINNET_READONLY' | 'MAINNET_EXECUTION';
+export type SafetyNetwork = 'local' | 'monad-testnet' | 'monad-mainnet';
+export type ProtocolCapability = 'generic-risk-preview-v0';
+export type MarketSelector = string;
+export type ActionIntentFamily = 'REDUCE_POSITION' | 'CLOSE_POSITION';
 export type ObservationQuality = 'FRESH' | 'STALE' | 'UNKNOWN' | 'INCONSISTENT';
 export type PolicyState =
   'DRAFT' | 'VALIDATED' | 'USER_CONFIRMED' | 'ACTIVE' | 'PAUSED' | 'REVOKED' | 'EXPIRED';
@@ -106,8 +110,13 @@ export interface ExecutionPlan {
   readonly snapshotId: SnapshotId;
   readonly digest: string;
   readonly expiresAt: string;
+  readonly actionFamily: ActionIntentFamily;
   readonly actionFractionBps: number;
   readonly notionalMicros: string;
+  readonly network: SafetyNetwork;
+  readonly protocolCapability: ProtocolCapability;
+  readonly marketSelector: MarketSelector;
+  readonly slippageBps: number;
 }
 
 export interface ExecutionPlanInput {
@@ -115,8 +124,13 @@ export interface ExecutionPlanInput {
   readonly policyVersionId: PolicyVersionId;
   readonly snapshotId: SnapshotId;
   readonly expiresAt: string;
+  readonly actionFamily: ActionIntentFamily;
   readonly actionFractionBps: number;
   readonly notionalMicros: string;
+  readonly network: SafetyNetwork;
+  readonly protocolCapability: ProtocolCapability;
+  readonly marketSelector: MarketSelector;
+  readonly slippageBps: number;
 }
 
 export interface AuthorizationContext {
@@ -354,21 +368,46 @@ function isBoundPolicyConfirmation(
 }
 
 function policyActionAuthority(version: PolicyVersion): {
+  actionFamily: ActionIntentFamily;
   actionFractionBps: number;
   notionalMicros: string;
+  network: SafetyNetwork;
+  protocolCapability: ProtocolCapability;
+  marketSelector: MarketSelector;
+  allowedProtocols: readonly string[];
+  allowedMarkets: readonly string[];
+  maxSlippageBps: number;
   expiresAt: string;
   environment: SafetyEnvironment;
 } {
-  const action = version.payload.actionIntent as { maxActionFractionBps: number };
+  const action = version.payload.actionIntent as {
+    family: ActionIntentFamily;
+    maxActionFractionBps: number;
+  };
   const constraints = version.payload.constraints as {
     maxActionFractionBps: number;
     maxNotionalMicros: string;
+    maxSlippageBps: number;
+    allowedProtocols: readonly string[];
+    allowedMarkets: readonly string[];
     expiresAt: string;
+  };
+  const scope = version.payload.scope as {
+    network: SafetyNetwork;
+    protocolCapability: ProtocolCapability;
+    marketSelector: MarketSelector;
   };
   const environment = version.payload.environment as SafetyEnvironment;
   return {
+    actionFamily: action.family,
     actionFractionBps: Math.min(action.maxActionFractionBps, constraints.maxActionFractionBps),
     notionalMicros: constraints.maxNotionalMicros,
+    network: scope.network,
+    protocolCapability: scope.protocolCapability,
+    marketSelector: scope.marketSelector,
+    allowedProtocols: constraints.allowedProtocols,
+    allowedMarkets: constraints.allowedMarkets,
+    maxSlippageBps: constraints.maxSlippageBps,
     expiresAt: constraints.expiresAt,
     environment,
   };
@@ -383,10 +422,21 @@ function isTrustedExecutionPlan(value: unknown): value is ExecutionPlan {
     Object.isFrozen(value) &&
     typeof plan.digest === 'string' &&
     /^[0-9a-f]{64}$/.test(plan.digest) &&
+    ['REDUCE_POSITION', 'CLOSE_POSITION'].includes(plan.actionFamily) &&
     Number.isInteger(plan.actionFractionBps) &&
     plan.actionFractionBps >= 1 &&
     plan.actionFractionBps <= 10_000 &&
     /^[1-9][0-9]{0,37}$/.test(plan.notionalMicros) &&
+    ['local', 'monad-testnet', 'monad-mainnet'].includes(plan.network) &&
+    plan.protocolCapability === 'generic-risk-preview-v0' &&
+    typeof plan.marketSelector === 'string' &&
+    plan.marketSelector === plan.marketSelector.trim() &&
+    plan.marketSelector.length >= 1 &&
+    plan.marketSelector.length <= 80 &&
+    /^[a-z0-9][a-z0-9._/-]*$/i.test(plan.marketSelector) &&
+    Number.isInteger(plan.slippageBps) &&
+    plan.slippageBps >= 0 &&
+    plan.slippageBps <= 10_000 &&
     Number.isFinite(Date.parse(plan.expiresAt))
   );
 }
@@ -470,8 +520,22 @@ export function isPlanWithinPolicyAuthority(input: {
   readonly policyMaxActionFractionBps: number;
   readonly planNotionalMicros: string;
   readonly policyMaxNotionalMicros: string;
+  readonly planActionFamily: ActionIntentFamily;
+  readonly policyActionFamily: ActionIntentFamily;
+  readonly planNetwork: SafetyNetwork;
+  readonly policyNetwork: SafetyNetwork;
+  readonly planProtocolCapability: ProtocolCapability;
+  readonly policyProtocolCapability: ProtocolCapability;
+  readonly allowedProtocols: readonly string[];
+  readonly planMarketSelector: MarketSelector;
+  readonly policyMarketSelector: MarketSelector;
+  readonly allowedMarkets: readonly string[];
+  readonly planSlippageBps: number;
+  readonly policyMaxSlippageBps: number;
 }): boolean {
   if (
+    input === null ||
+    typeof input !== 'object' ||
     !Number.isInteger(input.planActionFractionBps) ||
     input.planActionFractionBps < 1 ||
     input.planActionFractionBps > 10_000 ||
@@ -480,7 +544,37 @@ export function isPlanWithinPolicyAuthority(input: {
     input.policyMaxActionFractionBps > 10_000 ||
     input.planActionFractionBps > input.policyMaxActionFractionBps ||
     !/^[1-9][0-9]{0,37}$/.test(input.planNotionalMicros) ||
-    !/^[1-9][0-9]{0,37}$/.test(input.policyMaxNotionalMicros)
+    !/^[1-9][0-9]{0,37}$/.test(input.policyMaxNotionalMicros) ||
+    !['REDUCE_POSITION', 'CLOSE_POSITION'].includes(input.planActionFamily) ||
+    !['REDUCE_POSITION', 'CLOSE_POSITION'].includes(input.policyActionFamily) ||
+    input.planActionFamily !== input.policyActionFamily ||
+    !['local', 'monad-testnet', 'monad-mainnet'].includes(input.planNetwork) ||
+    !['local', 'monad-testnet', 'monad-mainnet'].includes(input.policyNetwork) ||
+    input.planNetwork !== input.policyNetwork ||
+    input.planProtocolCapability !== 'generic-risk-preview-v0' ||
+    input.policyProtocolCapability !== 'generic-risk-preview-v0' ||
+    input.planProtocolCapability !== input.policyProtocolCapability ||
+    !Array.isArray(input.allowedProtocols) ||
+    !input.allowedProtocols.includes(input.planProtocolCapability) ||
+    typeof input.planMarketSelector !== 'string' ||
+    input.planMarketSelector !== input.planMarketSelector.trim() ||
+    input.planMarketSelector.length < 1 ||
+    input.planMarketSelector.length > 80 ||
+    !/^[a-z0-9][a-z0-9._/-]*$/i.test(input.planMarketSelector) ||
+    typeof input.policyMarketSelector !== 'string' ||
+    input.policyMarketSelector !== input.policyMarketSelector.trim() ||
+    input.policyMarketSelector.length < 1 ||
+    input.policyMarketSelector.length > 80 ||
+    !/^[a-z0-9][a-z0-9._/-]*$/i.test(input.policyMarketSelector) ||
+    input.planMarketSelector !== input.policyMarketSelector ||
+    !Array.isArray(input.allowedMarkets) ||
+    !input.allowedMarkets.includes(input.planMarketSelector) ||
+    !Number.isInteger(input.planSlippageBps) ||
+    input.planSlippageBps < 0 ||
+    input.planSlippageBps > input.policyMaxSlippageBps ||
+    !Number.isInteger(input.policyMaxSlippageBps) ||
+    input.policyMaxSlippageBps < 0 ||
+    input.policyMaxSlippageBps > 10_000
   )
     return false;
   return BigInt(input.planNotionalMicros) <= BigInt(input.policyMaxNotionalMicros);
@@ -499,10 +593,22 @@ function transitionPlanWithinAuthority(guards: ExecutionTransitionGuards): boole
   )
     return false;
   return isPlanWithinPolicyAuthority({
+    planActionFamily: guards.plan.actionFamily,
+    policyActionFamily: authority.actionFamily,
     planActionFractionBps: guards.plan.actionFractionBps,
     policyMaxActionFractionBps: authority.actionFractionBps,
     planNotionalMicros: guards.plan.notionalMicros,
     policyMaxNotionalMicros: authority.notionalMicros,
+    planNetwork: guards.plan.network,
+    policyNetwork: authority.network,
+    planProtocolCapability: guards.plan.protocolCapability,
+    policyProtocolCapability: authority.protocolCapability,
+    allowedProtocols: authority.allowedProtocols,
+    planMarketSelector: guards.plan.marketSelector,
+    policyMarketSelector: authority.marketSelector,
+    allowedMarkets: authority.allowedMarkets,
+    planSlippageBps: guards.plan.slippageBps,
+    policyMaxSlippageBps: authority.maxSlippageBps,
   });
 }
 
@@ -595,11 +701,20 @@ export function decideEligibility(input: EligibilityInput): EligibilityDecision 
     executionEnabled: false,
     reason,
   });
+  if (
+    input === null ||
+    typeof input !== 'object' ||
+    typeof input.globalExecutionDisabled !== 'boolean' ||
+    typeof input.executionEnabled !== 'boolean' ||
+    typeof input.demoOnly !== 'boolean' ||
+    !['LOCAL', 'TESTNET_DEMO', 'MAINNET_READONLY', 'MAINNET_EXECUTION'].includes(input.environment)
+  )
+    return refuse('SAFETY_CONTEXT_INVALID');
   if (input.environment === 'MAINNET_EXECUTION') return refuse('MAINNET_EXECUTION_DISABLED');
   if (input.environment === 'MAINNET_READONLY') return refuse('MAINNET_READONLY');
   if (input.demoOnly || input.environment === 'TESTNET_DEMO') return refuse('DEMO_ONLY');
-  if (input.globalExecutionDisabled) return refuse('KILL_SWITCH_ENABLED');
-  if (input.executionEnabled) return refuse('EXECUTION_DISABLED_IN_M01');
+  if (input.globalExecutionDisabled !== false) return refuse('KILL_SWITCH_ENABLED');
+  if (input.executionEnabled !== false) return refuse('EXECUTION_DISABLED_IN_M01');
   if (input.policyState !== 'ACTIVE') return refuse('POLICY_NOT_ACTIVE');
   if (!isTrustedImmutablePolicyVersion(input.policyVersion))
     return refuse('POLICY_VERSION_MUTABLE');
@@ -609,10 +724,22 @@ export function decideEligibility(input: EligibilityInput): EligibilityDecision 
   const authority = policyActionAuthority(input.policyVersion);
   if (
     !isPlanWithinPolicyAuthority({
+      planActionFamily: input.plan.actionFamily,
+      policyActionFamily: authority.actionFamily,
       planActionFractionBps: input.plan.actionFractionBps,
       policyMaxActionFractionBps: authority.actionFractionBps,
       planNotionalMicros: input.plan.notionalMicros,
       policyMaxNotionalMicros: authority.notionalMicros,
+      planNetwork: input.plan.network,
+      policyNetwork: authority.network,
+      planProtocolCapability: input.plan.protocolCapability,
+      policyProtocolCapability: authority.protocolCapability,
+      allowedProtocols: authority.allowedProtocols,
+      planMarketSelector: input.plan.marketSelector,
+      policyMarketSelector: authority.marketSelector,
+      allowedMarkets: authority.allowedMarkets,
+      planSlippageBps: input.plan.slippageBps,
+      policyMaxSlippageBps: authority.maxSlippageBps,
     })
   )
     return refuse('PLAN_EXCEEDS_POLICY');
@@ -771,6 +898,22 @@ export async function createExecutionPlan(input: ExecutionPlanInput): Promise<Ex
     throw new RangeError('Execution plan action fraction must be an integer in [1, 10000]');
   if (!/^[1-9][0-9]{0,37}$/.test(input.notionalMicros))
     throw new RangeError('Execution plan notional must be a positive canonical decimal amount');
+  if (!['REDUCE_POSITION', 'CLOSE_POSITION'].includes(input.actionFamily))
+    throw new TypeError('Execution plan action family is unsupported');
+  if (!['local', 'monad-testnet', 'monad-mainnet'].includes(input.network))
+    throw new TypeError('Execution plan network is unsupported');
+  if (input.protocolCapability !== 'generic-risk-preview-v0')
+    throw new TypeError('Execution plan protocol capability is unsupported in M01');
+  if (
+    typeof input.marketSelector !== 'string' ||
+    input.marketSelector !== input.marketSelector.trim() ||
+    input.marketSelector.length < 1 ||
+    input.marketSelector.length > 80 ||
+    !/^[a-z0-9][a-z0-9._/-]*$/i.test(input.marketSelector)
+  )
+    throw new TypeError('Execution plan market selector is invalid');
+  if (!Number.isInteger(input.slippageBps) || input.slippageBps < 0 || input.slippageBps > 10_000)
+    throw new RangeError('Execution plan slippage must be an integer in [0, 10000]');
   if (
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(input.expiresAt) ||
     !Number.isFinite(Date.parse(input.expiresAt))
@@ -782,8 +925,13 @@ export async function createExecutionPlan(input: ExecutionPlanInput): Promise<Ex
     policyVersionId,
     snapshotId,
     expiresAt: input.expiresAt,
+    actionFamily: input.actionFamily,
     actionFractionBps: input.actionFractionBps,
     notionalMicros: input.notionalMicros,
+    network: input.network,
+    protocolCapability: input.protocolCapability,
+    marketSelector: input.marketSelector,
+    slippageBps: input.slippageBps,
   };
   const digest = await canonicalHash(body);
   const plan = Object.freeze({
