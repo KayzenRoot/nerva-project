@@ -1,6 +1,6 @@
 # NERVA Integration Contracts
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 External APIs are capability dependencies, not product truth. Each owning module must re-read current provider docs before coding.
 
