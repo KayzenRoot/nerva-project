@@ -1,6 +1,6 @@
 # NERVA Architecture
 
-Status: CANONICAL_CANDIDATE — M00
+Status: CANONICAL — NERVA-WO-001
 
 ## Architectural style
 Modular TypeScript-first application with explicit domain boundaries. Exact framework/package versions are selected in the owning implementation Work Order after live-doc preflight.
