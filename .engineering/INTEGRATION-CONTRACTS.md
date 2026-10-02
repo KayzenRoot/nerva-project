@@ -30,6 +30,9 @@ Preflight blockers: unavailable authenticated test account; undocumented field s
 ## MetaMask Agent Wallet
 Role: preferred external signing/agent execution surface.
 Current MetaMask material describes self-custodial agent wallets, spend limits, protocol allowlists, risk configuration and transaction security pipeline, and identifies Monad among supported EVM execution targets.
+Monad-specific security caveat:
+- Current MetaMask Agent Wallet material supports EVM execution including Monad, but the current Transaction Shield/Blockaid coverage list does not list Monad among supported chains. NERVA MUST NOT assume Blockaid threat-scanning coverage on Monad. M04 preflight must prove exactly which simulation/threat/MEV protections apply on the target network and version; missing wallet-layer protection does not weaken NERVA's own policy/preflight requirements.
+
 Contract expectations:
 - no NERVA storage of wallet secret material;
 - exact current extension/plugin/skill mechanism is verified in M04;
