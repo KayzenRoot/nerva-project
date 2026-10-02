@@ -6,7 +6,7 @@
 **Admission base:** `main@f43d88241a71dfaee305653953a6c9e1f0fab492`  
 **Execution branch:** `chore/nerva-wo-000-gef-1.1.2-bootstrap`  
 **GEF:** `@gef-bootstrap/cli@1.1.2`  
-**Status:** READY_FOR_FINAL_EXACT_HEAD_VALIDATION
+**Status:** READY_FOR_FINAL_EXACT_HEAD_VALIDATION_AFTER_AUDIT_CORRECTION
 
 ## Release identity
 - Immutable GEF tag: `v1.1.2`
@@ -78,6 +78,19 @@ Observed generated receipt:
 - HIGH: 0
 - Harness correction: Bash block syntax fixed by moving deterministic package/state assertions into `.github/scripts/verify-gef-bootstrap.mjs`.
 - Concurrency observation: two hosted runs attempted bootstrap materialization. One advanced the remote branch; the other failed only at non-fast-forward push after all GEF validations had passed. No force-push or history rewrite was used.
+
+## Audit Correction Delta 001 — least-privilege steady state
+The first audit found one MEDIUM governance/security issue: the bootstrap workflow still retained `contents: write`, auto-commit and push behavior after the one-time GREENFIELD materialization had succeeded. No HIGH/CRITICAL issue was found.
+
+Correction in the same Work Order/PR:
+- workflow converted from bootstrap/mutation to validation-only;
+- token permission reduced to `contents: read`;
+- PR validation checks out the exact PR head SHA rather than a mutable branch ref;
+- no CI path can regenerate, commit or push GEF state;
+- package/state/doctor/status/audit/clean-tree checks remain mandatory;
+- `push: main` provides post-merge smoke using the merged SHA.
+
+This removes unnecessary write authority while preserving the installed GEF 1.1.2 runtime and its generated state.
 
 ## Final audit gate
 A fresh PR-triggered run on the Evidence Bundle head MUST:
