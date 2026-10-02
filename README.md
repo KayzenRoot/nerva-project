@@ -1,8 +1,8 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. The current repository increment is **M01 Safety Kernel & Platform Foundation**, implemented on the existing draft PR #6 for audit.
+NERVA is a Monad-native, non-custodial risk and policy platform. **M01 Safety Kernel & Platform Foundation is approved for merge**; M02 Monad/Perpl Data & Risk Intelligence is the next module and remains NOT_ADMITTED until its own Work Order is compiled after the M01 merge.
 
-M01 is a safe foundation only: it does not connect to wallets, trading providers, an LLM, or a chain; it does not construct or submit transactions; and financial execution remains disabled. The web and worker surfaces report only platform and dependency health. M02 is not part of this increment.
+M01 is a safe foundation only: it does not connect to wallets, trading providers, an LLM, or a chain; it does not construct or submit transactions; and financial execution remains disabled. The web and worker surfaces report only platform and dependency health. M02 has not started.
 
 ## Governance
 
