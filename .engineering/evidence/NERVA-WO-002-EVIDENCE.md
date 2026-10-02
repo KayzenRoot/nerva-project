@@ -236,7 +236,6 @@ Inherited read-only GEF observations from the baseline: `drift.changed=true`, `d
 
 See `.engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md`. It proposes only `NERVA_M01_PLATFORM_FOUNDATION_READY_FOR_AUDIT` as the executor stop marker after exact-head gates pass. It does not modify canonical Checkpoint files.
 
-
 ## Auditor receipt
 
 Verdict: `APPROVED / OWNER_AUDIT_NOT_INDEPENDENT`.
@@ -244,6 +243,7 @@ Verdict: `APPROVED / OWNER_AUDIT_NOT_INDEPENDENT`.
 Audited evidence-corrected head: `068120fd423b3b01ec2c2b5f17b5df6ad94586a0`.
 
 Exact-head hosted evidence:
+
 - M01 foundation run `37055203686`: SUCCESS
 - GEF run `37055203719`: SUCCESS
 - Source Pack run `37055203721`: SUCCESS
