@@ -1,6 +1,6 @@
 # NERVA Source Hierarchy
 
-Status: CANONICAL_CANDIDATE — NERVA-WO-001 / M00
+Status: CANONICAL — NERVA-WO-001
 
 When sources disagree, use this order:
 1. `.engineering/CHECKPOINT.md`
