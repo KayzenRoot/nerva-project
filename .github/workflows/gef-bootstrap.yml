@@ -1,0 +1,150 @@
+name: GEF 1.1.2 bootstrap validation
+
+on:
+  push:
+    branches:
+      - chore/nerva-wo-000-gef-1.1.2-bootstrap
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  gef-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Configure governed commit identity
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install exact GEF dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci --no-fund --no-audit
+          else
+            if [ "${{ github.event_name }}" != "push" ]; then
+              echo "package-lock.json is mandatory on pull requests" >&2
+              exit 1
+            fi
+            npm install --no-fund --no-audit
+            git add package-lock.json
+            git commit -m "chore(gef): lock GEF Bootstrap 1.1.2"
+          fi
+
+      - name: Verify immutable package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('node_modules/@gef-bootstrap/cli/package.json', 'utf8'));
+          if (pkg.version !== '1.1.2') throw new Error('Expected @gef-bootstrap/cli 1.1.2, got ' + pkg.version);
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const entry = lock.packages?.['node_modules/@gef-bootstrap/cli'];
+          if (!entry) throw new Error('GEF package missing from lockfile');
+          if (entry.version !== '1.1.2') throw new Error('Lockfile version drift: ' + entry.version);
+          const expectedSri = 'sha512-zLu0oaBWqwIPviZgN0PTk1/5QlsHK8r7aCNOkMop0MnlzqFZ1um3zfkRO2l8hx005nd/2xZ/Ll/lDzYUbH01uw==';
+          if (entry.integrity !== expectedSri) throw new Error('Registry SRI mismatch: ' + entry.integrity);
+          NODE
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs --version | tee /tmp/gef-version.json
+
+      - name: Governed GREENFIELD init
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f .gef/init-state.json ]; then
+            test -z "$(git status --porcelain)"
+            node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --json > /tmp/gef-init-preview.json
+            test ! -f .gef/init-state.json
+            node node_modules/@gef-bootstrap/cli/bin/gef.mjs init --target . --apply --json > /tmp/gef-init-apply.json
+
+            node <<'NODE'
+            const fs = require('node:fs');
+            const state = JSON.parse(fs.readFileSync('.gef/init-state.json', 'utf8'));
+            if (state.productVersion !== '1.1.2') throw new Error('Unexpected GEF state version');
+            if (state.kind !== 'gef.init.state') throw new Error('Unexpected GEF state kind');
+            if (state.transaction?.outcome !== 'APPLIED') throw new Error('GEF init did not report APPLIED');
+            if (!state.runId) throw new Error('GEF runId missing');
+            const receiptPath = '.gef/receipts/' + state.runId + '.json';
+            const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+            if (receipt.productVersion !== '1.1.2') throw new Error('Unexpected receipt version');
+            if (receipt.commandId !== 'gef.init.run') throw new Error('Unexpected receipt command');
+            NODE
+
+            git add .gef/init-state.json .gef/receipts/*.json
+            git commit -m "chore(gef): initialize governed GEF 1.1.2 state"
+          else
+            cp .gef/init-state.json /tmp/gef-init-existing-state.json
+          fi
+
+      - name: Require persisted generated state on PR
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .gef/init-state.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const state = JSON.parse(fs.readFileSync('.gef/init-state.json', 'utf8'));
+          if (state.productVersion !== '1.1.2' || state.transaction?.outcome !== 'APPLIED') {
+            throw new Error('Persisted GEF init state is not accepted 1.1.2/APPLIED');
+          }
+          const receipt = JSON.parse(fs.readFileSync('.gef/receipts/' + state.runId + '.json', 'utf8'));
+          if (receipt.productVersion !== '1.1.2' || receipt.commandId !== 'gef.init.run') {
+            throw new Error('Persisted GEF receipt mismatch');
+          }
+          NODE
+
+      - name: Doctor, deterministic status and dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs doctor --target . --json > /tmp/gef-doctor.json
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs status --target . --json > /tmp/gef-status-1.json
+          node node_modules/@gef-bootstrap/cli/bin/gef.mjs status --target . --json > /tmp/gef-status-2.json
+          cmp /tmp/gef-status-1.json /tmp/gef-status-2.json
+          npm audit --audit-level=high
+          test -z "$(git status --porcelain)"
+
+      - name: Push generated lock and GEF receipts
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Preserve bootstrap evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gef-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          path: |
+            /tmp/gef-version.json
+            /tmp/gef-init-preview.json
+            /tmp/gef-init-apply.json
+            /tmp/gef-init-existing-state.json
+            /tmp/gef-doctor.json
+            /tmp/gef-status-1.json
+            /tmp/gef-status-2.json
