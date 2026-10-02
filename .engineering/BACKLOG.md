@@ -3,7 +3,7 @@
 Status: CANONICAL — NERVA-WO-001
 
 ## V0.1 modules
-- M00 Product, Competition & Source Pack Lock — ACTIVE.
+- M00 Product, Competition & Source Pack Lock — APPROVED.
 - M01 Safety Kernel & Platform Foundation — NEXT after M00 approval.
 - M02 Monad/Perpl Data & Risk Intelligence.
 - M03 Policy Compiler, Simulation & Autonomous Execution.
