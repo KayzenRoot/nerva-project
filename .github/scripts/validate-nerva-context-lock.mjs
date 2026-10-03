@@ -9,7 +9,13 @@ if (fs.existsSync(m05LockPath)) {
   const gitCandidates =
     process.platform === 'win32'
       ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
-      : ['/usr/bin/git', '/bin/git', '/usr/local/bin/git', '/opt/homebrew/bin/git', '/opt/local/bin/git'];
+      : [
+          '/usr/bin/git',
+          '/bin/git',
+          '/usr/local/bin/git',
+          '/opt/homebrew/bin/git',
+          '/opt/local/bin/git',
+        ];
   const gitExecutable = gitCandidates.find((candidate) => fs.existsSync(candidate));
   if (!gitExecutable) {
     throw new Error('NERVA-WO-006 validation requires Git in a trusted system directory');
