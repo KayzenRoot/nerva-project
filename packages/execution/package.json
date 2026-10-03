@@ -11,5 +11,8 @@
     "@nerva/contracts": "0.1.0",
     "@nerva/domain": "0.1.0",
     "@nerva/policy": "0.1.0"
+  },
+  "devDependencies": {
+    "@nerva/testing": "0.1.0"
   }
 }

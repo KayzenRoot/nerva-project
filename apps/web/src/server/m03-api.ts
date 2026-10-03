@@ -2,9 +2,30 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createDatabase } from '@nerva/db';
 import { loadServerConfig } from '@nerva/config';
+import { M03ExecutionAuthorizationProofSchema } from '@nerva/contracts';
 import { z } from 'zod';
+import { hasM03TrustedIssuers } from './m03-trust.ts';
 
 const correlationPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
+
+export const M03PolicyOperationRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    policy: z.unknown(),
+    proof: z.unknown(),
+    correlationId: z.string().min(1).max(200),
+  })
+  .strict();
+
+export const M03ExecutionRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    planDigest: z.string().regex(/^[0-9a-f]{64}$/),
+    idempotencyKey: z.string().regex(/^[0-9a-f]{64}$/),
+    authorizationProof: M03ExecutionAuthorizationProofSchema,
+    correlationId: z.string().min(1).max(200),
+  })
+  .strict();
 
 export async function readM03Json(
   request: Request,
@@ -84,6 +105,17 @@ export async function withM03Database(
   } finally {
     await pool?.end();
   }
+}
+
+export function trustedM03IssuerUnavailable(correlation: string): NextResponse | undefined {
+  return hasM03TrustedIssuers()
+    ? undefined
+    : apiError(
+        503,
+        'ACTOR_ISSUER_REGISTRY_UNAVAILABLE',
+        'No trusted actor issuer keys are configured.',
+        correlation,
+      );
 }
 
 export function correlationId(request: Request, body: unknown): string {

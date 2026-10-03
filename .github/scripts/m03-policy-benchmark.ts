@@ -10,38 +10,19 @@ import {
   type M03PositionContext,
 } from '../../packages/policy/src/index.ts';
 import { type RiskSnapshot } from '../../packages/domain/src/index.ts';
+import {
+  M03_FIXTURE_NOW,
+  m03ConfirmationProof,
+  m03PolicyFixture,
+  m03PositionContextFixture,
+} from '../../packages/testing/src/index.ts';
 
-const now = '2026-10-03T03:00:00.000Z';
-const policyInput = {
-  schemaVersion: '0.1',
+const now = M03_FIXTURE_NOW;
+const policyInput = m03PolicyFixture({
   policyId: 'benchmark-policy',
-  version: 1,
   createdByActorRef: 'actor:synthetic-benchmark',
-  environment: 'TESTNET',
-  scope: {
-    network: 'monad-testnet',
-    protocolCapability: 'perpl-protective-v0',
-    accountId: '42',
-    positionId: '21',
-    marketSelector: 'ETH-PERP',
-  },
-  triggers: [{ metric: 'POSITION_ADVERSE_MOVE_BPS', operator: 'GTE', thresholdBps: 1_000 }],
-  actionIntent: { family: 'REDUCE_POSITION', maxActionFractionBps: 2_500 },
-  constraints: {
-    maxActionFractionBps: 2_500,
-    maxReducibleQuantityScaled: '90000',
-    maxNotionalMicros: '900000',
-    maxSlippageBps: 100,
-    cooldownSeconds: 60,
-    expiresAt: '2030-01-01T00:00:00.000Z',
-    maxPlanAgeSeconds: 30,
-    allowedProtocols: ['perpl-protective-v0'],
-    allowedMarkets: ['ETH-PERP'],
-    fallbackAction: 'NO_ACTION',
-  },
-  safetyBehavior: 'REFUSE',
   metadata: { label: 'Synthetic benchmark', description: 'No provider reads or effects.' },
-};
+});
 const risk = JSON.parse(
   readFileSync(
     new URL('../../packages/policy/fixtures/risk-fresh-adverse.json', import.meta.url),
@@ -52,18 +33,13 @@ const compiled = await compileM03Policy(policyInput);
 if (!compiled.policy) throw new Error('Synthetic policy did not compile');
 const policy = await confirmM03Policy({
   compiled: compiled.policy,
-  proof: {
-    schemaVersion: '0.1',
+  proof: m03ConfirmationProof(compiled.policy.canonicalHash, {
     issuer: 'issuer:benchmark',
     subject: 'actor:synthetic-benchmark',
-    audience: 'nerva-policy-confirmation-v1',
-    policyHash: compiled.policy.canonicalHash,
     nonce: 'synthetic-benchmark-nonce-0001',
     keyId: 'benchmark-key',
-    issuedAt: now,
-    expiresAt: '2026-10-03T03:04:00.000Z',
     signature: 'synthetic-only-no-live-issuer-proof-000000000000000000',
-  },
+  }),
   verifier: {
     async verifyConfirmation() {
       return {
@@ -80,41 +56,12 @@ const policy = await confirmM03Policy({
   },
   now,
 });
-const context: M03PositionContext = {
-  accountId: '42',
-  positionId: '21',
-  marketSelector: 'ETH-PERP',
-  network: 'monad-testnet',
-  chainId: 10_143,
-  currentRiskSnapshotHash: risk.snapshotHash!,
-  positionNotionalMicros: '1000000',
-  position: {
-    schemaVersion: '0.1',
-    snapshotId: 'benchmark-position-1',
-    positionId: '21',
-    marketId: '32',
-    symbol: 'ETH',
-    side: 'LONG',
-    sizeScaled: '100000',
-    sizeDecimals: 3,
-    entryPriceScaled: '250000',
-    entryPriceDecimals: 2,
-    markPriceScaled: '246250',
-    markPriceDecimals: 2,
-    collateralMicros: '500000',
-    quoteToken: 'USDC',
-    source: {
-      source: 'synthetic-benchmark',
-      network: 'monad-testnet',
-      chainId: 10_143,
-      observedAt: now,
-      receivedAt: now,
-      quality: 'FRESH',
-      correlationId: 'm03-benchmark',
-      contentHash: 'b'.repeat(64),
-    },
-  },
-};
+const context: M03PositionContext = m03PositionContextFixture({
+  riskSnapshotHash: risk.snapshotHash!,
+  now,
+  source: 'synthetic-benchmark',
+  correlationId: 'm03-benchmark',
+});
 const binding = await verifyPositionAccountBinding({
   context,
   riskSnapshotHash: risk.snapshotHash!,

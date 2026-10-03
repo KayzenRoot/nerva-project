@@ -1,19 +1,15 @@
-import { z } from 'zod';
-import { apiError, apiJson, parseM03Request, withM03Database } from '../../../server/m03-api.ts';
-import { hasM03TrustedIssuers } from '../../../server/m03-trust.ts';
+import {
+  apiError,
+  apiJson,
+  M03PolicyOperationRequestSchema as RequestSchema,
+  parseM03Request,
+  trustedM03IssuerUnavailable,
+  withM03Database,
+} from '../../../server/m03-api.ts';
 import { evaluateCurrentM03Policy } from '../../../server/m03-workflow.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const RequestSchema = z
-  .object({
-    schemaVersion: z.literal('0.1'),
-    policy: z.unknown(),
-    proof: z.unknown(),
-    correlationId: z.string().min(1).max(200),
-  })
-  .strict();
 
 export async function POST(request: Request) {
   const parsed = await parseM03Request(request, RequestSchema, {
@@ -22,13 +18,8 @@ export async function POST(request: Request) {
   });
   if (!parsed.ok) return parsed.response;
   const correlation = parsed.correlationId;
-  if (!hasM03TrustedIssuers())
-    return apiError(
-      503,
-      'ACTOR_ISSUER_REGISTRY_UNAVAILABLE',
-      'No trusted actor issuer keys are configured.',
-      correlation,
-    );
+  const issuerError = trustedM03IssuerUnavailable(correlation);
+  if (issuerError) return issuerError;
   return withM03Database(
     {
       correlationId: correlation,

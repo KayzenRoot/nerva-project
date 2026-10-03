@@ -3,12 +3,14 @@ import { M03ActorConfirmationProofSchema, M03PolicySchemaV0_1 } from '@nerva/con
 import { appendM03PolicyConfirmation } from '@nerva/db';
 import { canonicalHash } from '@nerva/domain';
 import { compileM03Policy, confirmM03Policy } from '@nerva/policy';
-import { apiError, apiJson, parseM03Request, withM03Database } from '../../../../server/m03-api.ts';
 import {
-  createM03ActorVerifier,
-  createM03NonceLedger,
-  hasM03TrustedIssuers,
-} from '../../../../server/m03-trust.ts';
+  apiError,
+  apiJson,
+  parseM03Request,
+  trustedM03IssuerUnavailable,
+  withM03Database,
+} from '../../../../server/m03-api.ts';
+import { createM03ActorVerifier, createM03NonceLedger } from '../../../../server/m03-trust.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,13 +31,8 @@ export async function POST(request: Request) {
   });
   if (!parsed.ok) return parsed.response;
   const correlation = parsed.correlationId;
-  if (!hasM03TrustedIssuers())
-    return apiError(
-      503,
-      'ACTOR_ISSUER_REGISTRY_UNAVAILABLE',
-      'No trusted actor issuer keys are configured.',
-      correlation,
-    );
+  const issuerError = trustedM03IssuerUnavailable(correlation);
+  if (issuerError) return issuerError;
   return withM03Database(
     {
       correlationId: correlation,

@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { asBasisPoints, asSnapshotId, type RiskSnapshot } from '@nerva/domain';
 import {
+  M03_FIXTURE_NOW as now,
+  m03ConfirmationProof as proof,
+  m03PolicyFixture as policy,
+} from '@nerva/testing';
+import {
   compileM03Policy,
   confirmM03Policy,
   evaluateM03Triggers,
@@ -14,64 +19,12 @@ import {
   type PositionAccountBindingVerifier,
 } from './index.js';
 
-const now = '2026-10-03T03:00:00.000Z';
-const expiry = '2030-01-01T00:00:00.000Z';
 const freshFixture = JSON.parse(
   readFileSync(new URL('../fixtures/risk-fresh-adverse.json', import.meta.url), 'utf8'),
 ) as RiskSnapshot;
 const staleFixture = JSON.parse(
   readFileSync(new URL('../fixtures/risk-stale.json', import.meta.url), 'utf8'),
 ) as RiskSnapshot;
-
-function policy(overrides: Record<string, unknown> = {}) {
-  return {
-    schemaVersion: '0.1',
-    policyId: 'policy-test-1',
-    version: 1,
-    createdByActorRef: 'actor:test-user',
-    environment: 'TESTNET',
-    scope: {
-      network: 'monad-testnet',
-      protocolCapability: 'perpl-protective-v0',
-      accountId: '42',
-      positionId: '21',
-      marketSelector: 'ETH-PERP',
-    },
-    triggers: [{ metric: 'POSITION_ADVERSE_MOVE_BPS', operator: 'GTE', thresholdBps: 1_000 }],
-    actionIntent: { family: 'REDUCE_POSITION', maxActionFractionBps: 2_500 },
-    constraints: {
-      maxActionFractionBps: 2_500,
-      maxReducibleQuantityScaled: '90000',
-      maxNotionalMicros: '900000',
-      maxSlippageBps: 100,
-      cooldownSeconds: 60,
-      expiresAt: expiry,
-      maxPlanAgeSeconds: 30,
-      allowedProtocols: ['perpl-protective-v0'],
-      allowedMarkets: ['ETH-PERP'],
-      fallbackAction: 'NO_ACTION',
-    },
-    safetyBehavior: 'REFUSE',
-    metadata: { label: 'Protect ETH position', description: 'Bounded deterministic policy.' },
-    ...overrides,
-  };
-}
-
-function proof(canonicalHash: string, overrides: Record<string, unknown> = {}) {
-  return {
-    schemaVersion: '0.1',
-    issuer: 'issuer:nerva-local-test-double',
-    subject: 'actor:test-user',
-    audience: 'nerva-policy-confirmation-v1',
-    policyHash: canonicalHash,
-    nonce: 'nonce-confirmation-000001',
-    keyId: 'test-key-1',
-    issuedAt: now,
-    expiresAt: '2026-10-03T03:04:00.000Z',
-    signature: 'test-signature-not-live-provider-proof-000000000000000000',
-    ...overrides,
-  };
-}
 
 const testVerifier = {
   async verifyConfirmation(

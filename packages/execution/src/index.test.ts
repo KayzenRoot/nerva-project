@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { asBasisPoints, asSnapshotId, type RiskSnapshot } from '@nerva/domain';
+import type { RiskSnapshot } from '@nerva/domain';
+import {
+  M03_FIXTURE_NOW,
+  m03AdverseRiskFixture,
+  m03ConfirmationProof,
+  m03PolicyFixture,
+  m03PositionContextFixture,
+} from '@nerva/testing';
 import {
   compileM03Policy,
   confirmM03Policy,
@@ -19,76 +26,27 @@ import {
   type KillSwitch,
 } from './index.js';
 
-const now = '2026-10-03T03:00:00.000Z';
-const future = '2030-01-01T00:00:00.000Z';
+const now = M03_FIXTURE_NOW;
 const sourceRisk = JSON.parse(
   readFileSync(new URL('../../policy/fixtures/risk-fresh-adverse.json', import.meta.url), 'utf8'),
 ) as RiskSnapshot;
 
 function policy() {
-  return {
-    schemaVersion: '0.1',
+  return m03PolicyFixture({
     policyId: 'execution-test',
-    version: 1,
     createdByActorRef: 'actor:test',
-    environment: 'TESTNET',
-    scope: {
-      network: 'monad-testnet',
-      protocolCapability: 'perpl-protective-v0',
-      accountId: '42',
-      positionId: '21',
-      marketSelector: 'ETH-PERP',
-    },
-    triggers: [{ metric: 'POSITION_ADVERSE_MOVE_BPS', operator: 'GTE', thresholdBps: 1_000 }],
-    actionIntent: { family: 'REDUCE_POSITION', maxActionFractionBps: 2_500 },
-    constraints: {
-      maxActionFractionBps: 2_500,
-      maxReducibleQuantityScaled: '90000',
-      maxNotionalMicros: '900000',
-      maxSlippageBps: 100,
-      cooldownSeconds: 60,
-      expiresAt: future,
-      maxPlanAgeSeconds: 30,
-      allowedProtocols: ['perpl-protective-v0'],
-      allowedMarkets: ['ETH-PERP'],
-      fallbackAction: 'NO_ACTION',
-    },
-    safetyBehavior: 'REFUSE',
     metadata: { label: 'Execution gate test', description: 'Synthetic only.' },
-  };
+  });
 }
 
 async function setup() {
-  const risk: RiskSnapshot = {
-    ...sourceRisk,
-    snapshotId: asSnapshotId('execution-fixture-risk'),
-    generatedAt: now,
-    observedAt: now,
-    metrics: [
-      {
-        name: 'POSITION_ADVERSE_MOVE_BPS',
-        valueBps: asBasisPoints(1_500),
-        unit: 'basis-points',
-        quality: 'FRESH',
-        observedAt: now,
-        metadata: { positionId: '21' },
-      },
-    ],
-  };
+  const risk: RiskSnapshot = m03AdverseRiskFixture(sourceRisk, 'execution-fixture-risk', now);
   const compiled = await compileM03Policy(policy());
   if (!compiled.policy) throw new Error('Expected a compiled fixture policy');
-  const proof = {
-    schemaVersion: '0.1',
+  const proof = m03ConfirmationProof(compiled.policy.canonicalHash, {
     issuer: 'issuer:test',
     subject: 'actor:test',
-    audience: 'nerva-policy-confirmation-v1',
-    policyHash: compiled.policy.canonicalHash,
-    nonce: 'policy-confirm-nonce-0001',
-    keyId: 'test-key',
-    issuedAt: now,
-    expiresAt: '2026-10-03T03:04:00.000Z',
-    signature: 'test-only-signature-value-0000000000000000',
-  };
+  });
   const confirmed = await confirmM03Policy({
     compiled: compiled.policy,
     proof,
@@ -104,41 +62,10 @@ async function setup() {
     },
     now,
   });
-  const context: M03PositionContext = {
-    accountId: '42',
-    positionId: '21',
-    marketSelector: 'ETH-PERP',
-    network: 'monad-testnet',
-    chainId: 10_143,
-    currentRiskSnapshotHash: risk.snapshotHash!,
-    positionNotionalMicros: '1000000',
-    position: {
-      schemaVersion: '0.1',
-      snapshotId: 'position-fixture-1',
-      positionId: '21',
-      marketId: '7',
-      symbol: 'ETH',
-      side: 'LONG',
-      sizeScaled: '100000',
-      sizeDecimals: 3,
-      entryPriceScaled: '250000',
-      entryPriceDecimals: 2,
-      markPriceScaled: '246250',
-      markPriceDecimals: 2,
-      collateralMicros: '500000',
-      quoteToken: 'USDC',
-      source: {
-        source: 'perpl',
-        network: 'monad-testnet',
-        chainId: 10_143,
-        observedAt: now,
-        receivedAt: now,
-        quality: 'FRESH',
-        correlationId: 'execution-fixture-1',
-        contentHash: 'b'.repeat(64),
-      },
-    },
-  };
+  const context: M03PositionContext = m03PositionContextFixture({
+    riskSnapshotHash: risk.snapshotHash!,
+    now,
+  });
   const bindingVerifier: PositionAccountBindingVerifier = {
     async verify({ context: received }) {
       return {

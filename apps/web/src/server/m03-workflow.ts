@@ -3,10 +3,23 @@ import {
   M03PolicySchemaV0_1,
   RiskSnapshotM02Schema,
 } from '@nerva/contracts';
-import { appendM03TriggerEvaluation, latestM03EffectAt, latestRiskSnapshot } from '@nerva/db';
+import {
+  appendM03DryRun,
+  appendM03ExecutionPlan,
+  appendM03PlanningRefusal,
+  appendM03TriggerEvaluation,
+  latestM03EffectAt,
+  latestRiskSnapshot,
+} from '@nerva/db';
 import type { Pool } from 'pg';
 import { canonicalHash, type RiskSnapshot } from '@nerva/domain';
-import { compileM03Policy, confirmM03Policy, evaluateM03Triggers } from '@nerva/policy';
+import {
+  compileM03Policy,
+  confirmM03Policy,
+  evaluateM03Triggers,
+  planM03Action,
+  simulateM03Plan,
+} from '@nerva/policy';
 import { createM03ActorVerifier, createM03NonceLedger } from './m03-trust.ts';
 
 export type M03WorkflowResult =
@@ -78,4 +91,66 @@ export async function evaluateCurrentM03Policy(input: {
     evaluatedAt: evaluation.evaluatedAt,
   });
   return { ok: true, policy: confirmed, risk, evaluation };
+}
+
+export type M03PlanWorkflowResult =
+  | Readonly<{ kind: 'INVALID'; status: number; code: string }>
+  | Readonly<{
+      kind: 'TRIGGER_REFUSED';
+      evaluation: Awaited<ReturnType<typeof evaluateM03Triggers>>;
+    }>
+  | Readonly<{
+      kind: 'PLAN_REFUSED';
+      reason: string;
+      evaluation: Awaited<ReturnType<typeof evaluateM03Triggers>>;
+    }>
+  | Readonly<{
+      kind: 'PLANNED';
+      evaluation: Awaited<ReturnType<typeof evaluateM03Triggers>>;
+      plan: Extract<Awaited<ReturnType<typeof planM03Action>>, { status: 'PLANNED' }>['plan'];
+      simulation?: Awaited<ReturnType<typeof simulateM03Plan>>;
+    }>;
+
+export async function prepareCurrentM03Plan(input: {
+  readonly pool: Pool;
+  readonly policyValue: unknown;
+  readonly proofValue: unknown;
+  readonly correlationId: string;
+  readonly now: string;
+  readonly simulate: boolean;
+}): Promise<M03PlanWorkflowResult> {
+  const evaluated = await evaluateCurrentM03Policy(input);
+  if (!evaluated.ok) return { kind: 'INVALID', status: evaluated.status, code: evaluated.code };
+  if (evaluated.evaluation.result !== 'MATCH')
+    return { kind: 'TRIGGER_REFUSED', evaluation: evaluated.evaluation };
+  const planned = await planM03Action({
+    policy: evaluated.policy,
+    evaluation: evaluated.evaluation,
+    risk: evaluated.risk,
+    now: input.now,
+  });
+  if (planned.status !== 'PLANNED') {
+    await appendM03PlanningRefusal(input.pool, {
+      evaluationId: evaluated.evaluation.evaluationId,
+      policyId: evaluated.policy.compiled.policyId,
+      policyVersionHash: evaluated.policy.compiled.canonicalHash,
+      snapshotHash: evaluated.evaluation.sourceSnapshotHash,
+      reason: planned.reason,
+      actorRef: evaluated.policy.actorId,
+      correlationId: input.correlationId,
+      occurredAt: input.now,
+    });
+    return { kind: 'PLAN_REFUSED', reason: planned.reason, evaluation: evaluated.evaluation };
+  }
+  await appendM03ExecutionPlan(input.pool, planned.plan);
+  if (!input.simulate)
+    return { kind: 'PLANNED', evaluation: evaluated.evaluation, plan: planned.plan };
+  const simulation = await simulateM03Plan({
+    plan: planned.plan,
+    policy: evaluated.policy,
+    risk: evaluated.risk,
+    now: input.now,
+  });
+  await appendM03DryRun(input.pool, simulation);
+  return { kind: 'PLANNED', evaluation: evaluated.evaluation, plan: planned.plan, simulation };
 }

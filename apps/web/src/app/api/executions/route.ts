@@ -1,5 +1,3 @@
-import { z } from 'zod';
-import { M03ExecutionAuthorizationProofSchema } from '@nerva/contracts';
 import {
   appendM03AuthorizationRef,
   consumeM03Nonce,
@@ -8,24 +6,18 @@ import {
   recordM03ExecutionRefusal,
 } from '@nerva/db';
 import { loadServerConfig } from '@nerva/config';
-import { apiError, apiJson, parseM03Request, withM03Database } from '../../../server/m03-api.ts';
 import {
-  createM03ExecutionAuthorizationVerifier,
-  hasM03TrustedIssuers,
-} from '../../../server/m03-trust.ts';
+  apiError,
+  apiJson,
+  M03ExecutionRequestSchema as RequestSchema,
+  parseM03Request,
+  trustedM03IssuerUnavailable,
+  withM03Database,
+} from '../../../server/m03-api.ts';
+import { createM03ExecutionAuthorizationVerifier } from '../../../server/m03-trust.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const RequestSchema = z
-  .object({
-    schemaVersion: z.literal('0.1'),
-    planDigest: z.string().regex(/^[0-9a-f]{64}$/),
-    idempotencyKey: z.string().regex(/^[0-9a-f]{64}$/),
-    authorizationProof: M03ExecutionAuthorizationProofSchema,
-    correlationId: z.string().min(1).max(200),
-  })
-  .strict();
 
 export async function GET(request: Request) {
   const config = loadServerConfig();
@@ -66,13 +58,8 @@ export async function POST(request: Request) {
   });
   if (!parsed.ok) return parsed.response;
   const correlation = parsed.correlationId;
-  if (!hasM03TrustedIssuers())
-    return apiError(
-      503,
-      'ACTOR_ISSUER_REGISTRY_UNAVAILABLE',
-      'No trusted actor issuer keys are configured.',
-      correlation,
-    );
+  const issuerError = trustedM03IssuerUnavailable(correlation);
+  if (issuerError) return issuerError;
   return withM03Database(
     {
       correlationId: correlation,

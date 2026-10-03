@@ -1,21 +1,15 @@
-import { z } from 'zod';
-import { appendM03ExecutionPlan, appendM03PlanningRefusal } from '@nerva/db';
-import { planM03Action } from '@nerva/policy';
-import { apiError, apiJson, parseM03Request, withM03Database } from '../../../server/m03-api.ts';
-import { hasM03TrustedIssuers } from '../../../server/m03-trust.ts';
-import { evaluateCurrentM03Policy } from '../../../server/m03-workflow.ts';
+import {
+  apiError,
+  apiJson,
+  M03PolicyOperationRequestSchema as RequestSchema,
+  parseM03Request,
+  trustedM03IssuerUnavailable,
+  withM03Database,
+} from '../../../server/m03-api.ts';
+import { prepareCurrentM03Plan } from '../../../server/m03-workflow.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const RequestSchema = z
-  .object({
-    schemaVersion: z.literal('0.1'),
-    policy: z.unknown(),
-    proof: z.unknown(),
-    correlationId: z.string().min(1).max(200),
-  })
-  .strict();
 
 export async function POST(request: Request) {
   const parsed = await parseM03Request(request, RequestSchema, {
@@ -24,13 +18,8 @@ export async function POST(request: Request) {
   });
   if (!parsed.ok) return parsed.response;
   const correlation = parsed.correlationId;
-  if (!hasM03TrustedIssuers())
-    return apiError(
-      503,
-      'ACTOR_ISSUER_REGISTRY_UNAVAILABLE',
-      'No trusted actor issuer keys are configured.',
-      correlation,
-    );
+  const issuerError = trustedM03IssuerUnavailable(correlation);
+  if (issuerError) return issuerError;
   return withM03Database(
     {
       correlationId: correlation,
@@ -44,67 +33,46 @@ export async function POST(request: Request) {
       },
     },
     async (pool) => {
-      const evaluated = await evaluateCurrentM03Policy({
+      const result = await prepareCurrentM03Plan({
         pool,
         policyValue: parsed.data.policy,
         proofValue: parsed.data.proof,
+        correlationId: correlation,
         now: new Date().toISOString(),
+        simulate: false,
       });
-      if (!evaluated.ok)
-        return apiError(
-          evaluated.status,
-          evaluated.code,
-          'The policy cannot be planned.',
-          correlation,
-        );
-      if (evaluated.evaluation.result !== 'MATCH')
+      if (result.kind === 'INVALID')
+        return apiError(result.status, result.code, 'The policy cannot be planned.', correlation);
+      if (result.kind === 'TRIGGER_REFUSED')
         return apiJson(
           {
             schemaVersion: '0.1',
             status: 'REFUSED',
-            reason: evaluated.evaluation.reason,
+            reason: result.evaluation.reason,
             correlationId: correlation,
-            evaluation: evaluated.evaluation,
+            evaluation: result.evaluation,
           },
           409,
         );
-      const planned = await planM03Action({
-        policy: evaluated.policy,
-        evaluation: evaluated.evaluation,
-        risk: evaluated.risk,
-        now: new Date().toISOString(),
-      });
-      if (planned.status !== 'PLANNED') {
-        await appendM03PlanningRefusal(pool, {
-          evaluationId: evaluated.evaluation.evaluationId,
-          policyId: evaluated.policy.compiled.policyId,
-          policyVersionHash: evaluated.policy.compiled.canonicalHash,
-          snapshotHash: evaluated.evaluation.sourceSnapshotHash,
-          reason: planned.reason,
-          actorRef: evaluated.policy.actorId,
-          correlationId: correlation,
-          occurredAt: new Date().toISOString(),
-        });
+      if (result.kind === 'PLAN_REFUSED')
         return apiJson(
           {
             schemaVersion: '0.1',
             status: 'REFUSED',
-            reason: planned.reason,
+            reason: result.reason,
             correlationId: correlation,
-            evaluation: evaluated.evaluation,
+            evaluation: result.evaluation,
           },
           409,
         );
-      }
-      await appendM03ExecutionPlan(pool, planned.plan);
       return apiJson(
         {
           schemaVersion: '0.1',
           status: 'PLANNED',
-          correlationId: planned.plan.correlationId,
-          plan: planned.plan,
+          correlationId: result.plan.correlationId,
+          plan: result.plan,
           authority:
-            planned.plan.action === 'NO_ACTION'
+            result.plan.action === 'NO_ACTION'
               ? 'NO_FINANCIAL_EFFECT'
               : 'BOUNDED_TESTNET_PLAN_PENDING_SIMULATION_AND_PROOFS',
           safety: { executionEnabled: false },
