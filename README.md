@@ -1,6 +1,6 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. M03 is approved for promotion/merge and provides strict policy compilation, provenance-bound confirmation, deterministic triggers/planning, synthetic dry-run simulation, append-oriented evidence, refusal/recovery APIs and read-only operator surfaces. M04 remains NOT_ADMITTED.
+NERVA is a Monad-native, non-custodial risk and policy platform. M04 is approved for promotion/merge and adds wallet/agent identity, bounded capability grants, owner-signed EIP-712 authorization, read-only EIP-7702 observation, session/revocation/replay protection and verifiable permission evidence integrated with the M03 boundary. M05 remains NOT_ADMITTED.
 
 The current Perpl documentation grants only broad `trade` scope to order writes and requires separate on-chain order-forwarding permission; NERVA has no proven protective-only write scope, so the Perpl effect adapter stays hard-blocked. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain unproven/unknown and cannot authorize actions. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) and [M03 Policy, Simulation and Execution Safety](docs/M03-POLICY-SIM-EXEC.md).
 
@@ -20,7 +20,7 @@ Start here:
 8. [Security](.engineering/SECURITY.md)
 9. [Module Roadmap](.engineering/MODULE-ROADMAP.md)
 
-M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 evidence and its promoted Checkpoint Delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`. The M03 implementation evidence is maintained in `.engineering/evidence/NERVA-WO-004-EVIDENCE.md` and remains subject to audit.
+M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 evidence and its promoted Checkpoint Delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`. M03 evidence is maintained in `.engineering/evidence/NERVA-WO-004-EVIDENCE.md`. M04 implementation and re-audit evidence is maintained in `.engineering/evidence/NERVA-WO-005-EVIDENCE.md`.
 
 ## Local development
 
