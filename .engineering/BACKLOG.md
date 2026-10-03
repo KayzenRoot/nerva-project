@@ -1,22 +1,23 @@
 # NERVA Backlog
 
-Status: CANONICAL — NERVA-WO-003
+Status: CANONICAL — NERVA-WO-004
 
 ## V0.1 modules
 - M00 Product, Competition & Source Pack Lock — APPROVED.
 - M01 Safety Kernel & Platform Foundation — APPROVED.
 - M02 Monad/Perpl Data & Risk Intelligence — APPROVED.
-- M03 Policy Compiler, Simulation & Autonomous Execution — NEXT; Work Order NOT_ADMITTED.
-- M04 Agent Wallet, Permissions & Verifiable Evidence.
+- M03 Policy Compiler, Simulation & Autonomous Execution — APPROVED.
+- M04 Agent Wallet, Permissions & Verifiable Evidence — NEXT; Work Order NOT_ADMITTED.
 - M05 Product Experience & Competition Demo.
 - M06 Release Hardening, Deployment & Metropolis Submission.
 
-## M02 carry-forward
-- authenticated Perpl account live-read smoke requires a safely provisioned read-only credential;
-- actual Perpl key scope requires enrollment/operational provenance because current public docs expose no reliable self-query for an already-issued opaque key;
-- funding direction, maintenance margin and liquidation distance remain unproven and non-actionable;
-- Envio remains deferred until target-specific evidence materially improves provenance;
-- four MODERATE Drizzle Kit/esbuild transitive advisories remain for release recheck.
+## M03 carry-forward
+- live Perpl effects remain blocked until protective-only provider capability/scope and enrollment provenance are proven;
+- no disposable Perpl test account/protective enrollment is available;
+- production trusted issuer registry is not provisioned;
+- add DB-level kill-switch concurrency proof before enabling any future live provider effect adapter;
+- four MODERATE Drizzle Kit/esbuild advisories remain for release recheck;
+- liquidation distance, maintenance margin and funding direction remain unproven/non-authoritative.
 
 ## IMPORTANT parking lot
 - browser/push notifications;
@@ -36,8 +37,4 @@ Status: CANONICAL — NERVA-WO-003
 - insurance/structured products.
 
 ## Explicitly not admitted
-Token launch, DAO, copy trading, profit-guarantee features, hidden fees, custody, wide protocol expansion before V0.1 DoD.
-
-## Deadline control
-Internal target: submission-ready by 12 Oct 2026. Public portal observed deadline: 13 Oct 2026.
-Feature expansion after M05 freeze requires evidence that it closes a DoD blocker.
+Token launch, DAO, copy trading, profit-guarantee features, hidden fees, custody, broad protocol expansion before V0.1 DoD.
