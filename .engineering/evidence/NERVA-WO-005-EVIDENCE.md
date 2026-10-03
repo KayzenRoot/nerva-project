@@ -108,3 +108,25 @@ Official source records:
 - Security findings: `npm run security:audit` passed its configured HIGH threshold and reported zero HIGH / zero CRITICAL dependency advisories; four existing MODERATE Drizzle Kit/esbuild advisories remain carry-forward for release review. The configured Codex Security diff-scan did not produce a scan ID because the working-tree selector was stale, so no automated diff-scan result is claimed. Manual review of the changed session issuance, persistence, authorization and M03 boundary paths found no confirmed HIGH/CRITICAL finding. Socket results are recorded separately by hosted check and do not replace that limitation.
 - PR #14 remains `OPEN` / `DRAFT`; no merge or Checkpoint promotion; M05 not started; `MAINNET effectful execution = HARD_BLOCKED`; `LIVE PERPL EFFECTS = BLOCKED`.
 - STOP CONDITION: `NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT`
+
+## Auditor receipt — re-audit after Correction Delta
+
+- Verdict: `APPROVED`.
+- Audited head: `070badfa79323328b11840c4eb6c0326d31e2637`.
+- Hosted M01–M04 run: `37157179018` / `SUCCESS`.
+- GEF 1.1.2 run: `37157179028` / `SUCCESS`.
+- Source Pack run: `37157179049` / `SUCCESS`.
+- Socket Security PR Alerts / Project Report: `SUCCESS`.
+- Tests: 125/125 across 25 files.
+- Clean PostgreSQL migration through 0009: `PASS`.
+- M03→M04 upgrade/session/revocation/replay concurrency: `PASS`.
+- Session issuance: owner-signed EIP-712 and durable nonce consumption.
+- Session-backed authorization: bounded by session + parent grant and revalidated at M03 boundary.
+- WalletBinding exact `primaryType` and canonical type schema: verified.
+- Introduced HIGH/CRITICAL findings: 0.
+- Four MODERATE dependency advisories remain.
+- MAINNET effect: `HARD_BLOCKED`.
+- Live Perpl effect: `BLOCKED`.
+- M05: not started.
+
+The prior `CORRECTION REQUIRED` finding is closed. This approval authorizes M04 checkpoint promotion and merge only; it does not admit M05.
