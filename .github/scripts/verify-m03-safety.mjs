@@ -8,6 +8,14 @@ const execution = read('packages/execution/src/index.ts');
 const contracts = read('packages/contracts/src/index.ts');
 const config = read('packages/config/src/index.ts');
 const schema = read('packages/db/src/schema.ts');
+const permissions = read('packages/permissions/src/index.ts');
+const m04Persistence = read('packages/db/src/m04.ts');
+const m04Binding = read('apps/web/src/app/api/permissions/bind/route.ts');
+const m04Grant = read('apps/web/src/app/api/permissions/grants/route.ts');
+const m04Authorization = read('apps/web/src/app/api/permissions/authorize/route.ts');
+const m04Delegate = read('apps/web/src/server/monad-testnet-rpc.ts');
+const m04ReadRoute = read('apps/web/src/app/api/permissions/route.ts');
+const m04Boundary = read('apps/web/src/app/api/executions/route.ts');
 const mainnetBlock = /MAINNET_EXECUTION[\s\S]{0,180}disabled[\s\S]{0,80}startup refused/i.test(
   config,
 );
@@ -77,8 +85,78 @@ if (
 )
   throw new Error('Risk state lost the UNAVAILABLE_UNPROVEN limitation');
 
+if (
+  !permissions.includes('MONAD_TESTNET_CHAIN_ID = 10_143') ||
+  !permissions.includes("type M04Action = 'REDUCE_POSITION' | 'CLOSE_POSITION' | 'NO_ACTION'") ||
+  !permissions.includes('compileCapabilityGrant') ||
+  !permissions.includes('verifyGrantApproval') ||
+  !permissions.includes('verifyAuthorization') ||
+  !permissions.includes('verifyGrantRevocation') ||
+  !permissions.includes('deriveSessionAuthority') ||
+  !permissions.includes('verifyPermissionEvidenceChain')
+)
+  throw new Error(
+    'M04 deterministic identity, grant, signature, session, revocation or evidence controls are incomplete',
+  );
+if (
+  !permissions.includes("status: 'UNKNOWN'") ||
+  !permissions.includes('FINALIZED_BLOCK_CHANGED_DURING_READ') ||
+  !m04Delegate.includes("'finalized'") ||
+  !m04Delegate.includes('requireCanonical: true')
+)
+  throw new Error('M04 EIP-7702 observation does not fail closed on uncertain finalized state');
+if (
+  !m04Persistence.includes('FOR UPDATE OF s') ||
+  !m04Persistence.includes('m04_nonce_ledger') ||
+  !m04Persistence.includes('generation=') ||
+  !m04Persistence.includes('m04_permission_evidence_head')
+)
+  throw new Error('M04 persistence lacks durable nonce, revocation or evidence serialization');
+if (
+  !m04Binding.includes('AWAITING_OWNER_SIGNATURE') ||
+  !m04Grant.includes('AWAITING_OWNER_SIGNATURE') ||
+  !m04Authorization.includes('AWAITING_OWNER_SIGNATURE')
+)
+  throw new Error(
+    'M04 external EIP-712 signing flow does not expose an owner-controlled typed-data challenge',
+  );
+if (
+  !m04ReadRoute.includes('verifyWalletReadAuthorization') ||
+  !m04ReadRoute.includes('consumeM04ReadAccess') ||
+  m04ReadRoute.indexOf('const proof = await verifyWalletReadAuthorization') >
+    m04ReadRoute.indexOf('listM04PermissionReadModel(pool')
+)
+  throw new Error(
+    'M04 private account read model is not gated by a signed, durable owner read proof',
+  );
+if (
+  !m04Boundary.includes('validateM04AuthorizationRef') ||
+  !m04Boundary.includes('M04_AUTHORIZATION_INVALID_OR_REVOKED')
+)
+  throw new Error('M03 execution boundary does not revalidate current M04 authority');
+const m04EffectSource = [
+  permissions,
+  m04Binding,
+  m04Grant,
+  m04Authorization,
+  m04Delegate,
+  m04ReadRoute,
+].join('\n');
+if (
+  /(?:eth_sendTransaction|eth_sendRawTransaction|sendTransaction\s*\(|signTransaction\s*\(|\.submitProtective\s*\()/i.test(
+    m04EffectSource,
+  )
+)
+  throw new Error('M04 wallet/permission code contains an effectful transaction path');
+if (
+  /process\.env\.(?:PRIVATE|SEED|MNEMONIC)|(?:privateKey|seedPhrase|mnemonic)\s*=/i.test(
+    m04EffectSource,
+  )
+)
+  throw new Error('M04 wallet/permission code accesses or holds wallet secret material');
+
 const workspaces = JSON.parse(read('package.json')).workspaces;
-for (const relative of ['packages/policy', 'packages/execution']) {
+for (const relative of ['packages/policy', 'packages/execution', 'packages/permissions']) {
   if (!workspaces.includes(relative)) throw new Error(`${relative} is not in the workspace graph`);
 }
 const forbiddenProviderWrite =
@@ -103,6 +181,10 @@ console.log(
     unprovenMetricsCanAuthorize: false,
     mainnetEffect: 'HARD_BLOCKED',
     perplWriteAdapter: 'NOT_IMPLEMENTED_SCOPE_UNPROVEN',
+    m04MainnetEffect: 'HARD_BLOCKED',
+    m04LivePerplEffect: 'BLOCKED',
+    m04CredentialCustody: 'NONE',
+    m04Eip7702Mode: 'READ_ONLY_FINALIZED_BLOCK',
     protectiveOnlyScope: 'UNAVAILABLE_UNPROVEN',
     ambiguousRetry: 'BLOCKED',
   }),

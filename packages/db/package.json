@@ -11,6 +11,7 @@
   "dependencies": {
     "@nerva/config": "0.1.0",
     "@nerva/domain": "0.1.0",
+    "@nerva/permissions": "0.1.0",
     "drizzle-orm": "0.45.3",
     "pg": "8.23.1"
   }

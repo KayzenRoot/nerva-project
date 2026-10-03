@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const forbidden =
-  /^(?:ethers|viem|web3|wagmi|@metamask\/|@perpl\/|@envio\/|envio|openai|@openai\/|ai|@ai-sdk\/|@privy-io\/|@walletconnect\/)/i;
+  /^(?:ethers|web3|wagmi|@metamask\/|@perpl\/|@envio\/|envio|openai|@openai\/|ai|@ai-sdk\/|@privy-io\/|@walletconnect\/)/i;
 const manifests = [
   'package.json',
   ...['apps', 'packages'].flatMap((folder) =>
@@ -22,6 +22,16 @@ for (const file of manifests) {
     'peerDependencies',
   ]) {
     for (const name of Object.keys(manifest[field] ?? {})) {
+      if (
+        name === 'viem' &&
+        file === 'packages/permissions/package.json' &&
+        manifest[field][name] === '2.57.2'
+      )
+        continue;
+      if (name === 'viem')
+        throw new Error(
+          `viem is allowed only as an exact dependency of packages/permissions: ${file}`,
+        );
       if (forbidden.test(name))
         throw new Error(`Forbidden integration dependency ${name} in ${file}`);
     }
@@ -51,7 +61,11 @@ for (const file of files) {
     (match) => match[1],
   );
   for (const specifier of importStrings)
-    if (forbidden.test(specifier))
+    if (
+      forbidden.test(specifier) ||
+      (specifier === 'viem' &&
+        !path.relative(root, file).replaceAll('\\', '/').startsWith('packages/permissions/'))
+    )
       throw new Error(`Forbidden runtime import ${specifier} in ${path.relative(root, file)}`);
   if (forbiddenCode.test(text))
     throw new Error(
@@ -73,7 +87,7 @@ if (!/Object\.freeze\(\{\s*mt:\s*5,/.test(perplText) || !/mt:\s*29,/.test(perplT
     'Perpl WebSocket may send public subscription and read-only API sign-in frames only',
   );
 const mutatingRoutes = [];
-const allowedM03Routes = new Set([
+const allowedMutatingRoutes = new Set([
   'policies/proposals/route.ts',
   'policies/compile/route.ts',
   'policies/confirm/route.ts',
@@ -83,6 +97,16 @@ const allowedM03Routes = new Set([
   'simulations/route.ts',
   'executions/route.ts',
   'executions/[attemptId]/recovery/route.ts',
+  'permissions/bind/route.ts',
+  'permissions/agents/route.ts',
+  'permissions/grants/route.ts',
+  'permissions/delegation/route.ts',
+  'permissions/authorize/route.ts',
+  'permissions/sessions/route.ts',
+  'permissions/sessions/revoke/route.ts',
+  'permissions/revoke/route.ts',
+  'permissions/unbind/route.ts',
+  'permissions/route.ts',
 ]);
 const apiRoot = path.join(root, 'apps/web/src/app/api');
 if (fs.existsSync(apiRoot)) {
@@ -93,19 +117,26 @@ if (fs.existsSync(apiRoot)) {
     const source = fs.readFileSync(file, 'utf8');
     if (/export\s+(?:async\s+)?function\s+(?:POST|PUT|PATCH|DELETE)\b/.test(source)) {
       const apiRelative = relative.replaceAll('\\', '/');
-      if (!allowedM03Routes.has(apiRelative)) mutatingRoutes.push(path.relative(root, file));
+      if (!allowedMutatingRoutes.has(apiRelative)) mutatingRoutes.push(path.relative(root, file));
     }
   }
 }
 if (mutatingRoutes.length > 0)
   throw new Error(`API contains an unadmitted mutating route: ${mutatingRoutes.join(', ')}`);
-const M03RouteFiles = [...allowedM03Routes].map((route) => path.join(apiRoot, route));
-for (const route of M03RouteFiles) {
+const mutationRouteFiles = [...allowedMutatingRoutes].map((route) => path.join(apiRoot, route));
+for (const route of mutationRouteFiles) {
   if (!fs.existsSync(route)) continue;
   const source = fs.readFileSync(route, 'utf8');
-  if (!/M03|m03|@nerva\/(?:policy|execution)/.test(source))
+  const isPermissionRoute = path
+    .relative(apiRoot, route)
+    .replaceAll('\\', '/')
+    .startsWith('permissions/');
+  const guarded = isPermissionRoute
+    ? /M04|m04|@nerva\/permissions|@nerva\/db/.test(source)
+    : /M03|m03|@nerva\/(?:policy|execution)/.test(source);
+  if (!guarded)
     throw new Error(
-      `M03 mutation route is missing its M03 trust boundary: ${path.relative(root, route)}`,
+      `Mutating route is missing its owning trust boundary: ${path.relative(root, route)}`,
     );
 }
 console.log(
@@ -117,6 +148,6 @@ console.log(
     executionPaths: 0,
     perplRestMethods: ['GET'],
     perplWebSocketOutboundMessageTypes: [5, 29],
-    mutatingApiRoutes: M03RouteFiles.filter((route) => fs.existsSync(route)).length,
+    mutatingApiRoutes: mutationRouteFiles.filter((route) => fs.existsSync(route)).length,
   }),
 );

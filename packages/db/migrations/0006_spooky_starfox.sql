@@ -1,0 +1,2 @@
+ALTER TABLE "m04_nonce_ledger" DROP CONSTRAINT "m04_nonce_operation_ck";--> statement-breakpoint
+ALTER TABLE "m04_nonce_ledger" ADD CONSTRAINT "m04_nonce_operation_ck" CHECK ("m04_nonce_ledger"."operation" in ('WALLET_BINDING','AGENT_IDENTITY','GRANT_APPROVAL','AUTHORIZATION','SESSION','REVOCATION','READ_ACCESS'));

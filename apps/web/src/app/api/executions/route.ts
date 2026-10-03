@@ -4,6 +4,8 @@ import {
   createDatabase,
   readM03ExecutionReadModel,
   recordM03ExecutionRefusal,
+  recordM04M03BoundaryDecision,
+  validateM04AuthorizationRef,
 } from '@nerva/db';
 import { loadServerConfig } from '@nerva/config';
 import {
@@ -110,6 +112,43 @@ export async function POST(request: Request) {
           'The policy is paused, revoked or unavailable.',
           correlation,
         );
+      const m03ActorId = activePolicy.payload.createdByActorRef;
+      const m04AuthorizationValid = await validateM04AuthorizationRef(pool, {
+        authorizationRef: parsed.data.m04AuthorizationRef,
+        planDigest: plan.digest,
+        action: plan.action,
+        now: new Date().toISOString(),
+        agentId: typeof m03ActorId === 'string' ? m03ActorId : undefined,
+      });
+      if (!m04AuthorizationValid) {
+        const refusalAt = new Date().toISOString();
+        await recordM03ExecutionRefusal(pool, {
+          idempotencyKey: parsed.data.idempotencyKey,
+          planDigest: parsed.data.planDigest,
+          correlationId: correlation,
+          reason: 'M04_AUTHORIZATION_INVALID_OR_REVOKED',
+          occurredAt: refusalAt,
+        });
+        await recordM04M03BoundaryDecision(pool, {
+          planDigest: plan.digest,
+          authorizationRefHash: parsed.data.m04AuthorizationRef,
+          correlationId: correlation,
+          occurredAt: refusalAt,
+          result: 'REFUSED',
+          reasonCode: 'M04_AUTHORIZATION_INVALID_OR_REVOKED',
+        });
+        return apiJson(
+          {
+            schemaVersion: '0.1',
+            status: 'REFUSED',
+            reason: 'M04_AUTHORIZATION_INVALID_OR_REVOKED',
+            planDigest: plan.digest,
+            correlationId: correlation,
+            executionEnabled: false,
+          },
+          409,
+        );
+      }
       const proof = parsed.data.authorizationProof;
       const now = new Date().toISOString();
       const issuedAt = Date.parse(proof.issuedAt);
@@ -189,6 +228,14 @@ export async function POST(request: Request) {
         correlationId: correlation,
         reason,
         occurredAt: new Date().toISOString(),
+      });
+      await recordM04M03BoundaryDecision(pool, {
+        planDigest: plan.digest,
+        authorizationRefHash: parsed.data.m04AuthorizationRef,
+        correlationId: correlation,
+        occurredAt: new Date().toISOString(),
+        result: 'REFUSED',
+        reasonCode: reason,
       });
       return apiJson(
         {

@@ -15,6 +15,18 @@ const expectedTables = [
   'm03_provider_enrollment_refs',
   'm03_simulation_results',
   'm03_trigger_evaluations',
+  'm04_agent_identities',
+  'm04_authority_states',
+  'm04_authorization_refs',
+  'm04_capability_grants',
+  'm04_delegation_observations',
+  'm04_nonce_ledger',
+  'm04_permission_evidence',
+  'm04_permission_evidence_head',
+  'm04_revocations',
+  'm04_session_revocations',
+  'm04_sessions',
+  'm04_wallet_bindings',
   'policies',
   'policy_versions',
   'portfolio_snapshots',
@@ -34,7 +46,7 @@ try {
   );
   const names = tables.rows.map((row) => row.table_name);
   if (JSON.stringify(names) !== JSON.stringify(expectedTables))
-    throw new Error(`Unexpected M01/M02/M03 table set: ${names.join(',')}`);
+    throw new Error(`Unexpected M01-M04 table set: ${names.join(',')}`);
   const triggers = await pool.query(
     'SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname',
   );
@@ -59,6 +71,18 @@ try {
     'm03_execution_idempotency_append_only',
     'm03_execution_attempt_events_append_only',
     'm03_execution_receipts_append_only',
+    'm04_wallet_bindings_append_only',
+    'm04_agent_identities_append_only',
+    'm04_capability_grants_append_only',
+    'm04_sessions_append_only',
+    'm04_session_revocations_append_only',
+    'm04_nonce_ledger_append_only',
+    'm04_authorization_refs_append_only',
+    'm04_delegation_observations_append_only',
+    'm04_revocations_append_only',
+    'm04_permission_evidence_append_only',
+    'm04_authority_states_monotonic',
+    'm04_permission_evidence_head_monotonic',
   ]) {
     if (!triggerNames.includes(required)) throw new Error(`Missing integrity trigger ${required}`);
   }
@@ -70,7 +94,8 @@ try {
   const writeTables = await pool.query(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name ~* '(order|execution|wallet_key)' AND table_name NOT LIKE 'm03_%'",
   );
-  if (writeTables.rows.length > 0)
+  const expectedWriteTables = writeTables.rows.filter((row) => row.table_name.startsWith('m03_'));
+  if (writeTables.rows.length !== expectedWriteTables.length)
     throw new Error(
       `Unexpected non-M03 write-path tables: ${writeTables.rows.map((row) => row.table_name).join(',')}`,
     );
@@ -268,6 +293,162 @@ try {
       if (!appendOnly)
         throw new Error(`M03 append-only integrity trigger did not reject ${row.table} mutation`);
     }
+    const probeWallet = `0x${'1'.repeat(40)}`;
+    await client.query(
+      `INSERT INTO m04_wallet_bindings
+       (binding_id,account_id,chain_id,network,wallet_address,provider_id,event_type,generation,provenance_hash,occurred_at)
+       VALUES ('m04-integrity-wallet','m04-probe',10143,'monad-testnet',$1,'eip712-compatible-wallet','BOUND',1,$2,now())`,
+      [probeWallet, 'a'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_agent_identities
+       (agent_identity_id,agent_id,version,issuer_id,provenance_hash,chain_id,wallet_address,verified_at)
+       VALUES ('m04-integrity-agent','m04-agent',1,'m04-issuer',$1,10143,$2,now())`,
+      ['b'.repeat(64), probeWallet],
+    );
+    await client.query(
+      `INSERT INTO m04_capability_grants
+       (grant_id,grant_hash,account_id,wallet_address,agent_id,agent_version,chain_id,policy_hash,scope,actions,limits,grant_document,nonce_domain_hash,delegation_observation_hash,grant_approval_ref_hash,created_at,expires_at)
+       VALUES ('m04-integrity-grant',$1,'m04-probe',$2,'m04-agent',1,10143,$3,'{"positionId":"21","marketSelector":"ETH-PERP"}'::jsonb,
+       '["REDUCE_POSITION"]'::jsonb,'{"maxActionFractionBps":1000}'::jsonb,'{}'::jsonb,$4,$5,$6,now(),now()+interval '1 hour')`,
+      ['c'.repeat(64), probeWallet, 'd'.repeat(64), 'e'.repeat(64), 'f'.repeat(64), '1'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_authority_states (grant_id,generation,revoked) VALUES ('m04-integrity-grant',0,false)`,
+    );
+    await client.query(
+      `INSERT INTO m04_sessions
+       (session_id,grant_id,session_hash,nonce_domain_hash,actions,limits,created_at,expires_at)
+       VALUES ('m04-integrity-session','m04-integrity-grant',$1,$2,'["REDUCE_POSITION"]'::jsonb,'{}'::jsonb,now(),now()+interval '10 minutes')`,
+      ['2'.repeat(64), '3'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_session_revocations
+       (session_id,generation,actor_ref,proof_ref_hash,nonce_hash,occurred_at)
+       VALUES ('m04-integrity-session',1,'m04-probe',$1,$2,now())`,
+      ['8'.repeat(64), '9'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_nonce_ledger
+       (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
+       VALUES ($1,10143,'m04-probe',$2,'m04-agent',NULL,'WALLET_BINDING',$3,now())`,
+      ['4'.repeat(64), probeWallet, '5'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_nonce_ledger
+       (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
+       VALUES ($1,10143,'m04-probe',$2,'wallet-read',NULL,'READ_ACCESS',$3,now())`,
+      ['6'.repeat(64), probeWallet, '7'.repeat(64)],
+    );
+    await client.query('SAVEPOINT m04_wallet_generation_check');
+    let walletGenerationConflictRejected = false;
+    try {
+      await client.query(
+        `INSERT INTO m04_wallet_bindings
+         (binding_id,account_id,chain_id,network,wallet_address,provider_id,event_type,generation,provenance_hash,occurred_at)
+         VALUES ('m04-integrity-wallet-conflict','m04-probe',10143,'monad-testnet',$1,'eip712-compatible-wallet','BOUND',1,$2,now())`,
+        [`0x${'3'.repeat(40)}`, '8'.repeat(64)],
+      );
+    } catch {
+      walletGenerationConflictRejected = true;
+    }
+    await client.query('ROLLBACK TO SAVEPOINT m04_wallet_generation_check');
+    if (!walletGenerationConflictRejected)
+      throw new Error('M04 accepted concurrent active wallet generations for one account');
+    await client.query(
+      `INSERT INTO m04_authorization_refs
+       (authorization_ref,grant_id,proof_ref_hash,typed_data_digest,plan_digest,action,verified_signer,revocation_generation,delegation_observation_hash,verified_at,expires_at)
+       VALUES ($1,'m04-integrity-grant',$2,$1,$3,'REDUCE_POSITION',$4,0,$5,now(),now()+interval '1 minute')`,
+      ['6'.repeat(64), '7'.repeat(64), '8'.repeat(64), probeWallet, '9'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_delegation_observations
+       (observation_id,account_id,wallet_address,chain_id,status,observation_hash,observed_at)
+       VALUES ('m04-integrity-delegation','m04-probe',$1,10143,'ABSENT',$2,now())`,
+      [probeWallet, 'a'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_revocations
+       (revocation_id,grant_id,generation,actor_ref,reason_code,proof_ref_hash,occurred_at)
+       VALUES ('m04-integrity-revocation','m04-integrity-grant',1,'m04-probe','USER_REVOKED',$1,now())`,
+      ['b'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_permission_evidence
+       (sequence,event_id,previous_hash,entry_hash,event,occurred_at)
+       VALUES (1,'m04:integrity-probe',$1,$2,'{"kind":"GRANT_COMPILED"}'::jsonb,now())`,
+      ['0'.repeat(64), 'c'.repeat(64)],
+    );
+    await client.query(
+      `INSERT INTO m04_permission_evidence_head (singleton,last_sequence,last_hash) VALUES (true,0,$1)`,
+      ['0'.repeat(64)],
+    );
+    const m04AppendOnlyRows = [
+      ['m04_wallet_bindings', 'binding_id', 'm04-integrity-wallet'],
+      ['m04_agent_identities', 'agent_identity_id', 'm04-integrity-agent'],
+      ['m04_capability_grants', 'grant_id', 'm04-integrity-grant'],
+      ['m04_sessions', 'session_id', 'm04-integrity-session'],
+      ['m04_session_revocations', 'session_id', 'm04-integrity-session'],
+      ['m04_nonce_ledger', 'nonce_hash', '4'.repeat(64)],
+      ['m04_authorization_refs', 'authorization_ref', '6'.repeat(64)],
+      ['m04_delegation_observations', 'observation_id', 'm04-integrity-delegation'],
+      ['m04_revocations', 'revocation_id', 'm04-integrity-revocation'],
+      ['m04_permission_evidence', 'event_id', 'm04:integrity-probe'],
+    ];
+    for (const [index, [table, keyColumn, key]] of m04AppendOnlyRows.entries()) {
+      const savepoint = `m04_append_only_${index}`;
+      await client.query(`SAVEPOINT ${savepoint}`);
+      let appendOnly = false;
+      try {
+        await client.query(`UPDATE ${table} SET ${keyColumn}=${keyColumn} WHERE ${keyColumn}=$1`, [
+          key,
+        ]);
+      } catch {
+        appendOnly = true;
+      }
+      await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+      if (!appendOnly) throw new Error(`M04 append-only trigger did not reject ${table} mutation`);
+    }
+    await client.query('SAVEPOINT m04_nonce_replay_check');
+    let m04NonceReplayRejected = false;
+    try {
+      await client.query(
+        `INSERT INTO m04_nonce_ledger
+         (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
+         VALUES ($1,10143,'m04-probe',$2,'m04-agent',NULL,'WALLET_BINDING',$3,now())`,
+        ['4'.repeat(64), probeWallet, '5'.repeat(64)],
+      );
+    } catch {
+      m04NonceReplayRejected = true;
+    }
+    await client.query('ROLLBACK TO SAVEPOINT m04_nonce_replay_check');
+    if (!m04NonceReplayRejected) throw new Error('M04 durable nonce ledger accepted replay');
+    await client.query('SAVEPOINT m04_authority_generation_check');
+    let generationJumpRejected = false;
+    try {
+      await client.query(
+        "UPDATE m04_authority_states SET generation=2 WHERE grant_id='m04-integrity-grant'",
+      );
+    } catch {
+      generationJumpRejected = true;
+    }
+    await client.query('ROLLBACK TO SAVEPOINT m04_authority_generation_check');
+    if (!generationJumpRejected) throw new Error('M04 authority state accepted a generation jump');
+    await client.query(
+      'UPDATE m04_permission_evidence_head SET last_sequence=1,last_hash=$1 WHERE singleton=true',
+      ['c'.repeat(64)],
+    );
+    await client.query('SAVEPOINT m04_evidence_head_monotonic_check');
+    let evidenceHeadJumpRejected = false;
+    try {
+      await client.query(
+        'UPDATE m04_permission_evidence_head SET last_sequence=3 WHERE singleton=true',
+      );
+    } catch {
+      evidenceHeadJumpRejected = true;
+    }
+    await client.query('ROLLBACK TO SAVEPOINT m04_evidence_head_monotonic_check');
+    if (!evidenceHeadJumpRejected) throw new Error('M04 evidence head accepted a sequence jump');
     await client.query('SAVEPOINT runtime_control_audit_check');
     await client.query(
       "UPDATE runtime_controls SET reason = reason, actor = 'm01-integrity-probe', source = 'test', correlation_id = 'm01-integrity-probe' WHERE control_key = 'GLOBAL_EXECUTION_DISABLED'",
@@ -293,6 +474,9 @@ try {
       runtimeControlChangesAudited: true,
       m02EvidenceAppendOnly: true,
       m03EvidenceAppendOnly: true,
+      m04AppendOnlyEvidence: true,
+      m04NonceReplayLedger: true,
+      m04AuthorityGenerationMonotonic: true,
       m03NonceReplayLedger: true,
       credentialColumns: 0,
       writePathTables: 0,
