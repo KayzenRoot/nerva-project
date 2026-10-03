@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "NERVA M01 safety kernel and platform foundation",
+  "description": "NERVA observation and deterministic risk platform",
   "engines": {
     "node": ">=22"
   },
@@ -15,20 +15,24 @@
     "packages/config",
     "packages/observability",
     "packages/db",
-    "packages/testing"
+    "packages/testing",
+    "packages/perpl",
+    "packages/risk"
   ],
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=4",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --max-warnings=0",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.mjs\" \".github/workflows/*.yml\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-002-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-002-PROPOSED.md\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.{mjs,ts}\" \".github/workflows/*.yml\" \"docs/*.md\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-003-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md\"",
     "build": "npm run build --workspace=@nerva/web && npm run build --workspace=@nerva/worker",
     "dev:web": "npm run dev --workspace=@nerva/web",
     "worker:start": "node --experimental-strip-types apps/worker/src/main.ts",
     "workspace:validate": "node .github/scripts/validate-workspaces.mjs",
     "deps:boundary": "node .github/scripts/check-no-forbidden-deps.mjs",
     "context:validate": "node .github/scripts/validate-nerva-context-lock.mjs",
+    "perpl:smoke": "node .github/scripts/perpl-public-smoke.mjs",
+    "risk:benchmark": "tsx .github/scripts/risk-benchmark.ts",
     "sourcepack:validate": "node .github/scripts/validate-source-pack.mjs",
     "security:audit": "npm audit --audit-level=high",
     "security:client-bundle": "node .github/scripts/check-client-bundle.mjs",
@@ -37,6 +41,7 @@
     "db:migrate": "drizzle-kit migrate --config packages/db/drizzle.config.ts",
     "db:verify": "node .github/scripts/verify-db-schema.mjs",
     "db:smoke": "npm run db:migrate && npm run db:verify",
+    "db:upgrade-smoke": "node .github/scripts/migration-from-m01.mjs",
     "smoke:boot": "node .github/scripts/boot-smoke.mjs",
     "gef:verify": "node .github/scripts/verify-gef-bootstrap.mjs state",
     "gef:package:verify": "node .github/scripts/verify-gef-bootstrap.mjs package"

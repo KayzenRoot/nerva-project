@@ -11,7 +11,28 @@ export {
   auditEvents,
   integrationHealthSamples,
   runtimeControls,
+  marketSnapshots,
+  positionSnapshots,
+  portfolioSnapshots,
+  riskSnapshots,
+  riskMetrics,
+  providerCheckpoints,
 } from './schema.ts';
+export {
+  appendIntegrationHealth,
+  appendMarketSnapshot,
+  appendPortfolioSnapshot,
+  appendPositionSnapshot,
+  appendRiskSnapshot,
+  latestIntegrationHealth,
+  latestMarketSnapshots,
+  latestPositionSnapshot,
+  latestPositionSnapshots,
+  latestProviderCheckpoints,
+  latestRiskSnapshot,
+  metricsForPosition,
+  upsertProviderCheckpoint,
+} from './observations.ts';
 export type Database = NodePgDatabase<typeof schema>;
 
 export function createDatabase(config: Pick<ServerConfig, 'databaseUrl'>): {

@@ -1,0 +1,9 @@
+{
+  "kind": "synthetic-sanitized",
+  "market": {
+    "id": 1,
+    "symbol": "ETH-PERP",
+    "config": { "price_decimals": 2, "size_decimals": 4 }
+  },
+  "state": { "orl": 179900, "at": { "t": 1893456000000 } }
+}

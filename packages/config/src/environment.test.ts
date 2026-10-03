@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadServerConfig, publicConfig } from './index.js';
+import { loadPerplConfig, loadServerConfig, publicConfig } from './index.js';
 
 describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
   it('defaults to local with execution disabled and exposes Monad chain IDs through typed config', () => {
@@ -33,5 +33,53 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
     });
     expect(config.demoSimulationEnabled).toBe(true);
     expect(config.executionEnabled).toBe(false);
+  });
+
+  it('admits Perpl public observation without credentials and rejects any scope except read', () => {
+    const publicOnly = loadPerplConfig({ NERVA_ENVIRONMENT: 'LOCAL' }, 'LOCAL');
+    expect(publicOnly.enabled).toBe(false);
+    expect(publicOnly.chainId).toBe(143);
+    expect(publicOnly.credentials).toBeUndefined();
+    expect(() =>
+      loadPerplConfig(
+        {
+          NERVA_ENVIRONMENT: 'LOCAL',
+          PERPL_API_KEY: 'key',
+          PERPL_API_KEY_SECRET: 'a'.repeat(64),
+          PERPL_API_KEY_SCOPE: 'trade',
+        },
+        'LOCAL',
+      ),
+    ).toThrow(/read/i);
+    expect(() =>
+      loadPerplConfig(
+        {
+          NERVA_ENVIRONMENT: 'LOCAL',
+          PERPL_API_KEY: 'key',
+        },
+        'LOCAL',
+      ),
+    ).toThrow(/complete/i);
+  });
+
+  it('binds Perpl URLs and chain identity to the admitted Monad network', () => {
+    const testnet = loadPerplConfig(
+      {
+        NERVA_ENVIRONMENT: 'TESTNET_DEMO',
+        PERPL_OBSERVATION_ENABLED: 'true',
+      },
+      'TESTNET_DEMO',
+    );
+    expect(testnet.chainId).toBe(10143);
+    expect(testnet.network).toBe('monad-testnet');
+    expect(() =>
+      loadPerplConfig(
+        {
+          NERVA_ENVIRONMENT: 'TESTNET_DEMO',
+          PERPL_CHAIN_ID: '143',
+        },
+        'TESTNET_DEMO',
+      ),
+    ).toThrow(/network/i);
   });
 });

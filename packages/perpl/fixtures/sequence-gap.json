@@ -1,0 +1,8 @@
+{
+  "kind": "synthetic-sanitized",
+  "heartbeats": [
+    { "mt": 100, "sn": 10, "ses": "fixture-session" },
+    { "mt": 100, "sn": 12, "ses": "fixture-session" }
+  ],
+  "resnapshot": { "mt": 2, "sn": 1, "ses": "fixture-session-2" }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@nerva/perpl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/client.ts",
+  "exports": {
+    ".": "./src/client.ts",
+    "./normalizer": "./src/normalizer.ts"
+  },
+  "dependencies": {
+    "@nerva/domain": "0.1.0"
+  }
+}

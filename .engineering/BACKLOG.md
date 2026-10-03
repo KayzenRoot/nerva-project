@@ -1,15 +1,22 @@
 # NERVA Backlog
 
-Status: CANONICAL — NERVA-WO-002
+Status: CANONICAL — NERVA-WO-003
 
 ## V0.1 modules
 - M00 Product, Competition & Source Pack Lock — APPROVED.
 - M01 Safety Kernel & Platform Foundation — APPROVED.
-- M02 Monad/Perpl Data & Risk Intelligence — NEXT; Work Order NOT_ADMITTED.
-- M03 Policy Compiler, Simulation & Autonomous Execution.
+- M02 Monad/Perpl Data & Risk Intelligence — APPROVED.
+- M03 Policy Compiler, Simulation & Autonomous Execution — NEXT; Work Order NOT_ADMITTED.
 - M04 Agent Wallet, Permissions & Verifiable Evidence.
 - M05 Product Experience & Competition Demo.
 - M06 Release Hardening, Deployment & Metropolis Submission.
+
+## M02 carry-forward
+- authenticated Perpl account live-read smoke requires a safely provisioned read-only credential;
+- actual Perpl key scope requires enrollment/operational provenance because current public docs expose no reliable self-query for an already-issued opaque key;
+- funding direction, maintenance margin and liquidation distance remain unproven and non-actionable;
+- Envio remains deferred until target-specific evidence materially improves provenance;
+- four MODERATE Drizzle Kit/esbuild transitive advisories remain for release recheck.
 
 ## IMPORTANT parking lot
 - browser/push notifications;

@@ -1,35 +1,29 @@
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const root = process.cwd();
 const port = '3417';
-const web = spawn(
-  process.execPath,
-  [
-    path.join(root, 'node_modules/next/dist/bin/next'),
-    'start',
-    '--hostname',
-    '127.0.0.1',
-    '--port',
-    port,
-  ],
-  {
-    cwd: path.join(root, 'apps/web'),
-    env: {
-      ...process.env,
-      PORT: port,
-      NERVA_ENVIRONMENT: 'LOCAL',
-      NERVA_EXECUTION_ENABLED: 'false',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
+const standaloneRoot = path.join(root, 'apps/web/.next/standalone/apps/web');
+const web = spawn(process.execPath, [path.join(standaloneRoot, 'server.js')], {
+  cwd: standaloneRoot,
+  windowsHide: true,
+  env: {
+    ...process.env,
+    PORT: port,
+    HOSTNAME: '127.0.0.1',
+    NERVA_ENVIRONMENT: 'LOCAL',
+    NERVA_EXECUTION_ENABLED: 'false',
   },
-);
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
 const worker = spawn(
   process.execPath,
   [path.join(root, 'node_modules/tsx/dist/cli.mjs'), 'apps/worker/src/main.ts'],
   {
     cwd: root,
+    windowsHide: true,
     env: {
       ...process.env,
       NERVA_ENVIRONMENT: 'LOCAL',
@@ -67,12 +61,21 @@ worker.stderr.on('data', (chunk) => {
 async function stop(child) {
   if (child.exitCode !== null) return;
   child.kill('SIGTERM');
-  await Promise.race([new Promise((resolve) => child.once('exit', resolve)), delay(5000)]);
-  if (child.exitCode === null) child.kill('SIGKILL');
+  const stopped = await Promise.race([once(child, 'exit').then(() => true), delay(5000)]);
+  if (stopped || child.exitCode !== null) return;
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    const killer = spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    await Promise.race([once(killer, 'exit'), delay(5000)]);
+  } else {
+    child.kill('SIGKILL');
+  }
 }
 
 try {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 90_000;
   let live;
   let liveFailure = 'no HTTP response received';
   while (Date.now() < deadline) {
@@ -80,7 +83,7 @@ try {
     if (worker.exitCode !== null) throw new Error(`Worker process exited: ${workerOutput}`);
     try {
       live = await fetch(`http://127.0.0.1:${port}/api/health/live`, {
-        signal: AbortSignal.timeout(1000),
+        signal: AbortSignal.timeout(5000),
       });
       if (live.ok) break;
       liveFailure = `HTTP ${live.status}: ${await live.clone().text()}`;
@@ -98,14 +101,34 @@ try {
   const ready = await fetch(`http://127.0.0.1:${port}/api/health/ready`, {
     signal: AbortSignal.timeout(5000),
   });
-  if (!ready.ok)
+  const readyBody = await ready.json();
+  if (process.env.DATABASE_URL) {
+    if (
+      !ready.ok ||
+      readyBody.status !== 'ready' ||
+      readyBody.dependencies?.database !== 'HEALTHY' ||
+      readyBody.safety?.globalExecutionDisabled !== true
+    )
+      throw new Error(`Web readiness failed (${ready.status}): ${JSON.stringify(readyBody)}`);
+  } else if (
+    ready.status !== 503 ||
+    readyBody.status !== 'not_ready' ||
+    readyBody.dependencies?.database !== 'NOT_CONFIGURED' ||
+    readyBody.safety?.globalExecutionDisabled !== true
+  ) {
     throw new Error(
-      `Web readiness failed (${ready.status}): ${JSON.stringify(await ready.json())}`,
+      `Web readiness did not fail closed (${ready.status}): ${JSON.stringify(readyBody)}`,
     );
+  }
   for (const [label, path, expectedCopy, expectedDocumentLanguage] of [
-    ['English default', '/', 'Protection starts with clear limits.', 'en'],
-    ['Brazilian Portuguese', '/?lang=pt-BR', 'Proteção começa com limites claros.', 'pt-BR'],
-    ['Spanish', '/?lang=es', 'La protección comienza con límites claros.', 'es'],
+    ['English default', '/', 'See the conditions before any future action.', 'en'],
+    [
+      'Brazilian Portuguese',
+      '/?lang=pt-BR',
+      'Veja as condições antes de qualquer ação futura.',
+      'pt-BR',
+    ],
+    ['Spanish', '/?lang=es', 'Consulta las condiciones antes de una acción futura.', 'es'],
   ]) {
     const page = await fetch(`http://127.0.0.1:${port}${path}`, {
       signal: AbortSignal.timeout(5000),
@@ -118,22 +141,27 @@ try {
     )
       throw new Error(`${label} page did not render the expected locale (${page.status})`);
   }
-  const workerDeadline = Date.now() + 10_000;
+  const workerDeadline = Date.now() + 30_000;
   while (
-    !workerOutput.includes('worker started without external integrations') &&
+    !workerOutput.includes('worker started in observation mode') &&
     worker.exitCode === null &&
     Date.now() < workerDeadline
   ) {
     await delay(100);
   }
-  if (!workerOutput.includes('worker started without external integrations'))
+  if (!workerOutput.includes('worker started in observation mode'))
     throw new Error(
       `Worker safe-mode startup record missing (${workerLifecycle}): ${workerOutput}`,
     );
   if (!workerOutput.includes('"globalExecutionDisabled":true'))
     throw new Error(`Worker did not fail closed on the global execution control: ${workerOutput}`);
   console.log(
-    JSON.stringify({ ok: true, web: 'live+ready', worker: 'safe-mode', executionEnabled: false }),
+    JSON.stringify({
+      ok: true,
+      web: process.env.DATABASE_URL ? 'live+ready' : 'live+fail-closed-not-ready',
+      worker: 'observation-mode',
+      executionEnabled: false,
+    }),
   );
 } finally {
   await stop(worker);

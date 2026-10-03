@@ -12,6 +12,8 @@
     "@nerva/config": "0.1.0",
     "@nerva/db": "0.1.0",
     "@nerva/domain": "0.1.0",
-    "@nerva/observability": "0.1.0"
+    "@nerva/observability": "0.1.0",
+    "@nerva/perpl": "0.1.0",
+    "@nerva/risk": "0.1.0"
   }
 }
