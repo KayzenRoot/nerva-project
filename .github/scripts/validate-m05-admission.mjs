@@ -3,7 +3,9 @@ import fs from 'node:fs';
 
 const lockPath = '.engineering/context-locks/NERVA-WO-006.json';
 const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
+const checkpoint = JSON.parse(
+  fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'),
+);
 
 const gitExecutable =
   process.platform === 'win32'
@@ -33,11 +35,15 @@ const expected = {
 };
 
 for (const [key, value] of Object.entries(expected)) {
-  if (lock[key] !== value) throw new Error(`M05 admission identity mismatch: ${key}`);
+  if (lock[key] !== value) {
+    throw new Error(`M05 admission identity mismatch: ${key}`);
+  }
 }
 
 const fingerprints = Object.entries(lock.criticalInputs ?? {});
-if (fingerprints.length !== 89) throw new Error('M05 Context Lock must contain 89 fingerprints');
+if (fingerprints.length !== 89) {
+  throw new Error('M05 Context Lock must contain 89 fingerprints');
+}
 for (const [path, sha] of fingerprints) {
   if (git('rev-parse', '--verify', `${lock.executionBase}:${path}`) !== sha) {
     throw new Error(`M05 Context Lock fingerprint mismatch: ${path}`);
@@ -59,12 +65,14 @@ if (git('rev-parse', 'origin/main') !== lock.executionBase) {
   throw new Error('M05 admission base is stale');
 }
 
-const branch =
+const branchName =
   process.env.GITHUB_HEAD_REF ||
   (process.env.GITHUB_REF?.startsWith('refs/heads/')
     ? process.env.GITHUB_REF.slice('refs/heads/'.length)
     : git('branch', '--show-current'));
-if (branch !== lock.executionBranch) throw new Error(`Unexpected M05 branch: ${branch}`);
+if (branchName !== lock.executionBranch) {
+  throw new Error(`Unexpected M05 branch: ${branchName}`);
+}
 
 const allowed = new Set([
   '.engineering/work-orders/NERVA-WO-006.md',
@@ -78,11 +86,21 @@ const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .split(/\r?\n/)
   .filter(Boolean);
 const foreign = changed.filter((path) => !allowed.has(path));
-if (foreign.length > 0) throw new Error(`M05 admission contains product/out-of-scope files: ${foreign.join(', ')}`);
+if (foreign.length > 0) {
+  throw new Error(
+    `M05 admission contains product/out-of-scope files: ${foreign.join(', ')}`,
+  );
+}
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
-const brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-006-CODEX.md', 'utf8');
-const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-006-EVIDENCE.md', 'utf8');
+const brief = fs.readFileSync(
+  '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
+  'utf8',
+);
+const evidence = fs.readFileSync(
+  '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
+  'utf8',
+);
 const requiredSections = [
   'OBJECTIVE',
   'CONTEXT',
@@ -99,18 +117,26 @@ const requiredSections = [
   'STOP CONDITION',
 ];
 for (const section of requiredSections) {
-  if (!wo.includes(`## ${section}`)) throw new Error(`WO-006 missing section: ${section}`);
+  if (!wo.includes(`## ${section}`)) {
+    throw new Error(`WO-006 missing section: ${section}`);
+  }
 }
-if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('WO-006 stop marker missing');
-if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('M05 brief stop marker missing');
-if (!evidence.includes('EXECUTION_NOT_STARTED')) throw new Error('M05 evidence must remain scaffold-only at admission');
+if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  throw new Error('WO-006 stop marker missing');
+}
+if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  throw new Error('M05 brief stop marker missing');
+}
+if (!evidence.includes('EXECUTION_NOT_STARTED')) {
+  throw new Error('M05 evidence must remain scaffold-only at admission');
+}
 
 console.log(
   JSON.stringify({
     ok: true,
     base: lock.executionBase,
     head: git('rev-parse', 'HEAD'),
-    branch,
+    branch: branchName,
     issue: lock.issueNumber,
     fingerprints: fingerprints.length,
     changedFiles: changed.length,
