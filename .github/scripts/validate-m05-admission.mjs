@@ -3,9 +3,7 @@ import fs from 'node:fs';
 
 const lockPath = '.engineering/context-locks/NERVA-WO-006.json';
 const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
-const checkpoint = JSON.parse(
-  fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'),
-);
+const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
 
 const gitExecutable =
   process.platform === 'win32'
@@ -13,9 +11,7 @@ const gitExecutable =
     : '/usr/bin/git';
 
 if (!fs.existsSync(gitExecutable)) {
-  throw new Error(
-    'M05 admission validation requires Git at the trusted system path',
-  );
+  throw new Error('M05 admission validation requires Git at the trusted system path');
 }
 
 const git = (...args) => {
@@ -62,9 +58,7 @@ if (
   checkpoint.knownCritical !== 0 ||
   checkpoint.knownHigh !== 0
 ) {
-  throw new Error(
-    'Canonical checkpoint does not admit M05 planning/execution package',
-  );
+  throw new Error('Canonical checkpoint does not admit M05 planning/execution package');
 }
 
 if (git('rev-parse', 'origin/main') !== lock.executionBase) {
@@ -96,20 +90,12 @@ const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
 
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
-  throw new Error(
-    `M05 admission contains product/out-of-scope files: ${foreign.join(', ')}`,
-  );
+  throw new Error(`M05 admission contains product/out-of-scope files: ${foreign.join(', ')}`);
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
-const brief = fs.readFileSync(
-  '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
-  'utf8',
-);
-const evidence = fs.readFileSync(
-  '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
-  'utf8',
-);
+const brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-006-CODEX.md', 'utf8');
+const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-006-EVIDENCE.md', 'utf8');
 
 const requiredSections = [
   'OBJECTIVE',
