@@ -101,10 +101,7 @@ if (foreign.length > 0) {
   );
 }
 
-const wo = fs.readFileSync(
-  '.engineering/work-orders/NERVA-WO-006.md',
-  'utf8',
-);
+const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
 const brief = fs.readFileSync(
   '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
   'utf8',
