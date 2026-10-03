@@ -91,6 +91,21 @@ try {
   );
   if (forbiddenColumns.rows.length > 0)
     throw new Error('Credential-shaped database columns are forbidden');
+  const correctionDeltaColumns = await pool.query(
+    "SELECT table_name,column_name,is_nullable FROM information_schema.columns WHERE table_schema='public' AND ((table_name='m04_sessions' AND column_name IN ('issuance_proof_ref_hash','issuance_typed_data_digest','issuance_nonce_hash','revocation_generation','delegation_observation_hash')) OR (table_name='m04_authorization_refs' AND column_name IN ('authorization_nonce_hash','session_id','session_hash'))) ORDER BY table_name,column_name",
+  );
+  if (correctionDeltaColumns.rowCount !== 8)
+    throw new Error('M04 session issuance/session authorization migration columns are incomplete');
+  const legacySessionMetadata = correctionDeltaColumns.rows.filter(
+    (row) => row.table_name === 'm04_sessions',
+  );
+  if (
+    legacySessionMetadata.length !== 5 ||
+    legacySessionMetadata.some((row) => row.is_nullable !== 'YES')
+  )
+    throw new Error(
+      'Legacy session rows must remain loadable but cannot gain authority implicitly',
+    );
   const writeTables = await pool.query(
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name ~* '(order|execution|wallet_key)' AND table_name NOT LIKE 'm03_%'",
   );

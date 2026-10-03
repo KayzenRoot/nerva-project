@@ -444,6 +444,15 @@ export const M04AuthorizationRequestSchema = z
   .object({
     schemaVersion: z.literal('0.1'),
     grantId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    authority: z.enum(['grant', 'session']).default('grant'),
+    sessionId: z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/)
+      .optional(),
+    sessionHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .optional(),
     planDigest: z.string().regex(/^[0-9a-f]{64}$/),
     action: z.enum(['REDUCE_POSITION', 'CLOSE_POSITION', 'NO_ACTION']),
     validUntil: z.iso.datetime({ offset: true }),
@@ -454,7 +463,18 @@ export const M04AuthorizationRequestSchema = z
       .optional(),
     correlationId: z.string().trim().min(1).max(200),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      (value.authority === 'session' && (!value.sessionId || !value.sessionHash)) ||
+      (value.authority === 'grant' &&
+        (value.sessionId !== undefined || value.sessionHash !== undefined))
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Authority selector must bind one exact grant or session.',
+      });
+  });
 
 export const M04DelegationObserveRequestSchema = z
   .object({
@@ -500,6 +520,13 @@ export const M04SessionRequestSchema = z
     maxSlippageBps: z.number().int().min(0).max(2_000),
     expiresAt: z.iso.datetime({ offset: true }),
     nonceDomain: z.string().regex(/^nerva:[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
     correlationId: z.string().trim().min(1).max(200),
   })
   .strict();

@@ -7,6 +7,7 @@ import {
   buildGrantApprovalTypedData,
   buildGrantRevocationTypedData,
   buildSessionRevocationTypedData,
+  buildSessionIssuanceTypedData,
   classifyEip7702Code,
   isCurrentM04DelegationObservation,
   compileCapabilityGrant,
@@ -21,6 +22,7 @@ import {
   verifyGrantApproval,
   verifyGrantRevocation,
   verifySessionRevocation,
+  verifySessionIssuance,
   verifyWalletUnbinding,
   verifyPermissionEvidenceChain,
   observeEip7702Delegation,
@@ -272,6 +274,40 @@ describe('M04 bounded permission authority', () => {
     expect(classifyEip7702Code('0x60006000').status).toBe('UNKNOWN');
   });
 
+  it('rejects tampered WalletBinding schema and primary type', async () => {
+    const account = privateKeyToAccount(generatePrivateKey());
+    const typedData = buildWalletBindingTypedData({
+      accountId: 'account-test-1',
+      address: account.address,
+      issuedAt: now,
+      validUntil: '2026-10-03T15:04:00.000Z',
+      nonce,
+    });
+    const signature = await account.signTypedData(typedData);
+    await expect(
+      verifyWalletIdentityBinding({
+        typedData: {
+          ...typedData,
+          types: {
+            WalletBinding: [
+              { name: 'account', type: 'address' },
+              { name: 'tampered', type: 'bytes32' },
+            ],
+          },
+        } as unknown as typeof typedData,
+        signature,
+        expected: { accountId: 'account-test-1', address: account.address, now },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verifyWalletIdentityBinding({
+        typedData: { ...typedData, primaryType: 'OtherBinding' } as unknown as typeof typedData,
+        signature,
+        expected: { accountId: 'account-test-1', address: account.address, now },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it('requires a short-lived account and chain-bound wallet proof to read private permission status', async () => {
     const account = privateKeyToAccount(generatePrivateKey());
     const read = buildWalletReadAuthorizationTypedData({
@@ -476,6 +512,169 @@ describe('M04 bounded permission authority', () => {
         now,
       }),
     ).rejects.toThrow();
+    for (const limits of [
+      { maxActionFractionBps: 2_501, maxNotionalMicros: '500000', maxSlippageBps: 100 },
+      { maxActionFractionBps: 1_000, maxNotionalMicros: '1000001', maxSlippageBps: 100 },
+      { maxActionFractionBps: 1_000, maxNotionalMicros: '500000', maxSlippageBps: 201 },
+    ]) {
+      await expect(
+        deriveSessionAuthority({
+          sessionId: 'session-limit-expansion',
+          grant,
+          actions: ['NO_ACTION'],
+          ...limits,
+          expiresAt: '2026-10-03T16:00:00.000Z',
+          nonceDomain: 'nerva:session:session-limit-expansion',
+          now,
+        }),
+      ).rejects.toThrow();
+    }
+  });
+
+  it('requires the bound owner signature for exact session issuance and rejects replay-domain confusion', async () => {
+    const { grant, privateKey } = await fixtureGrant();
+    const session = await deriveSessionAuthority({
+      sessionId: 'session-issued-1',
+      grant,
+      actions: ['NO_ACTION'],
+      maxActionFractionBps: 1_000,
+      maxNotionalMicros: '500000',
+      maxSlippageBps: 100,
+      expiresAt: '2026-10-03T16:00:00.000Z',
+      nonceDomain: 'nerva:session:session-issued-1',
+      now,
+    });
+    const typedData = buildSessionIssuanceTypedData({
+      session,
+      nonce,
+      validUntil: '2026-10-03T15:04:00.000Z',
+    });
+    const owner = privateKeyToAccount(privateKey);
+    const signature = await owner.signTypedData(typedData);
+    const verify = (data: typeof typedData, proof: string = signature, at = now) =>
+      verifySessionIssuance({ session, typedData: data, signature: proof, now: at });
+
+    await expect(verify(typedData, '')).resolves.toBeUndefined();
+    await expect(
+      verify(typedData, await privateKeyToAccount(generatePrivateKey()).signTypedData(typedData)),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({ ...typedData, message: { ...typedData.message, account: `0x${'9'.repeat(40)}` } }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({ ...typedData, domain: { ...typedData.domain, chainId: 143 } }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({
+        ...typedData,
+        message: { ...typedData.message, parentGrantHash: `0x${hash('8')}` as `0x${string}` },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({
+        ...typedData,
+        message: { ...typedData.message, sessionHash: `0x${hash('7')}` as `0x${string}` },
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({
+        ...typedData,
+        domain: { ...typedData.domain, name: 'Wrong domain' },
+      } as unknown as typeof typedData),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({ ...typedData, primaryType: 'WrongSession' } as unknown as typeof typedData),
+    ).resolves.toBeUndefined();
+    await expect(
+      verify({ ...typedData, types: { SessionIssuance: [] } } as unknown as typeof typedData),
+    ).resolves.toBeUndefined();
+    await expect(verify(typedData, signature, '2026-10-03T16:01:00.000Z')).resolves.toBeUndefined();
+  });
+
+  it('uses a session only for a signed plan inside its subset and binds the authorization to that session', async () => {
+    const { grant, privateKey } = await fixtureGrant();
+    const session = await deriveSessionAuthority({
+      sessionId: 'session-authorize-1',
+      grant,
+      actions: ['NO_ACTION'],
+      maxActionFractionBps: 1_000,
+      maxNotionalMicros: '500000',
+      maxSlippageBps: 100,
+      expiresAt: '2026-10-03T16:00:00.000Z',
+      nonceDomain: 'nerva:session:session-authorize-1',
+      now,
+    });
+    const typedData = buildAuthorizationTypedData({
+      grant,
+      session,
+      planDigest: hash('e'),
+      action: 'NO_ACTION',
+      validUntil: '2026-10-03T15:04:00.000Z',
+      nonce,
+      revocationGeneration: 0,
+    });
+    const signer = privateKeyToAccount(privateKey);
+    const signature = await signer.signTypedData(typedData);
+    const verified = await verifyAuthorization({
+      grant,
+      typedData,
+      signature,
+      expected: {
+        planDigest: hash('e'),
+        action: 'NO_ACTION',
+        now,
+        signer: signer.address,
+        revocationGeneration: 0,
+        delegationObservationHash: hash('d'),
+        session,
+      },
+    });
+    expect(verified).toMatchObject({ sessionId: session.sessionId, sessionHash: session.digest });
+    await expect(
+      Promise.resolve().then(() =>
+        buildAuthorizationTypedData({
+          grant,
+          session,
+          planDigest: hash('e'),
+          action: 'REDUCE_POSITION',
+          validUntil: '2026-10-03T15:04:00.000Z',
+          nonce,
+          revocationGeneration: 0,
+        }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      Promise.resolve().then(() =>
+        buildAuthorizationTypedData({
+          grant,
+          session,
+          planDigest: hash('e'),
+          action: 'NO_ACTION',
+          validUntil: '2026-10-03T16:00:01.000Z',
+          nonce,
+          revocationGeneration: 0,
+        }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      verifyAuthorization({
+        grant,
+        typedData: {
+          ...typedData,
+          message: { ...typedData.message, sessionHash: `0x${hash('9')}` as `0x${string}` },
+        },
+        signature,
+        expected: {
+          planDigest: hash('e'),
+          action: 'NO_ACTION',
+          now,
+          signer: signer.address,
+          revocationGeneration: 0,
+          delegationObservationHash: hash('d'),
+          session,
+        },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it('requires a fresh wallet proof bound to the exact session before revocation', async () => {

@@ -113,6 +113,17 @@ describe('M04 request contracts', () => {
     };
     expect(M04AuthorizationRequestSchema.safeParse(challenge).success).toBe(true);
     expect(
+      M04AuthorizationRequestSchema.safeParse({ ...challenge, authority: 'session' }).success,
+    ).toBe(false);
+    expect(
+      M04AuthorizationRequestSchema.safeParse({
+        ...challenge,
+        authority: 'session',
+        sessionId: 'session-1',
+        sessionHash: hash,
+      }).success,
+    ).toBe(true);
+    expect(
       M04AuthorizationRequestSchema.safeParse({ ...challenge, action: 'TRANSFER' }).success,
     ).toBe(false);
     expect(M04AuthorizationRequestSchema.safeParse({ ...challenge, chainId: 143 }).success).toBe(
@@ -138,6 +149,9 @@ describe('M04 request contracts', () => {
       maxSlippageBps: 0,
       expiresAt,
       nonceDomain: 'nerva:session:session-1',
+      issuedAt,
+      validUntil: expiresAt,
+      nonce,
       correlationId,
     };
     expect(M04SessionRequestSchema.safeParse(session).success).toBe(true);

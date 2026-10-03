@@ -307,6 +307,8 @@ export async function verifyWalletIdentityBinding(input: {
       domain.version !== '1' ||
       domain.chainId !== MONAD_TESTNET_CHAIN_ID ||
       domain.salt !== keccak256(stringToHex(`nerva-wallet-binding:${input.expected.accountId}`)) ||
+      input.typedData.primaryType !== 'WalletBinding' ||
+      canonicalSerialize(input.typedData.types) !== canonicalSerialize(WALLET_BINDING_TYPES) ||
       message.account.toLowerCase() !== address.toLowerCase() ||
       message.accountIdHash !== keccak256(stringToHex(input.expected.accountId)) ||
       message.providerIdHash !== keccak256(stringToHex('eip712-compatible-wallet')) ||
@@ -781,6 +783,8 @@ const AUTHORIZATION_TYPES = {
     { name: 'nonceDomainHash', type: 'bytes32' },
     { name: 'revocationGeneration', type: 'uint64' },
     { name: 'delegationHash', type: 'bytes32' },
+    { name: 'sessionIdHash', type: 'bytes32' },
+    { name: 'sessionHash', type: 'bytes32' },
   ],
 } as const;
 
@@ -805,6 +809,8 @@ export type AuthorizationTypedData = Readonly<{
     nonceDomainHash: Hex;
     revocationGeneration: bigint;
     delegationHash: Hex;
+    sessionIdHash: Hex;
+    sessionHash: Hex;
   }>;
 }>;
 
@@ -1103,6 +1109,7 @@ export function buildAuthorizationTypedData(input: {
   readonly validUntil: string;
   readonly nonce: string;
   readonly revocationGeneration: number;
+  readonly session?: SessionAuthority;
 }): AuthorizationTypedData {
   const grant = input.grant;
   const validUntil = Date.parse(input.validUntil) / 1_000;
@@ -1114,7 +1121,13 @@ export function buildAuthorizationTypedData(input: {
     !Number.isSafeInteger(validUntil) ||
     validUntil > Date.parse(grant.expiresAt) / 1_000 ||
     !/^0x[0-9a-f]{64}$/.test(input.nonce) ||
-    input.revocationGeneration !== grant.revocationGeneration
+    input.revocationGeneration !== grant.revocationGeneration ||
+    (input.session !== undefined &&
+      (input.session.grantId !== grant.grantId ||
+        input.session.grantHash !== grant.digest ||
+        input.session.revocationGeneration !== input.revocationGeneration ||
+        !input.session.actions.includes(input.action) ||
+        validUntil > Date.parse(input.session.expiresAt) / 1_000))
   )
     throw new TypeError('Authorization request does not fit its exact live grant');
   const delegationHash =
@@ -1143,9 +1156,11 @@ export function buildAuthorizationTypedData(input: {
       action: actionCode(input.action),
       validUntil: BigInt(validUntil),
       nonce: input.nonce as Hex,
-      nonceDomainHash: keccak256(stringToHex(grant.nonceDomain)),
+      nonceDomainHash: keccak256(stringToHex(input.session?.nonceDomain ?? grant.nonceDomain)),
       revocationGeneration: BigInt(input.revocationGeneration),
       delegationHash,
+      sessionIdHash: input.session ? keccak256(stringToHex(input.session.sessionId)) : ZERO_HASH,
+      sessionHash: input.session ? (`0x${input.session.digest}` as Hex) : ZERO_HASH,
     },
   };
 }
@@ -1159,6 +1174,8 @@ export interface VerifiedAuthorization {
   readonly action: M04Action;
   readonly expiresAt: string;
   readonly nonceHash: string;
+  readonly sessionId?: string;
+  readonly sessionHash?: string;
 }
 
 export async function verifyAuthorization(input: {
@@ -1172,6 +1189,7 @@ export async function verifyAuthorization(input: {
     signer: string;
     revocationGeneration: number;
     delegationObservationHash: string;
+    session?: SessionAuthority;
   }>;
 }): Promise<VerifiedAuthorization | undefined> {
   try {
@@ -1203,6 +1221,8 @@ export async function verifyAuthorization(input: {
         'nonceDomainHash',
         'revocationGeneration',
         'delegationHash',
+        'sessionIdHash',
+        'sessionHash',
       ]) ||
       !HASH_PATTERN.test(expected.planDigest) ||
       !HASH_PATTERN.test(expected.delegationObservationHash) ||
@@ -1225,11 +1245,22 @@ export async function verifyAuthorization(input: {
       !grant.actions.includes(expected.action) ||
       message.revocationGeneration !== BigInt(expected.revocationGeneration) ||
       message.delegationHash !== expectedDelegationHash ||
+      (expected.session === undefined
+        ? message.sessionIdHash !== ZERO_HASH || message.sessionHash !== ZERO_HASH
+        : message.sessionIdHash !== keccak256(stringToHex(expected.session.sessionId)) ||
+          message.sessionHash !== `0x${expected.session.digest}` ||
+          message.nonceDomainHash !== keccak256(stringToHex(expected.session.nonceDomain)) ||
+          expected.session.grantId !== grant.grantId ||
+          expected.session.grantHash !== grant.digest ||
+          expected.session.revocationGeneration !== expected.revocationGeneration ||
+          !expected.session.actions.includes(expected.action) ||
+          validUntil > Date.parse(expected.session.expiresAt)) ||
       validUntil <= now ||
       validUntil > Date.parse(grant.expiresAt) ||
       validUntil - now > 300_000 ||
       !/^0x[0-9a-f]{64}$/.test(message.nonce) ||
-      message.nonceDomainHash !== keccak256(stringToHex(grant.nonceDomain))
+      (expected.session === undefined &&
+        message.nonceDomainHash !== keccak256(stringToHex(grant.nonceDomain)))
     )
       return undefined;
     const signer = await recoverTypedDataAddress({
@@ -1250,6 +1281,9 @@ export async function verifyAuthorization(input: {
       action: expected.action,
       expiresAt: new Date(validUntil).toISOString(),
       nonceHash: await canonicalHash(message.nonce),
+      ...(expected.session
+        ? { sessionId: expected.session.sessionId, sessionHash: expected.session.digest }
+        : {}),
     });
   } catch {
     return undefined;
@@ -1398,6 +1432,7 @@ export interface SessionAuthority {
   readonly accountId: string;
   readonly walletAddress: Address;
   readonly agentId: string;
+  readonly agentVersion: number;
   readonly policyHash: string;
   readonly actions: readonly M04Action[];
   readonly maxActionFractionBps: number;
@@ -1443,7 +1478,7 @@ export async function deriveSessionAuthority(input: {
     BigInt(input.maxNotionalMicros) > BigInt(grant.limits.maxNotionalMicros) ||
     !isSubsetNumber(input.maxSlippageBps, grant.limits.maxSlippageBps) ||
     !/^nerva:session:[A-Za-z0-9][A-Za-z0-9._:-]{0,150}$/.test(input.nonceDomain) ||
-    input.nonceDomain === grant.nonceDomain
+    input.nonceDomain !== `nerva:session:${input.sessionId}`
   )
     throw new TypeError('Session authority expands, outlives or is not bound to its live grant');
   const actions = Object.freeze(
@@ -1460,6 +1495,7 @@ export async function deriveSessionAuthority(input: {
     accountId: grant.accountId,
     walletAddress: grant.walletAddress,
     agentId: grant.agentId,
+    agentVersion: grant.agentVersion,
     policyHash: grant.policyHash,
     actions,
     maxActionFractionBps: input.maxActionFractionBps,
@@ -1472,6 +1508,202 @@ export async function deriveSessionAuthority(input: {
     delegationObservationHash: grant.delegation.observationHash,
   };
   return Object.freeze({ ...canonical, digest: await canonicalHash(canonical) });
+}
+
+const SESSION_ISSUANCE_TYPES = {
+  SessionIssuance: [
+    { name: 'account', type: 'address' },
+    { name: 'wallet', type: 'address' },
+    { name: 'accountIdHash', type: 'bytes32' },
+    { name: 'agentIdHash', type: 'bytes32' },
+    { name: 'agentVersion', type: 'uint64' },
+    { name: 'parentGrantIdHash', type: 'bytes32' },
+    { name: 'parentGrantHash', type: 'bytes32' },
+    { name: 'revocationGeneration', type: 'uint64' },
+    { name: 'sessionIdHash', type: 'bytes32' },
+    { name: 'sessionHash', type: 'bytes32' },
+    { name: 'actionsHash', type: 'bytes32' },
+    { name: 'maxActionFractionBps', type: 'uint16' },
+    { name: 'maxNotionalMicros', type: 'uint256' },
+    { name: 'maxSlippageBps', type: 'uint16' },
+    { name: 'expiresAt', type: 'uint64' },
+    { name: 'nonce', type: 'bytes32' },
+    { name: 'nonceDomainHash', type: 'bytes32' },
+    { name: 'delegationObservationHash', type: 'bytes32' },
+    { name: 'issuedAt', type: 'uint64' },
+    { name: 'validUntil', type: 'uint64' },
+  ],
+} as const;
+
+export type SessionIssuanceTypedData = Readonly<{
+  domain: Readonly<{
+    name: 'NERVA Session Issuance';
+    version: '1';
+    chainId: number;
+    salt: Hex;
+  }>;
+  types: typeof SESSION_ISSUANCE_TYPES;
+  primaryType: 'SessionIssuance';
+  message: Readonly<{
+    account: Address;
+    wallet: Address;
+    accountIdHash: Hex;
+    agentIdHash: Hex;
+    agentVersion: bigint;
+    parentGrantIdHash: Hex;
+    parentGrantHash: Hex;
+    revocationGeneration: bigint;
+    sessionIdHash: Hex;
+    sessionHash: Hex;
+    actionsHash: Hex;
+    maxActionFractionBps: number;
+    maxNotionalMicros: bigint;
+    maxSlippageBps: number;
+    expiresAt: bigint;
+    nonce: Hex;
+    nonceDomainHash: Hex;
+    delegationObservationHash: Hex;
+    issuedAt: bigint;
+    validUntil: bigint;
+  }>;
+}>;
+
+function sessionIssuanceDomain(session: SessionAuthority) {
+  return {
+    name: 'NERVA Session Issuance' as const,
+    version: '1' as const,
+    chainId: session.chainId,
+    salt: keccak256(stringToHex(`${session.grantHash}:${session.sessionId}`)),
+  };
+}
+
+export function buildSessionIssuanceTypedData(input: {
+  readonly session: SessionAuthority;
+  readonly nonce: string;
+  readonly validUntil: string;
+}): SessionIssuanceTypedData {
+  const session = input.session;
+  const issuedAt = Date.parse(session.issuedAt);
+  const validUntil = Date.parse(input.validUntil);
+  if (
+    session.chainId !== MONAD_TESTNET_CHAIN_ID ||
+    !HASH_PATTERN.test(session.grantHash) ||
+    !HASH_PATTERN.test(session.digest) ||
+    !HASH_PATTERN.test(session.policyHash) ||
+    !HASH_PATTERN.test(session.delegationObservationHash) ||
+    !validTimestamp(session.issuedAt) ||
+    !validTimestamp(input.validUntil) ||
+    !Number.isSafeInteger(issuedAt) ||
+    !Number.isSafeInteger(validUntil) ||
+    issuedAt >= validUntil ||
+    validUntil - issuedAt > 300_000 ||
+    !/^0x[0-9a-f]{64}$/.test(input.nonce)
+  )
+    throw new TypeError('Session issuance proof must be exact, fresh and nonce-bound');
+  return {
+    domain: sessionIssuanceDomain(session),
+    types: SESSION_ISSUANCE_TYPES,
+    primaryType: 'SessionIssuance',
+    message: {
+      account: session.walletAddress,
+      wallet: session.walletAddress,
+      accountIdHash: keccak256(stringToHex(session.accountId)),
+      agentIdHash: keccak256(stringToHex(`${session.agentId}:${session.agentVersion}`)),
+      agentVersion: BigInt(session.agentVersion),
+      parentGrantIdHash: keccak256(stringToHex(session.grantId)),
+      parentGrantHash: `0x${session.grantHash}` as Hex,
+      revocationGeneration: BigInt(session.revocationGeneration),
+      sessionIdHash: keccak256(stringToHex(session.sessionId)),
+      sessionHash: `0x${session.digest}` as Hex,
+      actionsHash: keccak256(stringToHex(canonicalSerialize(session.actions))),
+      maxActionFractionBps: session.maxActionFractionBps,
+      maxNotionalMicros: BigInt(session.maxNotionalMicros),
+      maxSlippageBps: session.maxSlippageBps,
+      expiresAt: BigInt(Date.parse(session.expiresAt) / 1_000),
+      nonce: input.nonce as Hex,
+      nonceDomainHash: keccak256(stringToHex(session.nonceDomain)),
+      delegationObservationHash: `0x${session.delegationObservationHash}` as Hex,
+      issuedAt: BigInt(issuedAt / 1_000),
+      validUntil: BigInt(validUntil / 1_000),
+    },
+  };
+}
+
+export async function verifySessionIssuance(input: {
+  readonly session: SessionAuthority;
+  readonly typedData: SessionIssuanceTypedData;
+  readonly signature: string;
+  readonly now: string;
+}): Promise<
+  Readonly<{ signer: Address; proofRefHash: string; digest: string; nonceHash: string }> | undefined
+> {
+  try {
+    const { session, typedData } = input;
+    const message = typedData.message;
+    const expected = buildSessionIssuanceTypedData({
+      session,
+      nonce: message.nonce,
+      validUntil: new Date(Number(message.validUntil) * 1_000).toISOString(),
+    });
+    const now = Date.parse(input.now);
+    const issuedAt = Number(message.issuedAt) * 1_000;
+    const validUntil = Number(message.validUntil) * 1_000;
+    if (
+      !validTimestamp(input.now) ||
+      !Number.isFinite(now) ||
+      !exactRecord(typedData, ['domain', 'types', 'primaryType', 'message']) ||
+      !exactRecord(message, [
+        'account',
+        'wallet',
+        'accountIdHash',
+        'agentIdHash',
+        'agentVersion',
+        'parentGrantIdHash',
+        'parentGrantHash',
+        'revocationGeneration',
+        'sessionIdHash',
+        'sessionHash',
+        'actionsHash',
+        'maxActionFractionBps',
+        'maxNotionalMicros',
+        'maxSlippageBps',
+        'expiresAt',
+        'nonce',
+        'nonceDomainHash',
+        'delegationObservationHash',
+        'issuedAt',
+        'validUntil',
+      ]) ||
+      !exactRecord(typedData.domain, ['name', 'version', 'chainId', 'salt']) ||
+      typedData.domain.name !== expected.domain.name ||
+      typedData.domain.version !== expected.domain.version ||
+      typedData.domain.chainId !== expected.domain.chainId ||
+      typedData.domain.salt !== expected.domain.salt ||
+      typedData.primaryType !== 'SessionIssuance' ||
+      canonicalSerialize(typedData.types) !== canonicalSerialize(SESSION_ISSUANCE_TYPES) ||
+      canonicalSerialize(message) !== canonicalSerialize(expected.message) ||
+      issuedAt > now ||
+      now - issuedAt > 300_000 ||
+      Date.parse(session.expiresAt) <= now ||
+      validUntil <= now ||
+      validUntil <= issuedAt ||
+      validUntil - issuedAt > 300_000
+    )
+      return undefined;
+    const signer = await recoverTypedDataAddress({
+      ...typedData,
+      signature: input.signature as Hex,
+    });
+    if (signer.toLowerCase() !== session.walletAddress.toLowerCase()) return undefined;
+    return Object.freeze({
+      signer,
+      proofRefHash: keccak256(input.signature as Hex).slice(2),
+      digest: hashTypedData(typedData).slice(2),
+      nonceHash: await canonicalHash(message.nonce),
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 const SESSION_REVOCATION_TYPES = {

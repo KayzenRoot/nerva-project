@@ -12,6 +12,7 @@ export {
   latestM04DelegationObservation,
   listM04PermissionEvidence,
   loadM04CompiledGrant,
+  loadM04SessionAuthority,
   loadCurrentM04Wallet,
   loadCurrentM04Identities,
   loadCurrentM04IdentitiesByAgent,

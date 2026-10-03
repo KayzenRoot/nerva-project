@@ -64,6 +64,13 @@
       "when": 1791054693762,
       "tag": "0008_purple_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791061849777,
+      "tag": "0009_natural_oracle",
+      "breakpoints": true
     }
   ]
 }

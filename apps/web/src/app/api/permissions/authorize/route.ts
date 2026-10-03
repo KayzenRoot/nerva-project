@@ -1,5 +1,6 @@
 import {
   loadM04CompiledGrant,
+  loadM04SessionAuthority,
   latestM04DelegationObservation,
   persistM04Authorization,
 } from '@nerva/db';
@@ -7,6 +8,7 @@ import { M04AuthorizationRequestSchema } from '@nerva/contracts';
 import {
   buildAuthorizationTypedData,
   isCurrentM04DelegationObservation,
+  type SessionAuthority,
   verifyAuthorization,
 } from '@nerva/permissions';
 import {
@@ -56,6 +58,27 @@ export async function POST(request: Request) {
           'A current non-revoked capability grant is required.',
           correlationId,
         );
+      let sessionAuthority: SessionAuthority | undefined;
+      if (input.authority === 'session') {
+        const loadedSession = await loadM04SessionAuthority(pool, input.sessionId!);
+        if (
+          !loadedSession ||
+          loadedSession.revoked ||
+          loadedSession.parentRevoked ||
+          loadedSession.session.grantId !== input.grantId ||
+          loadedSession.session.digest !== input.sessionHash ||
+          loadedSession.session.revocationGeneration !== loaded.generation ||
+          loadedSession.generation !== loaded.generation ||
+          Date.parse(loadedSession.session.expiresAt) <= Date.parse(now)
+        )
+          return apiError(
+            403,
+            'ACTIVE_SESSION_REQUIRED',
+            'An exact active session within the current parent grant is required.',
+            correlationId,
+          );
+        sessionAuthority = loadedSession.session;
+      }
       const delegation = await latestM04DelegationObservation(pool, loaded.grant.walletAddress);
       if (
         !isCurrentM04DelegationObservation({
@@ -85,11 +108,12 @@ export async function POST(request: Request) {
         network: string;
         chain_id: number;
         expires_at: Date;
+        slippage_bps: number;
         external_effect: boolean;
         actor_id: string | null;
       }>(
         `SELECT p.digest,p.policy_version_hash,p.account_id,p.position_id,p.market_selector,p.action,p.notional_micros,
-        p.quantity_scaled,p.snapshot_id,p.environment,p.network,p.chain_id,p.expires_at,p.external_effect,
+        p.quantity_scaled,p.slippage_bps,p.snapshot_id,p.environment,p.network,p.chain_id,p.expires_at,p.external_effect,
         v.payload->>'createdByActorRef' AS actor_id
        FROM m03_execution_plans p JOIN policy_versions v ON v.policy_version_id=p.policy_version_id
        WHERE p.digest=$1 LIMIT 1`,
@@ -109,8 +133,15 @@ export async function POST(request: Request) {
         plan.position_id !== loaded.grant.scope.positionId ||
         plan.market_selector !== loaded.grant.scope.marketSelector ||
         plan.action !== input.action ||
+        Date.parse(input.validUntil) > plan.expires_at.getTime() ||
         !loaded.grant.actions.includes(input.action) ||
-        BigInt(plan.notional_micros) > BigInt(loaded.grant.limits.maxNotionalMicros)
+        BigInt(plan.notional_micros) > BigInt(loaded.grant.limits.maxNotionalMicros) ||
+        plan.slippage_bps > loaded.grant.limits.maxSlippageBps ||
+        (sessionAuthority !== undefined &&
+          (!sessionAuthority.actions.includes(input.action) ||
+            Date.parse(input.validUntil) > Date.parse(sessionAuthority.expiresAt) ||
+            BigInt(plan.notional_micros) > BigInt(sessionAuthority.maxNotionalMicros) ||
+            plan.slippage_bps > sessionAuthority.maxSlippageBps))
       )
         return apiError(
           403,
@@ -119,14 +150,21 @@ export async function POST(request: Request) {
           correlationId,
         );
       const quantity = await pool.query<{ size_scaled: string }>(
-        'SELECT size_scaled FROM position_snapshots WHERE snapshot_id=$1 LIMIT 1',
-        [plan.snapshot_id],
+        `SELECT ps.payload->>'sizeScaled' AS size_scaled
+         FROM risk_snapshots rs JOIN position_snapshots ps
+           ON ps.content_hash=ANY(rs.source_snapshot_hashes)
+         WHERE rs.snapshot_id=$1 AND ps.position_id=$2 AND ps.quality='FRESH'
+         ORDER BY ps.observed_at DESC LIMIT 1`,
+        [plan.snapshot_id, plan.position_id],
       );
       const positionSize = quantity.rows[0]?.size_scaled;
       if (
         !positionSize ||
         BigInt(plan.quantity_scaled) * 10_000n >
-          BigInt(positionSize) * BigInt(loaded.grant.limits.maxActionFractionBps)
+          BigInt(positionSize) * BigInt(loaded.grant.limits.maxActionFractionBps) ||
+        (sessionAuthority !== undefined &&
+          BigInt(plan.quantity_scaled) * 10_000n >
+            BigInt(positionSize) * BigInt(sessionAuthority.maxActionFractionBps))
       )
         return apiError(
           403,
@@ -180,6 +218,7 @@ export async function POST(request: Request) {
           validUntil: input.validUntil,
           nonce: input.nonce,
           revocationGeneration: loaded.generation,
+          ...(sessionAuthority ? { session: sessionAuthority } : {}),
         });
       } catch {
         return apiError(
@@ -210,6 +249,7 @@ export async function POST(request: Request) {
           signer: loaded.grant.walletAddress,
           revocationGeneration: loaded.generation,
           delegationObservationHash: loaded.grant.delegation.observationHash,
+          ...(sessionAuthority ? { session: sessionAuthority } : {}),
         },
       });
       if (!verified)

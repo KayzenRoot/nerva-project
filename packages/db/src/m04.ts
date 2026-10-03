@@ -4,6 +4,7 @@ import { canonicalHash } from '@nerva/domain';
 import {
   appendPermissionEvidence,
   restoreCompiledCapabilityGrant,
+  deriveSessionAuthority,
   type CompiledCapabilityGrant,
   type Eip7702Delegation,
   type PermissionEvidenceInput,
@@ -643,6 +644,84 @@ export async function loadM04CompiledGrant(
   }
 }
 
+export async function loadM04SessionAuthority(
+  pool: Pool,
+  sessionId: string,
+): Promise<
+  | Readonly<{
+      session: SessionAuthority;
+      revoked: boolean;
+      parentRevoked: boolean;
+      generation: number;
+    }>
+  | undefined
+> {
+  const result = await pool.query<{
+    session_id: string;
+    grant_id: string;
+    session_hash: string;
+    actions: SessionAuthority['actions'];
+    limits: {
+      maxActionFractionBps: number;
+      maxNotionalMicros: string;
+      maxSlippageBps: number;
+    };
+    created_at: Date;
+    expires_at: Date;
+    generation: number;
+    revoked: boolean;
+    session_revoked: boolean;
+    session_generation: number;
+    session_delegation_hash: string;
+    issuance_proof_ref_hash: string;
+    issuance_typed_data_digest: string;
+    issuance_nonce_hash: string;
+  }>(
+    `SELECT s.session_id,s.grant_id,s.session_hash,s.actions,s.limits,s.created_at,s.expires_at,
+      a.generation,a.revoked,(r.session_id IS NOT NULL) AS session_revoked,
+      s.revocation_generation AS session_generation,s.delegation_observation_hash AS session_delegation_hash,
+      s.issuance_proof_ref_hash,s.issuance_typed_data_digest,s.issuance_nonce_hash
+     FROM m04_sessions s JOIN m04_authority_states a USING(grant_id)
+     LEFT JOIN m04_session_revocations r USING(session_id)
+     WHERE s.session_id=$1 LIMIT 1`,
+    [sessionId],
+  );
+  const row = result.rows[0];
+  if (!row) return undefined;
+  const parent = await loadM04CompiledGrant(pool, row.grant_id);
+  if (!parent) return undefined;
+  try {
+    const session = await deriveSessionAuthority({
+      sessionId: row.session_id,
+      grant: parent.grant,
+      actions: row.actions,
+      maxActionFractionBps: row.limits.maxActionFractionBps,
+      maxNotionalMicros: row.limits.maxNotionalMicros,
+      maxSlippageBps: row.limits.maxSlippageBps,
+      expiresAt: new Date(row.expires_at).toISOString(),
+      nonceDomain: `nerva:session:${row.session_id}`,
+      now: new Date(row.created_at).toISOString(),
+    });
+    if (
+      session.digest !== row.session_hash ||
+      session.delegationObservationHash !== row.session_delegation_hash ||
+      session.revocationGeneration !== Number(row.session_generation) ||
+      [row.issuance_proof_ref_hash, row.issuance_typed_data_digest, row.issuance_nonce_hash].some(
+        (value) => !/^[0-9a-f]{64}$/.test(value) || value === ZERO_HASH,
+      )
+    )
+      return undefined;
+    return Object.freeze({
+      session,
+      revoked: row.session_revoked,
+      parentRevoked: parent.revoked,
+      generation: Number(row.generation),
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 export async function loadM04SessionForRevocation(
   pool: Pool,
   sessionId: string,
@@ -945,7 +1024,7 @@ export async function persistM04Authorization(
         g.grant_document->'delegation'->>'delegateCodeHash' AS expected_delegate_code_hash,
         o.delegate_address AS current_delegate_address,o.delegate_code_hash AS current_delegate_code_hash
        FROM m04_authority_states s JOIN m04_capability_grants g USING(grant_id)
-       LEFT JOIN LATERAL (SELECT status,observation_hash,delegate_address,delegate_code_hash FROM m04_delegation_observations
+       LEFT JOIN LATERAL (SELECT status,observation_hash,delegate_address,delegate_code_hash,observed_at FROM m04_delegation_observations
          WHERE chain_id=g.chain_id AND wallet_address=g.wallet_address ORDER BY observed_at DESC LIMIT 1) o ON true
        WHERE s.grant_id=$1 FOR UPDATE OF s`,
       [input.grantId],
@@ -969,12 +1048,138 @@ export async function persistM04Authorization(
       new Date(current.expires_at).getTime() <= Date.parse(input.verifiedAt)
     )
       return false;
-    const binding = await client.query(
-      `SELECT event_type FROM m04_wallet_bindings WHERE account_id=$1
+    const binding = await client.query<{ event_type: string; wallet_address: string }>(
+      `SELECT event_type,wallet_address FROM m04_wallet_bindings WHERE account_id=$1 AND chain_id=10143
        ORDER BY generation DESC LIMIT 1`,
       [current.account_id],
     );
-    if (binding.rows[0]?.event_type !== 'BOUND') return false;
+    if (
+      binding.rows[0]?.event_type !== 'BOUND' ||
+      binding.rows[0]?.wallet_address.toLowerCase() !== current.wallet_address.toLowerCase()
+    )
+      return false;
+    let sessionId: string | null = null;
+    let sessionHash: string | null = null;
+    if (input.verified.sessionId || input.verified.sessionHash) {
+      if (!input.verified.sessionId || !input.verified.sessionHash) return false;
+      const sessionResult = await client.query<{
+        session_id: string;
+        session_hash: string;
+        grant_id: string;
+        actions: string[];
+        limits: {
+          maxActionFractionBps: number;
+          maxNotionalMicros: string;
+          maxSlippageBps: number;
+        };
+        expires_at: Date;
+        revocation_generation: number;
+        delegation_observation_hash: string;
+        issuance_proof_ref_hash: string | null;
+        issuance_typed_data_digest: string | null;
+        issuance_nonce_hash: string | null;
+        revoked_session_id: string | null;
+      }>(
+        `SELECT s.session_id,s.session_hash,s.grant_id,s.actions,s.limits,s.expires_at,
+          s.revocation_generation,s.delegation_observation_hash,s.issuance_proof_ref_hash,
+          s.issuance_typed_data_digest,s.issuance_nonce_hash,r.session_id AS revoked_session_id
+         FROM m04_sessions s LEFT JOIN m04_session_revocations r USING(session_id)
+         WHERE s.session_id=$1 AND s.grant_id=$2 FOR UPDATE OF s`,
+        [input.verified.sessionId, input.grantId],
+      );
+      const session = sessionResult.rows[0];
+      if (
+        !session ||
+        session.session_hash !== input.verified.sessionHash ||
+        session.revoked_session_id !== null ||
+        session.expires_at.getTime() <= Date.parse(input.verifiedAt) ||
+        Date.parse(input.verified.expiresAt) > session.expires_at.getTime() ||
+        Number(session.revocation_generation) !== input.generation ||
+        session.delegation_observation_hash !== current.delegation_observation_hash ||
+        !session.issuance_proof_ref_hash ||
+        session.issuance_proof_ref_hash === ZERO_HASH ||
+        !session.issuance_typed_data_digest ||
+        session.issuance_typed_data_digest === ZERO_HASH ||
+        !session.issuance_nonce_hash ||
+        session.issuance_nonce_hash === ZERO_HASH ||
+        !session.actions.includes(input.verified.action)
+      )
+        return false;
+      const issuanceNonce = await client.query(
+        `SELECT 1 FROM m04_nonce_ledger WHERE nonce_hash=$1 AND chain_id=10143
+         AND account_id=$2 AND lower(wallet_address)=lower($3) AND agent_id=$4 AND grant_id=$5
+         AND operation='SESSION' LIMIT 1`,
+        [
+          session.issuance_nonce_hash,
+          current.account_id,
+          current.wallet_address,
+          current.agent_id,
+          input.grantId,
+        ],
+      );
+      if (issuanceNonce.rowCount !== 1) return false;
+      const limits = session.limits;
+      const plan = await client.query<{
+        account_id: string;
+        position_id: string;
+        market_selector: string;
+        action: string;
+        policy_version_hash: string;
+        notional_micros: string;
+        quantity_scaled: string;
+        slippage_bps: number;
+        size_scaled: string;
+        external_effect: boolean;
+        expires_at: Date;
+      }>(
+        `SELECT p.account_id,p.position_id,p.market_selector,p.action,p.policy_version_hash,
+          p.notional_micros,p.quantity_scaled,p.slippage_bps,p.external_effect,p.expires_at,ps.size_scaled
+        FROM m03_execution_plans p JOIN risk_snapshots rs ON rs.snapshot_id=p.snapshot_id
+        JOIN LATERAL (SELECT payload->>'sizeScaled' AS size_scaled FROM position_snapshots
+          WHERE position_id=p.position_id AND quality='FRESH'
+            AND content_hash=ANY(rs.source_snapshot_hashes)
+          ORDER BY observed_at DESC LIMIT 1) ps ON true
+         WHERE p.digest=$1 LIMIT 1`,
+        [input.verified.planDigest],
+      );
+      const planRow = plan.rows[0];
+      const grant = await client.query<{
+        scope: { positionId: string; marketSelector: string };
+        actions: string[];
+        limits: {
+          maxActionFractionBps: number;
+          maxNotionalMicros: string;
+          maxSlippageBps: number;
+        };
+      }>('SELECT scope,actions,limits FROM m04_capability_grants WHERE grant_id=$1', [
+        input.grantId,
+      ]);
+      const grantRow = grant.rows[0];
+      if (
+        !planRow ||
+        !grantRow ||
+        !planRow.external_effect ||
+        planRow.expires_at.getTime() <= Date.parse(input.verifiedAt) ||
+        Date.parse(input.verified.expiresAt) > planRow.expires_at.getTime() ||
+        planRow.account_id !== current.account_id ||
+        planRow.position_id !== grantRow.scope.positionId ||
+        planRow.market_selector !== grantRow.scope.marketSelector ||
+        planRow.action !== input.verified.action ||
+        planRow.policy_version_hash !== current.policy_hash ||
+        !grantRow.actions.includes(input.verified.action) ||
+        BigInt(planRow.notional_micros) > BigInt(limits.maxNotionalMicros) ||
+        BigInt(planRow.notional_micros) > BigInt(grantRow.limits.maxNotionalMicros) ||
+        planRow.slippage_bps > limits.maxSlippageBps ||
+        planRow.slippage_bps > grantRow.limits.maxSlippageBps ||
+        BigInt(planRow.quantity_scaled) * 10_000n >
+          BigInt(planRow.size_scaled) * BigInt(limits.maxActionFractionBps) ||
+        BigInt(planRow.quantity_scaled) * 10_000n >
+          BigInt(planRow.size_scaled) * BigInt(grantRow.limits.maxActionFractionBps)
+      )
+        return false;
+      sessionId = session.session_id;
+      sessionHash = session.session_hash;
+    }
     const nonce = await client.query(
       `INSERT INTO m04_nonce_ledger
        (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
@@ -993,15 +1198,20 @@ export async function persistM04Authorization(
     if (!nonce.rowCount) return false;
     await client.query(
       `INSERT INTO m04_authorization_refs
-       (authorization_ref,grant_id,proof_ref_hash,typed_data_digest,plan_digest,action,verified_signer,revocation_generation,delegation_observation_hash,verified_at,expires_at)
-       VALUES ($1,$2,$3,$1,$4,$5,$6,$7,$8,$9,$10)`,
+       (authorization_ref,grant_id,proof_ref_hash,typed_data_digest,authorization_nonce_hash,plan_digest,
+        action,verified_signer,session_id,session_hash,revocation_generation,delegation_observation_hash,
+        verified_at,expires_at)
+       VALUES ($1,$2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [
         input.verified.typedDataDigest,
         input.grantId,
         input.verified.proofRefHash,
+        input.verified.nonceHash,
         input.verified.planDigest,
         input.verified.action,
         input.verified.signer,
+        sessionId,
+        sessionHash,
         input.generation,
         current.delegation_observation_hash,
         input.verifiedAt,
@@ -1034,11 +1244,30 @@ export async function validateM04AuthorizationRef(
     `SELECT 1 FROM m04_authorization_refs r
      JOIN m04_capability_grants g USING(grant_id)
      JOIN m04_authority_states s USING(grant_id)
+     JOIN m03_execution_plans p ON p.digest=r.plan_digest
+     JOIN risk_snapshots rs ON rs.snapshot_id=p.snapshot_id
+     JOIN LATERAL (SELECT payload->>'sizeScaled' AS size_scaled FROM position_snapshots
+       WHERE position_id=p.position_id AND quality='FRESH'
+         AND content_hash=ANY(rs.source_snapshot_hashes)
+       ORDER BY observed_at DESC LIMIT 1) ps ON true
      JOIN LATERAL (SELECT status,observation_hash,delegate_address,delegate_code_hash,observed_at
        FROM m04_delegation_observations WHERE chain_id=g.chain_id AND wallet_address=g.wallet_address
        ORDER BY observed_at DESC LIMIT 1) o ON true
      WHERE r.authorization_ref=$1 AND r.plan_digest=$2 AND r.action=$3 AND r.expires_at>$4
        AND g.expires_at>$4 AND s.revoked=false AND r.revocation_generation=s.generation
+       AND p.account_id=g.account_id AND p.position_id=g.scope->>'positionId'
+       AND p.market_selector=g.scope->>'marketSelector' AND p.policy_version_hash=g.policy_hash
+       AND p.action=r.action AND p.external_effect=true
+       AND p.expires_at>$4
+       AND p.notional_micros::numeric <= (g.limits->>'maxNotionalMicros')::numeric
+       AND p.slippage_bps <= (g.limits->>'maxSlippageBps')::integer
+       AND p.quantity_scaled::numeric * 10000 <= ps.size_scaled::numeric * (g.limits->>'maxActionFractionBps')::numeric
+       AND r.authorization_nonce_hash IS NOT NULL
+       AND EXISTS (SELECT 1 FROM m04_nonce_ledger an WHERE an.nonce_hash=r.authorization_nonce_hash
+         AND an.chain_id=g.chain_id AND an.account_id=g.account_id
+         AND lower(an.wallet_address)=lower(g.wallet_address) AND an.agent_id=g.agent_id
+         AND an.grant_id=g.grant_id AND an.operation='AUTHORIZATION'
+         AND an.domain_hash=r.typed_data_digest)
        AND o.status IN ('ABSENT','ACTIVE')
        AND o.observed_at <= $4::timestamptz
        AND ($5::text IS NULL OR g.agent_id=$5)
@@ -1050,18 +1279,65 @@ export async function validateM04AuthorizationRef(
        AND lower(COALESCE(g.grant_document->'delegation'->>'delegateAddress',''))=lower(COALESCE(o.delegate_address,''))
        AND COALESCE(g.grant_document->'delegation'->>'delegateCodeHash','')=COALESCE(o.delegate_code_hash,'')
        AND o.observed_at > $4::timestamptz - interval '30 seconds'
+       AND (
+         (r.session_id IS NULL AND r.session_hash IS NULL)
+         OR EXISTS (
+           SELECT 1 FROM m04_sessions ss
+           LEFT JOIN m04_session_revocations sr USING(session_id)
+           WHERE ss.session_id=r.session_id AND ss.session_hash=r.session_hash
+             AND ss.grant_id=r.grant_id AND sr.session_id IS NULL
+             AND ss.created_at <= $4::timestamptz AND ss.expires_at>$4::timestamptz
+             AND r.expires_at<=ss.expires_at
+             AND ss.revocation_generation=s.generation
+             AND ss.delegation_observation_hash=r.delegation_observation_hash
+             AND ss.actions @> jsonb_build_array(r.action)
+             AND p.notional_micros::numeric <= (ss.limits->>'maxNotionalMicros')::numeric
+             AND p.slippage_bps <= (ss.limits->>'maxSlippageBps')::integer
+             AND p.quantity_scaled::numeric * 10000 <= ps.size_scaled::numeric * (ss.limits->>'maxActionFractionBps')::numeric
+             AND ss.issuance_proof_ref_hash <> $6
+             AND ss.issuance_typed_data_digest <> $6
+             AND ss.issuance_nonce_hash <> $6
+             AND EXISTS (SELECT 1 FROM m04_nonce_ledger nl WHERE nl.nonce_hash=ss.issuance_nonce_hash
+               AND nl.chain_id=g.chain_id AND nl.account_id=g.account_id
+               AND lower(nl.wallet_address)=lower(g.wallet_address) AND nl.agent_id=g.agent_id
+               AND nl.grant_id=g.grant_id AND nl.operation='SESSION')
+         )
+       )
      ORDER BY o.observed_at DESC LIMIT 1`,
-    [input.authorizationRef, input.planDigest, input.action, input.now, input.agentId ?? null],
+    [
+      input.authorizationRef,
+      input.planDigest,
+      input.action,
+      input.now,
+      input.agentId ?? null,
+      ZERO_HASH,
+    ],
   );
   return result.rowCount === 1;
 }
 
-export async function persistM04Session(pool: Pool, session: SessionAuthority): Promise<void> {
-  await transaction(pool, async (client) => {
+export async function persistM04Session(
+  pool: Pool,
+  session: SessionAuthority,
+  issuance: Readonly<{ proofRefHash: string; typedDataDigest: string; nonceHash: string }>,
+): Promise<boolean> {
+  const issuanceHashes = [issuance.proofRefHash, issuance.typedDataDigest, issuance.nonceHash];
+  if (
+    session.nonceDomain !== `nerva:session:${session.sessionId}` ||
+    issuanceHashes.some((value) => !/^[0-9a-f]{64}$/.test(value) || value === ZERO_HASH)
+  )
+    return false;
+  return transaction(pool, async (client) => {
     const state = await client.query<{
       generation: number;
       revoked: boolean;
       expires_at: Date;
+      account_id: string;
+      wallet_address: string;
+      agent_id: string;
+      policy_hash: string;
+      chain_id: number;
+      delegation_observation_hash: string;
       status: string;
       observed_at: Date;
       expected_status: string;
@@ -1070,7 +1346,8 @@ export async function persistM04Session(pool: Pool, session: SessionAuthority): 
       address: string | null;
       code_hash: string | null;
     }>(
-      `SELECT s.generation,s.revoked,g.expires_at,o.status,o.observed_at,
+      `SELECT s.generation,s.revoked,g.expires_at,g.account_id,g.wallet_address,g.agent_id,
+        g.policy_hash,g.chain_id,g.delegation_observation_hash,o.status,o.observed_at,
         g.grant_document->'delegation'->>'status' AS expected_status,
         g.grant_document->'delegation'->>'delegateAddress' AS expected_address,
         g.grant_document->'delegation'->>'delegateCodeHash' AS expected_code_hash,
@@ -1079,7 +1356,7 @@ export async function persistM04Session(pool: Pool, session: SessionAuthority): 
        LEFT JOIN LATERAL (SELECT status,observed_at,delegate_address,delegate_code_hash
          FROM m04_delegation_observations WHERE chain_id=g.chain_id AND wallet_address=g.wallet_address
          ORDER BY observed_at DESC LIMIT 1) o ON true
-       WHERE s.grant_id=$1 FOR SHARE OF s`,
+       WHERE s.grant_id=$1 FOR UPDATE OF s`,
       [session.grantId],
     );
     const current = state.rows[0];
@@ -1088,6 +1365,12 @@ export async function persistM04Session(pool: Pool, session: SessionAuthority): 
       !current ||
       current.revoked ||
       Number(current.generation) !== session.revocationGeneration ||
+      current.account_id !== session.accountId ||
+      current.wallet_address.toLowerCase() !== session.walletAddress.toLowerCase() ||
+      current.agent_id !== session.agentId ||
+      current.policy_hash !== session.policyHash ||
+      Number(current.chain_id) !== session.chainId ||
+      current.delegation_observation_hash !== session.delegationObservationHash ||
       current.expires_at.getTime() <= currentTime ||
       current.expires_at.getTime() < Date.parse(session.expiresAt) ||
       !['ABSENT', 'ACTIVE'].includes(current.status) ||
@@ -1099,11 +1382,39 @@ export async function persistM04Session(pool: Pool, session: SessionAuthority): 
         (current.address?.toLowerCase() !== current.expected_address?.toLowerCase() ||
           current.code_hash !== current.expected_code_hash))
     )
-      throw new Error('Session parent grant has been revoked or superseded');
+      return false;
+    const binding = await client.query<{ event_type: string; wallet_address: string }>(
+      `SELECT event_type,wallet_address FROM m04_wallet_bindings WHERE account_id=$1 AND chain_id=$2
+       ORDER BY generation DESC LIMIT 1`,
+      [session.accountId, session.chainId],
+    );
+    if (
+      binding.rows[0]?.event_type !== 'BOUND' ||
+      binding.rows[0]?.wallet_address.toLowerCase() !== session.walletAddress.toLowerCase()
+    )
+      return false;
+    const nonce = await client.query(
+      `INSERT INTO m04_nonce_ledger
+       (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
+       VALUES ($1,$2,$3,$4,$5,$6,'SESSION',$7,$8)
+       ON CONFLICT (nonce_hash) DO NOTHING RETURNING nonce_hash`,
+      [
+        issuance.nonceHash,
+        session.chainId,
+        session.accountId,
+        session.walletAddress,
+        session.agentId,
+        session.grantId,
+        await canonicalHash(session.nonceDomain),
+        session.issuedAt,
+      ],
+    );
+    if (!nonce.rowCount) return false;
     await client.query(
       `INSERT INTO m04_sessions
-       (session_id,grant_id,session_hash,nonce_domain_hash,actions,limits,created_at,expires_at)
-       VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8)`,
+       (session_id,grant_id,session_hash,nonce_domain_hash,actions,limits,issuance_proof_ref_hash,
+        issuance_typed_data_digest,issuance_nonce_hash,revocation_generation,delegation_observation_hash,created_at,expires_at)
+       VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$9,$10,$11,$12,$13)`,
       [
         session.sessionId,
         session.grantId,
@@ -1115,35 +1426,24 @@ export async function persistM04Session(pool: Pool, session: SessionAuthority): 
           maxNotionalMicros: session.maxNotionalMicros,
           maxSlippageBps: session.maxSlippageBps,
         }),
+        issuance.proofRefHash,
+        issuance.typedDataDigest,
+        issuance.nonceHash,
+        session.revocationGeneration,
+        session.delegationObservationHash,
         session.issuedAt,
         session.expiresAt,
       ],
     );
-    const nonceHash = await canonicalHash(`session:${session.sessionId}:${session.digest}`);
-    const nonce = await client.query(
-      `INSERT INTO m04_nonce_ledger
-       (nonce_hash,chain_id,account_id,wallet_address,agent_id,grant_id,operation,domain_hash,consumed_at)
-       VALUES ($1,10143,$2,$3,$4,$5,'SESSION',$6,$7)
-       ON CONFLICT (nonce_hash) DO NOTHING RETURNING nonce_hash`,
-      [
-        nonceHash,
-        session.accountId,
-        session.walletAddress,
-        session.agentId,
-        session.grantId,
-        await canonicalHash(session.nonceDomain),
-        session.issuedAt,
-      ],
-    );
-    if (!nonce.rowCount) throw new Error('Session nonce replay was rejected');
     await appendEvidenceInTransaction(client, {
       kind: 'SESSION_ISSUED',
       subjectRef: session.sessionId,
       correlationId: `m04-session-${session.sessionId}`,
       occurredAt: session.issuedAt,
       result: 'PASS',
-      reasonCode: 'STRICT_SUBSET_SESSION_ISSUED',
+      reasonCode: 'OWNER_SIGNED_SESSION_ISSUED',
     });
+    return true;
   });
 }
 
@@ -1161,10 +1461,18 @@ export async function revokeM04Session(
   }>,
 ): Promise<number | undefined> {
   return transaction(pool, async (client) => {
+    const sessionIdentity = await client.query<{ grant_id: string }>(
+      'SELECT grant_id FROM m04_sessions WHERE session_id=$1 LIMIT 1',
+      [input.sessionId],
+    );
+    const grantId = sessionIdentity.rows[0]?.grant_id;
+    if (!grantId) return undefined;
+    const authority = await client.query<{ generation: number; revoked: boolean }>(
+      'SELECT generation,revoked FROM m04_authority_states WHERE grant_id=$1 FOR UPDATE',
+      [grantId],
+    );
+    if (!authority.rows[0]) return undefined;
     const current = await client.query<{
-      grant_id: string;
-      grant_generation: number;
-      grant_revoked: boolean;
       account_id: string;
       wallet_address: string;
       agent_id: string;
@@ -1172,21 +1480,19 @@ export async function revokeM04Session(
       expires_at: Date;
       revoked_session_id: string | null;
     }>(
-      `SELECT s.grant_id,a.generation AS grant_generation,a.revoked AS grant_revoked,
-        g.account_id,g.wallet_address,g.agent_id,s.session_hash,s.expires_at,
+      `SELECT g.account_id,g.wallet_address,g.agent_id,s.session_hash,s.expires_at,
         r.session_id AS revoked_session_id
        FROM m04_sessions s JOIN m04_capability_grants g USING(grant_id)
-       JOIN m04_authority_states a USING(grant_id)
        LEFT JOIN m04_session_revocations r USING(session_id)
-       WHERE s.session_id=$1 FOR UPDATE OF a,s`,
-      [input.sessionId],
+       WHERE s.session_id=$1 AND s.grant_id=$2 FOR UPDATE OF s`,
+      [input.sessionId, grantId],
     );
     const row = current.rows[0];
     if (!row || row.session_hash !== input.sessionHash) return undefined;
     if (row.revoked_session_id) return 1;
     if (
-      row.grant_revoked ||
-      Number(row.grant_generation) !== input.grantGeneration ||
+      authority.rows[0].revoked ||
+      Number(authority.rows[0].generation) !== input.grantGeneration ||
       input.expectedGeneration !== 0
     )
       return undefined;
@@ -1210,7 +1516,7 @@ export async function revokeM04Session(
         row.account_id,
         row.wallet_address,
         row.agent_id,
-        row.grant_id,
+        grantId,
         input.domainHash,
         input.occurredAt,
       ],

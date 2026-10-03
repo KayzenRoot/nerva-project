@@ -13,6 +13,7 @@ const m04Persistence = read('packages/db/src/m04.ts');
 const m04Binding = read('apps/web/src/app/api/permissions/bind/route.ts');
 const m04Grant = read('apps/web/src/app/api/permissions/grants/route.ts');
 const m04Authorization = read('apps/web/src/app/api/permissions/authorize/route.ts');
+const m04Sessions = read('apps/web/src/app/api/permissions/sessions/route.ts');
 const m04Delegate = read('apps/web/src/server/monad-testnet-rpc.ts');
 const m04ReadRoute = read('apps/web/src/app/api/permissions/route.ts');
 const m04Boundary = read('apps/web/src/app/api/executions/route.ts');
@@ -98,6 +99,43 @@ if (
   throw new Error(
     'M04 deterministic identity, grant, signature, session, revocation or evidence controls are incomplete',
   );
+const sessionIssuanceChecks = {
+  typedData: permissions.includes('SessionIssuance: ['),
+  verifier: permissions.includes('verifySessionIssuance'),
+  challenge: m04Sessions.includes('AWAITING_OWNER_SIGNATURE'),
+  verificationPrecedesPersistence:
+    m04Sessions.indexOf('verifySessionIssuance(') >= 0 &&
+    m04Sessions.indexOf('verifySessionIssuance(') < m04Sessions.indexOf('persistM04Session('),
+  invalidSignatureFailsClosed: m04Sessions.includes('M04_SESSION_OWNER_SIGNATURE_INVALID'),
+  evidenceAfterIssuance: m04Persistence.includes('OWNER_SIGNED_SESSION_ISSUED'),
+};
+if (Object.values(sessionIssuanceChecks).some((passed) => !passed))
+  throw new Error(
+    `M04 session issuance does not require owner EIP-712 proof before persistence: ${JSON.stringify(sessionIssuanceChecks)}`,
+  );
+if (
+  !m04Authorization.includes("input.authority === 'session'") ||
+  !m04Authorization.includes('loadM04SessionAuthority') ||
+  !m04Authorization.includes('session: sessionAuthority') ||
+  !m04Persistence.includes('ss.session_hash=r.session_hash') ||
+  !m04Persistence.includes('m04_session_revocations') ||
+  !m04Persistence.includes('ss.issuance_nonce_hash')
+)
+  throw new Error(
+    'Session authority is not explicit and revalidated at authorization/M03 boundaries',
+  );
+if (
+  !m04Persistence.includes('session.nonceDomain !== `nerva:session:${session.sessionId}`') ||
+  !m04Persistence.includes('issuanceHashes.some')
+)
+  throw new Error('M04 session persistence accepts malformed issuance proof or nonce domains');
+if (
+  !permissions.includes("input.typedData.primaryType !== 'WalletBinding'") ||
+  !permissions.includes(
+    'canonicalSerialize(input.typedData.types) !== canonicalSerialize(WALLET_BINDING_TYPES)',
+  )
+)
+  throw new Error('WalletBinding does not enforce exact EIP-712 primary type and canonical types');
 if (
   !permissions.includes("status: 'UNKNOWN'") ||
   !permissions.includes('FINALIZED_BLOCK_CHANGED_DURING_READ') ||

@@ -665,6 +665,11 @@ export const m04Sessions = pgTable(
     nonceDomainHash: text('nonce_domain_hash').notNull(),
     actions: jsonb('actions').notNull(),
     limits: jsonb('limits').notNull(),
+    issuanceProofRefHash: text('issuance_proof_ref_hash'),
+    issuanceTypedDataDigest: text('issuance_typed_data_digest'),
+    issuanceNonceHash: text('issuance_nonce_hash'),
+    revocationGeneration: integer('revocation_generation'),
+    delegationObservationHash: text('delegation_observation_hash'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },
@@ -676,6 +681,20 @@ export const m04Sessions = pgTable(
     check('m04_session_expiry_ck', sql`${table.expiresAt} > ${table.createdAt}`),
     check('m04_session_actions_ck', sql`jsonb_typeof(${table.actions}) = 'array'`),
     check('m04_session_limits_ck', sql`jsonb_typeof(${table.limits}) = 'object'`),
+    check(
+      'm04_session_issuance_proof_hash_ck',
+      sql`${table.issuanceProofRefHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'm04_session_issuance_typed_hash_ck',
+      sql`${table.issuanceTypedDataDigest} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('m04_session_issuance_nonce_hash_ck', sql`${table.issuanceNonceHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_session_revocation_generation_ck', sql`${table.revocationGeneration} >= 0`),
+    check(
+      'm04_session_delegation_hash_ck',
+      sql`${table.delegationObservationHash} ~ '^[0-9a-f]{64}$'`,
+    ),
   ],
 );
 
@@ -737,9 +756,12 @@ export const m04AuthorizationRefs = pgTable(
       .references(() => m04CapabilityGrants.grantId),
     proofRefHash: text('proof_ref_hash').notNull(),
     typedDataDigest: text('typed_data_digest').notNull(),
+    authorizationNonceHash: text('authorization_nonce_hash'),
     planDigest: text('plan_digest').notNull(),
     action: text('action').notNull(),
     verifiedSigner: text('verified_signer').notNull(),
+    sessionId: text('session_id').references(() => m04Sessions.sessionId),
+    sessionHash: text('session_hash'),
     revocationGeneration: integer('revocation_generation').notNull(),
     delegationObservationHash: text('delegation_observation_hash').notNull(),
     verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
@@ -753,8 +775,16 @@ export const m04AuthorizationRefs = pgTable(
     ),
     check('m04_authorization_proof_hash_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
     check('m04_authorization_typed_hash_ck', sql`${table.typedDataDigest} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm04_authorization_nonce_hash_ck',
+      sql`${table.authorizationNonceHash} is null or ${table.authorizationNonceHash} ~ '^[0-9a-f]{64}$'`,
+    ),
     check('m04_authorization_plan_hash_ck', sql`${table.planDigest} ~ '^[0-9a-f]{64}$'`),
     check('m04_authorization_generation_ck', sql`${table.revocationGeneration} >= 0`),
+    check(
+      'm04_authorization_session_pair_ck',
+      sql`(${table.sessionId} is null and ${table.sessionHash} is null) or (${table.sessionId} is not null and ${table.sessionHash} ~ '^[0-9a-f]{64}$')`,
+    ),
     check(
       'm04_authorization_delegation_hash_ck',
       sql`${table.delegationObservationHash} ~ '^[0-9a-f]{64}$'`,
