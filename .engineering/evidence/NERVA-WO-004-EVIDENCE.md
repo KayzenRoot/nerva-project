@@ -101,3 +101,14 @@ The review should verify the changed-file inventory and exact base/HEAD from PR 
 - M04: not started.
 
 Carry-forward: live provider effects stay closed until protective-only capability/scope and enrollment provenance are proven. Before any future live effect adapter is enabled, add explicit DB-level kill-switch concurrency proof and document in-flight semantics.
+
+## Post-merge validator Correction Delta
+
+- Accepted M03 squash merge: `3935e2e1a4cce7e35b4e35afe58435ae3a32e72b`.
+- Validated promotion head: `66167892504fe9d13c7f31ffa6de1d1331745247`.
+- Validated promotion tree: `126f4ff1877a6eb6f4dd115ecc759d587016c620`.
+- Accepted squash merge tree: exact same tree.
+- Initial post-merge Linux validation failed only because GitHub Actions checks out the main push in detached HEAD state, so `git branch --show-current` returned an empty string.
+- Correction detects main pushes from `GITHUB_REF=refs/heads/main` plus `origin/main == HEAD`, validates the accepted squash tree, and limits this correction to validator/evidence files.
+- Runtime M03, dependencies, migrations, APIs and product behavior are unchanged.
+- M04 remains `NOT_ADMITTED` until this correction merges and post-merge checks are green.
