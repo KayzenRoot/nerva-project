@@ -44,9 +44,25 @@ if (fs.existsSync(m03LockPath)) {
     '.github/scripts/validate-nerva-context-lock.mjs',
     '.github/workflows/m01-ci.yml',
   ];
+  const m03GitCandidates =
+    process.platform === 'win32'
+      ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
+      : [
+          '/usr/bin/git',
+          '/bin/git',
+          '/usr/local/bin/git',
+          '/opt/homebrew/bin/git',
+          '/opt/local/bin/git',
+        ];
+  const m03GitExecutable = m03GitCandidates.find((candidate) => fs.existsSync(candidate));
+  if (!m03GitExecutable) {
+    throw new Error(
+      'NERVA-WO-004 Context Lock validation requires Git in a trusted system directory',
+    );
+  }
 
   function m03Git(args) {
-    return execFileSync('git', args, { encoding: 'utf8' }).trim();
+    return execFileSync(m03GitExecutable, args, { encoding: 'utf8' }).trim();
   }
 
   if (
@@ -112,7 +128,7 @@ if (fs.existsSync(m03LockPath)) {
     for (const [file] of fingerprints) {
       if (!file.startsWith('.engineering/') && file !== 'docs/M02-OBSERVATION-RISK.md') continue;
       try {
-        execFileSync('git', ['diff', '--quiet', base, '--', file], { stdio: 'ignore' });
+        m03Git(['diff', '--quiet', base, '--', file]);
       } catch {
         throw new Error(`NERVA-WO-004 locked governance input changed in the branch: ${file}`);
       }
