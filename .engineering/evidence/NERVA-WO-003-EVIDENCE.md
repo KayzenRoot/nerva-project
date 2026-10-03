@@ -211,3 +211,13 @@ Stop marker: `NERVA_M02_DATA_RISK_READY_FOR_AUDIT`
 
 This approval authorizes M02 checkpoint promotion and merge only.
 It does not admit M03.
+
+## Post-merge Correction Delta
+
+- Merge: `402e52922dc88bfac155260e50a0c4019ed57067`.
+- The squash tree exactly matches validated promotion tree `11c52ef782c4ceabde14dc12f1c5e8f4af5c36b1`.
+- Initial post-merge Linux validation failed only on Git ancestry logic.
+- Cause: squash merge preserves the validated tree but not PR commit ancestry.
+- Runtime, dependencies, schemas, tests, and product behavior are unchanged.
+- Correction validates the accepted squash tree and permits only evidence/validator paths.
+- M03 remains `NOT_ADMITTED` until this correction is merged and post-merge checks pass.
