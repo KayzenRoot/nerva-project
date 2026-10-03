@@ -101,10 +101,11 @@ const immutablePaths = [
   '.engineering/decisions/ADR-0002-GUARDIAN-NERVA-BOUNDARY.md',
 ];
 for (const file of immutablePaths) {
-  const expectedBlob = lock.criticalInputs[file];
-  if (!expectedBlob)
-    throw new Error(`Immutable path missing from Context Lock: ${file}`);
-  if (blobAt(auditedHead, file) !== expectedBlob)
+  const baseBlob = blobAt(base, file);
+  const lockedBlob = lock.criticalInputs[file];
+  if (lockedBlob !== undefined && baseBlob !== lockedBlob)
+    throw new Error(`Context Lock fingerprint mismatch for immutable input: ${file}`);
+  if (blobAt(auditedHead, file) !== baseBlob)
     throw new Error(`Audited implementation changed immutable governance input: ${file}`);
 }
 
