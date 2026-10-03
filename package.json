@@ -26,7 +26,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --max-warnings=0",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.{mjs,ts}\" \".github/workflows/*.yml\" \"docs/*.md\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-003-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md\" \".engineering/work-orders/NERVA-WO-004.md\" \".engineering/context-locks/NERVA-WO-004.json\" \".engineering/execution-briefs/NERVA-WO-004-CODEX.md\" \".engineering/evidence/NERVA-WO-004-EVIDENCE.md\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.{mjs,ts}\" \".github/workflows/*.yml\" \"docs/*.md\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-003-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md\" \".engineering/work-orders/NERVA-WO-004.md\" \".engineering/context-locks/NERVA-WO-004.json\" \".engineering/execution-briefs/NERVA-WO-004-CODEX.md\" \".engineering/evidence/NERVA-WO-004-EVIDENCE.md\" \".engineering/work-orders/NERVA-WO-005.md\" \".engineering/context-locks/NERVA-WO-005.json\" \".engineering/execution-briefs/NERVA-WO-005-CODEX.md\" \".engineering/evidence/NERVA-WO-005-EVIDENCE.md\"",
     "build": "npm run build --workspace=@nerva/web && npm run build --workspace=@nerva/worker",
     "dev:web": "npm run dev --workspace=@nerva/web",
     "worker:start": "node --experimental-strip-types apps/worker/src/main.ts",

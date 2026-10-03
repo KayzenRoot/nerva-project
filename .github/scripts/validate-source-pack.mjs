@@ -40,6 +40,10 @@ const required = [
   '.engineering/execution-briefs/NERVA-WO-004-CODEX.md',
   '.engineering/evidence/NERVA-WO-004-EVIDENCE.md',
   '.engineering/checkpoint-deltas/NERVA-WO-004-PROPOSED.md',
+  '.engineering/work-orders/NERVA-WO-005.md',
+  '.engineering/context-locks/NERVA-WO-005.json',
+  '.engineering/execution-briefs/NERVA-WO-005-CODEX.md',
+  '.engineering/evidence/NERVA-WO-005-EVIDENCE.md',
 ];
 
 const missing = required.filter((path) => !fs.existsSync(path));
@@ -60,6 +64,49 @@ if (checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-004')
   throw new Error('Last approved Work Order drift');
 if (checkpoint.knownCritical !== 0 || checkpoint.knownHigh !== 0)
   throw new Error('Checkpoint has unresolved CRITICAL/HIGH');
+
+const wo5 = fs.readFileSync('.engineering/work-orders/NERVA-WO-005.md', 'utf8');
+const wo5Lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-005.json', 'utf8'));
+const wo5Brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-005-CODEX.md', 'utf8');
+const wo5Evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-005-EVIDENCE.md', 'utf8');
+if (
+  wo5Lock.workOrder !== 'NERVA-WO-005' ||
+  wo5Lock.module !== 'M04' ||
+  wo5Lock.executionBase !== 'd13629e0dc2d66c4f8b2e512b82ce0d11aec1a93' ||
+  wo5Lock.executionBranch !== 'feat/nerva-wo-005-m04-agent-wallet-permissions-evidence' ||
+  wo5Lock.issueNumber !== 13 ||
+  Object.keys(wo5Lock.criticalInputs ?? {}).length !== 64
+)
+  throw new Error('NERVA-WO-005 Context Lock admission identity/fingerprint mismatch');
+for (const section of [
+  'OBJECTIVE',
+  'CONTEXT',
+  'SCOPE',
+  'OUT OF SCOPE',
+  'FILES / SOURCES TO READ',
+  'REQUIREMENTS',
+  'ARCHITECTURE RULES',
+  'CONSTRAINTS',
+  'ACCEPTANCE CRITERIA',
+  'TESTS / PROOF OBLIGATIONS',
+  'DELIVERABLES',
+  'REVIEW FORMAT',
+  'STOP CONDITION',
+]) {
+  if (!wo5.includes(`## ${section}`)) throw new Error(`NERVA-WO-005 Work Order missing ${section}`);
+}
+for (const marker of ['Wallet Identity', 'Agent Identity', 'Capability Grant', 'Permission Compiler', 'EIP-712', 'EIP-7702', 'Temporary/session authority', 'revocation engine', 'durable replay protection', 'Permission evidence chain', 'Flight Recorder', 'M03 authorization boundary']) {
+  if (!wo5.includes(marker) && !wo5Brief.includes(marker))
+    throw new Error(`NERVA-WO-005 admission package missing ${marker}`);
+}
+if (!wo5.includes('NERVA_WO_005_ADMITTED_READY_FOR_EXECUTION'))
+  throw new Error('NERVA-WO-005 admission stop condition missing');
+if (!wo5Evidence.includes('SCAFFOLD ONLY — NO M04 IMPLEMENTATION EVIDENCE'))
+  throw new Error('NERVA-WO-005 Evidence Bundle must remain a scaffold');
+if (!wo5Evidence.includes('NOT STARTED — this file is an admission scaffold only'))
+  throw new Error('NERVA-WO-005 Evidence Bundle claims implementation');
+if (!wo5Brief.includes('implements no M04 product code'))
+  throw new Error('NERVA-WO-005 execution brief must preserve admission-only scope');
 
 const roadmap = fs.readFileSync('.engineering/MODULE-ROADMAP.md', 'utf8');
 for (const module of ['M00','M01','M02','M03','M04','M05','M06']) {
@@ -82,5 +129,7 @@ console.log(JSON.stringify({
   m03:'APPROVED',
   nextModule:'M04',
   nextWorkOrder:'NOT_ADMITTED',
+  m04AdmissionPackage:'NERVA_WO_005_ADMISSION_PACKAGE_VALIDATED',
+  m04Fingerprints:Object.keys(wo5Lock.criticalInputs).length,
   implementation:'STARTED',
 }));
