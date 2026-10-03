@@ -1,23 +1,24 @@
 # NERVA Backlog
 
-Status: CANONICAL — NERVA-WO-004
+Status: CANONICAL — NERVA-WO-005
 
 ## V0.1 modules
 - M00 Product, Competition & Source Pack Lock — APPROVED.
 - M01 Safety Kernel & Platform Foundation — APPROVED.
 - M02 Monad/Perpl Data & Risk Intelligence — APPROVED.
 - M03 Policy Compiler, Simulation & Autonomous Execution — APPROVED.
-- M04 Agent Wallet, Permissions & Verifiable Evidence — NEXT; Work Order NOT_ADMITTED.
-- M05 Product Experience & Competition Demo.
+- M04 Agent Wallet, Permissions & Verifiable Evidence — APPROVED.
+- M05 Product Experience & Competition Demo — NEXT; Work Order NOT_ADMITTED.
 - M06 Release Hardening, Deployment & Metropolis Submission.
 
-## M03 carry-forward
+## M04 carry-forward
 - live Perpl effects remain blocked until protective-only provider capability/scope and enrollment provenance are proven;
-- no disposable Perpl test account/protective enrollment is available;
+- no disposable provider-side protective enrollment proof is available;
 - production trusted issuer registry is not provisioned;
-- add DB-level kill-switch concurrency proof before enabling any future live provider effect adapter;
+- DB-level kill-switch concurrency proof remains mandatory before any future live provider effect adapter;
 - four MODERATE Drizzle Kit/esbuild advisories remain for release recheck;
-- liquidation distance, maintenance margin and funding direction remain unproven/non-authoritative.
+- liquidation distance, maintenance margin and funding direction remain unproven/non-authoritative;
+- MetaMask Agent Wallet CLI was unavailable during M04 validation, so no CLI session or Transaction Shield coverage is claimed.
 
 ## IMPORTANT parking lot
 - browser/push notifications;
