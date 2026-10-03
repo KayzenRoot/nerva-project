@@ -129,7 +129,6 @@ if (!evidence.includes('EXECUTION_NOT_STARTED')) {
   throw new Error('M05 evidence must remain scaffold-only at admission');
 }
 
-
 console.log(
   JSON.stringify({
     ok: true,
