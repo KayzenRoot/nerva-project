@@ -78,7 +78,7 @@ Official source records:
 
 - The global formatter script includes four unchanged base documents that currently fail Prettier; they were not reformatted because they are outside this Work Order. All changed M04 files pass targeted formatting.
 - Docker Desktop was initially starting. Migrations were subsequently tested using an ephemeral pinned PostgreSQL 18.6 container without a named volume, and that container was stopped after the tests.
-- `mm` was unavailable and live Monad RPC was not queried. These limitations do not authorize or enable any financial effect; the relevant features are read-only or fail closed.
+- The `mm` CLI was unavailable, and no wallet address or effectful request was sent to Monad. Only the documented point-in-time read-only Testnet RPC probe above was performed; it does not establish sustained provider health or authorize a financial effect.
 - The configured Codex Security diff-scan did not produce a scan ID because its working-tree selector became stale; no automated diff-scan result is claimed. A manual review of the M04 authorization, persistence and M03 integration paths was performed, with no confirmed finding.
 
 ## Closeout
