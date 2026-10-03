@@ -1,8 +1,8 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. **M01 Safety Kernel & Platform Foundation is approved. NERVA-WO-003 implements M02 Monad/Perpl Data & Risk Intelligence on its audit PR; this change is not yet merged or audited.**
+NERVA is a Monad-native, non-custodial risk and policy platform. **M02 Monad/Perpl Data & Risk Intelligence is approved for promotion/merge. M03 remains NOT_ADMITTED until the M02 merge and post-merge validation complete.**
 
-M02 adds read-only Perpl observation, normalized market/account/position records, deterministic risk snapshots, GET-only APIs, and a read-only dashboard. Financial execution remains disabled. The Perpl adapter may sign its documented API read requests with exact `read` scope; it does not use wallet keys or sign/submit transactions or orders. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) for configuration, API states, risk units and limitations.
+M02 provides read-only Perpl observation, normalized market/account/position records, deterministic risk snapshots, GET-only APIs, and a read-only dashboard. Financial execution remains disabled. The Perpl adapter may sign documented API read requests, but contains no wallet transaction signing, order submission or financial execution path. Liquidation distance and maintenance margin remain explicitly unproven/non-actionable. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) for configuration, API states, risk units and limitations.
 
 ## Governance
 
@@ -20,7 +20,7 @@ Start here:
 8. [Security](.engineering/SECURITY.md)
 9. [Module Roadmap](.engineering/MODULE-ROADMAP.md)
 
-M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 implementation evidence and its proposed Checkpoint delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`; the canonical Checkpoint remains unchanged pending audit.
+M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 evidence and its promoted Checkpoint Delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`.
 
 ## Local development
 

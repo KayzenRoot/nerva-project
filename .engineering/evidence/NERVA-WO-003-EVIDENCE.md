@@ -1,6 +1,6 @@
 # NERVA-WO-003 Evidence Bundle
 
-- Status: `READY_FOR_AUDIT` (implementation evidence; no Checkpoint promotion)
+- Status: `APPROVED` — governance promotion in progress
 - Issue / PR: [#7](https://github.com/KayzenRoot/nerva-project/issues/7) / [#8](https://github.com/KayzenRoot/nerva-project/pull/8)
 - Work Order: `NERVA-WO-003`
 - Module: `M02`
@@ -183,3 +183,29 @@ The PR #8 diff is the authoritative Git path inventory after push.
 - Proposed Checkpoint Delta is review-only and unapplied. Canonical Checkpoint remains M01; M02 is not promoted; M03 has not started.
 
 Stop marker: `NERVA_M02_DATA_RISK_READY_FOR_AUDIT`
+
+
+## Auditor receipt — 2026-10-02
+
+Verdict: **APPROVED**.
+
+Audited exact implementation head: `3d6f0e2d9b6f5558fc1c4472497f6c09056dca19`.
+
+Exact-head hosted evidence:
+- M01/M02 observation and risk foundation run `37078915766`: SUCCESS
+- GEF 1.1.2 run `37078915746`: SUCCESS
+- Source Pack run `37078915777`: SUCCESS
+- Socket Security Pull Request Alerts / Project Report: SUCCESS
+- unit/replay/invariant tests: 70/70 across 18 files
+- risk benchmark: p95 0.914 ms, 1,000 evaluations after 100 warmups
+- public Perpl smoke: chain 143; 11 context markets / 11 ticker markets
+- HIGH/CRITICAL introduced findings: 0
+
+Carry-forward:
+1. No disposable read-only Perpl credential was supplied, so authenticated live account/position reads remain unverified.
+2. Current public Perpl docs expose no reliable endpoint to query actual scope of an already-issued opaque API key. Future live credentials therefore require enrollment/operational evidence proving intended scope; local `PERPL_API_KEY_SCOPE=read` is not provider-side provenance.
+3. Four MODERATE transitive Drizzle Kit/esbuild advisories remain below the current gate.
+4. Funding direction, maintenance margin and liquidation distance remain explicitly UNKNOWN / UNAVAILABLE_UNPROVEN.
+5. Envio remains truthfully deferred.
+
+This approval authorizes only checkpoint promotion and merge of M02. It does not admit M03.
