@@ -40,6 +40,7 @@ const required = [
   '.engineering/execution-briefs/NERVA-WO-004-CODEX.md',
   '.engineering/evidence/NERVA-WO-004-EVIDENCE.md',
   '.engineering/checkpoint-deltas/NERVA-WO-004-PROPOSED.md',
+  'docs/M04-AGENT-WALLET-PERMISSIONS.md',
   '.engineering/work-orders/NERVA-WO-005.md',
   '.engineering/context-locks/NERVA-WO-005.json',
   '.engineering/execution-briefs/NERVA-WO-005-CODEX.md',
@@ -99,14 +100,16 @@ for (const marker of ['Wallet Identity', 'Agent Identity', 'Capability Grant', '
   if (!wo5.includes(marker) && !wo5Brief.includes(marker))
     throw new Error(`NERVA-WO-005 admission package missing ${marker}`);
 }
-if (!wo5.includes('NERVA_WO_005_ADMITTED_READY_FOR_EXECUTION'))
-  throw new Error('NERVA-WO-005 admission stop condition missing');
-if (!wo5Evidence.includes('SCAFFOLD ONLY — NO M04 IMPLEMENTATION EVIDENCE'))
-  throw new Error('NERVA-WO-005 Evidence Bundle must remain a scaffold');
-if (!wo5Evidence.includes('NOT STARTED — this file is an admission scaffold only'))
-  throw new Error('NERVA-WO-005 Evidence Bundle claims implementation');
-if (!wo5Brief.includes('implements no M04 product code'))
-  throw new Error('NERVA-WO-005 execution brief must preserve admission-only scope');
+if (!wo5.includes('NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT'))
+  throw new Error('NERVA-WO-005 implementation stop condition missing');
+if (!wo5Evidence.includes('M04 IMPLEMENTATION EVIDENCE — COMPLETE FOR AUDIT'))
+  throw new Error('NERVA-WO-005 implementation Evidence Bundle is incomplete');
+if (!wo5Evidence.includes('NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT'))
+  throw new Error('NERVA-WO-005 implementation stop condition is missing from evidence');
+if (wo5Evidence.includes('SCAFFOLD ONLY') || wo5Evidence.includes('NOT STARTED'))
+  throw new Error('NERVA-WO-005 Evidence Bundle still contains admission-scaffold claims');
+if (!wo5Brief.includes('NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT'))
+  throw new Error('NERVA-WO-005 execution brief has no implementation stop condition');
 
 const roadmap = fs.readFileSync('.engineering/MODULE-ROADMAP.md', 'utf8');
 for (const module of ['M00','M01','M02','M03','M04','M05','M06']) {
@@ -129,7 +132,7 @@ console.log(JSON.stringify({
   m03:'APPROVED',
   nextModule:'M04',
   nextWorkOrder:'NOT_ADMITTED',
-  m04AdmissionPackage:'NERVA_WO_005_ADMISSION_PACKAGE_VALIDATED',
+  m04EvidenceBundle:'NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT',
   m04Fingerprints:Object.keys(wo5Lock.criticalInputs).length,
   implementation:'STARTED',
 }));

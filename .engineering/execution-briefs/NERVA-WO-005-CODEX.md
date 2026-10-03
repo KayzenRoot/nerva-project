@@ -1,16 +1,19 @@
 # NERVA-WO-005 — Codex Execution Brief
 
-Execute only an explicitly authorized follow-up under **NERVA-WO-005 / Issue #13** on `feat/nerva-wo-005-m04-agent-wallet-permissions-evidence`.
+Execute the explicitly authorized M04 implementation under **NERVA-WO-005 / Issue #13 / PR #14** on `feat/nerva-wo-005-m04-agent-wallet-permissions-evidence`.
 
-1. Read the complete Work Order, Context Lock, approved M03 Evidence Bundle and Checkpoint Delta, all canonical files named in `FILES / SOURCES TO READ`, applicable repository/`AGENTS.md` instructions, and current official wallet/EIP/Monad sources before product changes.
-2. Confirm `main@d13629e0dc2d66c4f8b2e512b82ce0d11aec1a93`, the exact branch and Issue #13. Run `npm run context:validate`; verify all 64 base fingerprints. If the base, branch, Checkpoint, M03 gates, or a fingerprint is stale, stop without product edits and request governed re-admission.
-3. Preserve `HIGH_ASSURANCE`. The present admission turn creates governance artifacts and validators only; it implements no M04 product code. Do not infer implementation authorization from this brief alone; follow the user's explicit execution request and the admitted Work Order.
-4. Re-read current official MetaMask Agent Wallet, EIP-712, EIP-7702 and Monad sources. Record exact URLs/revisions and supported chain/API capabilities. Never infer Monad security-scanning or delegation support from a generic EVM claim.
-5. Keep `MAINNET` effectful execution `HARD_BLOCKED`, live Perpl effects disabled, and the M03 authorization boundary unchanged. Do not create `ARBITRARY_CALL`, unrestricted calldata, agent self-escalation or LLM/natural-language financial authority.
-6. Bind each capability to exact chain/account/agent/policy and bounded scope/limits/expiry/revocation state. Require durable replay protection, cross-chain domain separation, revocation precedence and invalidation when an EIP-7702 delegate changes.
-7. Do not store, request or log a private key, seed phrase or mnemonic. Fail closed on unknown wallet, grant, signer, delegate, chain, revocation, nonce, simulation, M03 or kill-switch state.
-8. Preserve M03 risk gates and non-authoritative `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION`. A database-level kill-switch concurrency proof and disable-versus-in-flight semantics remain mandatory before any future live provider effect adapter.
-9. Keep all four MODERATE Drizzle Kit/esbuild advisories visible for release review. Do not suppress or broaden scope to remove them.
-10. Run the complete exact-head gates and complete the Evidence Bundle only during the separately authorized M04 implementation. No live Perpl write, mainnet effect, Checkpoint promotion, merge or M05 is permitted.
+1. Read the Work Order, Context Lock, this brief, approved M03 Evidence Bundle and Checkpoint Delta, all named canonical files, applicable repository instructions, and current official MetaMask Agent Wallet/EIP/Monad sources before changes.
+2. Confirm `main@d13629e0dc2d66c4f8b2e512b82ce0d11aec1a93`, the exact branch, Issue #13, draft PR #14 and all 64 Context Lock fingerprints. A base, branch, checkpoint or fingerprint mismatch blocks implementation and requires re-admission.
+3. Preserve `HIGH_ASSURANCE`, the accepted M03 implementation and the canonical Checkpoint. No Checkpoint promotion is permitted.
+4. Record official source URLs and retrieval date/revision. Preflight found that MetaMask Agent Wallet documents typed-data signing and lists Monad Testnet (10143); its installed-CLI chain list is authoritative, but `mm` is unavailable in this environment and no wallet session was exercised. Monad testnet threat-scanning coverage is not documented by the supported-chain table. Treat signed EIP-712 messages as owner authorization, not proof of M03 simulation or a provider effect.
+5. Keep `MAINNET` effectful execution `HARD_BLOCKED` and live Perpl effects blocked. Create no transaction, wallet delegation mutation, provider write, `ARBITRARY_CALL`, unrestricted calldata or effect adapter.
+6. Bind every capability to exact chain/account/agent/policy, bounded scope/limits, expiry and durable revocation state. Require durable nonces and cross-chain domain separation. Revocation wins pending authorization.
+7. Observe EIP-7702 state at a finalized block, including delegate runtime code identity. `UNKNOWN`, stale, reorged, changed or revoked state blocks dependent authority. Never install or mutate a delegation.
+8. No private key, seed phrase or mnemonic may be requested, stored, logged, returned or included in fixtures/evidence. Ephemeral test-only keys may exist only inside tests.
+9. Preserve M03 policy, simulation, kill-switch, actor provenance, idempotency, replay, recovery and refusal gates. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain non-authoritative/unproven. M03 `UNKNOWN` blocks.
+10. A database-level kill-switch concurrency proof and documented disable-versus-in-flight semantics remain mandatory before any future live provider effect adapter. This Work Order does not create that adapter.
+11. Keep the four MODERATE Drizzle Kit/esbuild advisories visible for release review. Do not suppress them or broaden scope to remove them.
+12. Implement and verify every M04 acceptance/proof obligation, update only this WO/PR, complete the Evidence Bundle, inspect the full diff, run applicable exact-head checks, commit and push on the same branch, and update PR #14 as draft.
+13. Do not merge, promote the Checkpoint, enable mainnet/live Perpl effects, force-push or start M05.
 
-This brief's admission stop condition is `NERVA_WO_005_ADMITTED_READY_FOR_EXECUTION`. The implementation Evidence Bundle in this admission remains a scaffold only.
+Stop only at `NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT` after the implementation and exact-head evidence are complete. Report failed or pending gates as such; never infer hosted service results or a live-chain observation.

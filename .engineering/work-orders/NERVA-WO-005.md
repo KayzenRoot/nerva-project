@@ -2,7 +2,7 @@
 
 | Field            | Value                                                                     |
 | ---------------- | ------------------------------------------------------------------------- |
-| Status           | ADMITTED FOR EXECUTION — admission PR remains draft; Checkpoint unchanged |
+| Status           | IMPLEMENTATION CANDIDATE — Issue #13 / draft PR #14; Checkpoint unchanged |
 | Risk             | HIGH_ASSURANCE                                                            |
 | Module           | M04 — Agent Wallet, Permissions & Verifiable Evidence                     |
 | Issue            | [#13](https://github.com/KayzenRoot/nerva-project/issues/13)              |
@@ -13,7 +13,7 @@
 | Review language  | pt-BR                                                                     |
 | Context Lock     | `.engineering/context-locks/NERVA-WO-005.json` (64 base fingerprints)     |
 
-This Work Order defines the future M04 product implementation. The current admission PR contains governance artifacts and narrowly scoped admission validators only; it does not implement M04 product code. The Checkpoint remains unchanged, and M04 implementation begins only under this admitted Work Order and a separately authorized execution request.
+This Work Order is being executed under the user's explicit implementation request on the admitted Issue/PR lineage. The current candidate implements M04 product scope and records its proof in the Evidence Bundle. The canonical Checkpoint remains unchanged; implementation evidence does not itself approve M04 or admit M05.
 
 ## OBJECTIVE
 
@@ -23,13 +23,13 @@ The objective is a controlled, auditable authorization capability. It does not g
 
 ## CONTEXT
 
-At the exact base, the canonical Checkpoint records `M03=APPROVED`, `M04=NEXT`, and `M04 Work Order=NOT_ADMITTED`. M03 is approved as `M03_POLICY_SIMULATION_CLOSED_EFFECT_BOUNDARY`; it retains a closed live-effect boundary. This Work Order's admission must not modify that Checkpoint or alter the accepted M03 implementation.
+At the exact base, the canonical Checkpoint records `M03=APPROVED`, `M04=NEXT`, and `M04 Work Order=NOT_ADMITTED`. M03 is approved as `M03_POLICY_SIMULATION_CLOSED_EFFECT_BOUNDARY`; it retains a closed live-effect boundary. This implementation candidate must not modify that Checkpoint or alter accepted M03 safety behavior.
 
 M03's authorization port, policy/plan hashes, kill switch, durable idempotency/replay state, refusal/recovery semantics and Flight Recorder are security boundaries, not conveniences. M04 may supply verifiable wallet authorization to that boundary but may not bypass or weaken it. The accepted M03 carry-forward says live Perpl effects remain blocked pending documented protective-only provider capability and independent enrollment provenance, and any future live provider effect adapter additionally requires explicit database-level kill-switch concurrency proof and documented disable-versus-in-flight semantics.
 
 Approved decisions D-0004 through D-0011 and D-0013, ADR-0001 and ADR-0002 remain binding. NERVA is non-custodial; natural-language and LLM output is untrusted; deterministic policy and authorization govern; unknown state fails closed; evidence is correlated; ambiguous effects are not retried blindly; and mainnet effects remain release-gated. The four MODERATE Drizzle Kit/esbuild advisories remain a release-review carry-forward.
 
-This admission is limited to the Work Order, Context Lock, execution brief, Evidence Bundle scaffold, Issue/branch/draft PR and only the validators needed for the admission. No M04 product implementation, Checkpoint promotion, merge or M05 work is authorized in this admission.
+The implementation is limited to the admitted M04 scope and the narrow M03 authorization-boundary integration required by this Work Order. The user explicitly authorizes implementation, commit, push and PR update. No Checkpoint promotion, merge, live Perpl effect, mainnet effect or M05 work is authorized.
 
 ## SCOPE
 
@@ -43,7 +43,7 @@ The admitted M04 implementation shall deliver the following bounded product capa
 6. **EIP-7702 delegation detection/state:** observe the exact account/chain delegation state and, where verifiable, delegate address and code identity. Represent at least `ABSENT`, `ACTIVE`, `CHANGED`, `REVOKED` and `UNKNOWN`; missing, stale, reorged or unverifiable observations are `UNKNOWN` and block dependent authority. A delegate change, code-identity change or revocation invalidates pending/session authority bound to the former delegate before it can be consumed. M04 must detect and record state; it must not install or change delegation automatically.
 7. **Temporary/session authority:** derive each session as a strict subset of an active grant, bound to the same wallet/account, chain, agent and policy, with a shorter explicit expiry and its own replay domain. Sessions cannot self-renew, expand scope, outlive/revive a grant, or survive revocation/delegate invalidation.
 8. **Revocation engine:** support user-authorized grant/session revoke and wallet/account unbind. Persist a monotonic revocation generation or equivalent atomic state. Recheck it at authorization consumption and the M03 boundary; revocation wins races with pending signatures, queued plans, sessions and retries. Revocation does not claim to cancel an already confirmed external effect.
-9. **Durable replay protection:** use a durable, append-oriented nonce/consumption ledger with unique domain-scoped constraints across chain, account, agent, grant/policy and operation. Reject duplicate, concurrent, cross-chain, cross-account, cross-agent, expired and superseded authorization. Prove concurrency and process-restart behavior; reuse or extend M03 persistence without weakening its invariants.
+9. **Durable replay protection:** provide durable replay protection through an append-oriented nonce/consumption ledger with unique domain-scoped constraints across chain, account, agent, grant/policy and operation. Reject duplicate, concurrent, cross-chain, cross-account, cross-agent, expired and superseded authorization. Prove concurrency and process-restart behavior; reuse or extend M03 persistence without weakening its invariants.
 10. **Permission evidence chain:** create a verifiable, append-only hash-linked record chain for identity binding, grant compilation/confirmation, EIP-712 authorization digest/result, EIP-7702 observations, session issue/expiry, nonce consumption, revocation, M03 authorization decision and refusal/recovery. Canonicalization, link verification, supersession, privacy minimization and tamper detection must be specified and tested. Do not place key material, seed phrases, mnemonics, provider secrets or reusable credentials in evidence.
 11. **Flight Recorder and M03 integration:** correlate permission evidence with M03's exact policy/version, plan digest, simulation/preflight state, actor and authorization provenance, environment, kill-switch decision, execution/refusal receipt and recovery state. Only the existing M03 authorization boundary may decide if its prerequisites pass. M04 must not introduce a route that submits Perpl writes or otherwise bypasses M03.
 12. **Operator surfaces and APIs:** expose schema-versioned, authenticated grant, session, revoke, wallet-binding and evidence-verification operations plus read-only status. Show exact account/chain/agent/policy scope, expiry, revocation and delegate state. English is the default product language; preserve Brazilian Portuguese and Spanish. Secrets and raw sensitive wallet material never appear in client responses or logs.
@@ -66,7 +66,7 @@ The admitted M04 implementation shall deliver the following bounded product capa
 
 ## FILES / SOURCES TO READ
 
-Read in the following order before future M04 implementation. Compare the 64 Context Lock fingerprints first; any base or fingerprint drift makes the lock stale and requires stop/re-admission.
+Read in the following order for this M04 implementation. Compare all 64 Context Lock fingerprints before code changes; any base or fingerprint drift makes the lock stale and requires stop/re-admission.
 
 1. `.engineering/CHECKPOINT.md` and `.engineering/CHECKPOINT.json`.
 2. `.engineering/DECISIONS-LEDGER.md` and every approved ADR in `.engineering/decisions/`.
@@ -127,36 +127,24 @@ Read in the following order before future M04 implementation. Compare the 64 Con
 
 ## ACCEPTANCE CRITERIA
 
-### Admission acceptance — this execution
-
-1. Exact base and preconditions validate; the Work Order, 60-fingerprint Context Lock, execution brief and scaffold-only Evidence Bundle are published on the exact branch and linked to Issue #13.
-2. The draft PR targets `main`, records exact base/head, files, applicable checks, security impact and limitations, and remains unmerged.
-3. Only the admission Context Lock and Source Pack validators plus formatting inclusion are adjusted as needed. The Checkpoint and M03 product files remain unchanged.
-4. GEF 1.1.2 state/package, Context Lock, Source Pack, formatting of changed files, lint, typecheck, workspace/dependency checks, Linux, Windows-bounded, SonarCloud and Socket checks pass on the exact admission head.
-5. The changed-file set contains only the four admission artifacts, the minimal required validators and their format-check path configuration. No M04 product code is implemented.
-6. The Evidence Bundle says `SCAFFOLD ONLY` and makes no implementation, test or provider-readiness claim.
-7. The exact admission stop marker below is recorded. Checkpoint promotion, merge and M05 do not occur.
-
-### M04 implementation acceptance — future execution under this Work Order
-
-8. Current official wallet/EIP/network documentation and supported API/version/capability are recorded; unsupported wallet/network features are explicitly blocked rather than inferred.
-9. Wallet and agent identity bind to verifiable public/account provenance; no secret custody or sensitive key-shaped storage exists.
-10. Permission Compiler emits deterministic canonical bounded grants and refuses every non-allowlisted or self-escalating capability.
-11. EIP-712 signatures verify exact domain, chain/account, agent, grant/policy, action, expiry, nonce and revocation generation; replay/cross-chain/domain-confusion vectors refuse.
-12. EIP-7702 delegate state is independently observed; unknown or changed delegation invalidates pending/session authority bound to the former delegate; no automatic delegation mutation exists.
-13. Temporary authority cannot exceed or outlive its grant; revocation and wallet unbinding win concurrency races and invalidate pending use.
-14. Durable replay prevention works across concurrent requests, process restart, duplicate events and chain/account/agent/grant domains.
-15. Permission evidence links verify cryptographically, reject deletion/reorder/tampering, correlate to M03 Flight Recorder and expose no secrets.
-16. M03 authorization, kill-switch, simulation, policy, idempotency, replay and recovery gates remain in place; mainnet is hard-blocked and live Perpl effects remain disabled.
-17. Database-level kill-switch concurrency proof and disable-versus-in-flight semantics are recorded as a mandatory blocker for any later live provider effect adapter.
-18. Clean and M03-upgrade migrations, security/adversarial/recovery tests, benchmarks and exact-head CI are evidenced; no unresolved introduced CRITICAL/HIGH finding remains.
-19. Four MODERATE advisories and all provider/wallet limitations remain explicit in release-facing evidence; no unproven capability is presented as live.
-20. English-default, Brazilian Portuguese and Spanish user-facing wallet/permission/evidence flows are complete and reviewed.
-21. M05 remains unstarted; no Checkpoint promotion or merge is included in M04 implementation closeout.
+1. Current official wallet/EIP/network documentation and supported API/version/capability are recorded; unsupported wallet/network features are explicitly blocked rather than inferred.
+2. Wallet and agent identity bind to verifiable public/account provenance; no secret custody or sensitive key-shaped storage exists.
+3. Permission Compiler emits deterministic canonical bounded grants and refuses every non-allowlisted or self-escalating capability.
+4. EIP-712 signatures verify exact domain, chain/account, agent, grant/policy, action, expiry, nonce and revocation generation; replay/cross-chain/domain-confusion vectors refuse.
+5. EIP-7702 delegate state is independently observed, including runtime code identity at a finalized block; unknown or changed delegation invalidates dependent authority; no automatic delegation mutation exists.
+6. Temporary authority cannot exceed or outlive its grant; revocation and wallet unbinding win concurrency races and invalidate pending use.
+7. Durable replay prevention works across concurrent requests, process restart, duplicate events and chain/account/agent/grant domains.
+8. Permission evidence links verify cryptographically, reject deletion/reorder/tampering, correlate to M03 Flight Recorder and expose no secrets.
+9. M03 authorization, kill-switch, simulation, policy, idempotency, replay and recovery gates remain in place; mainnet is hard-blocked and live Perpl effects remain disabled.
+10. Database-level kill-switch concurrency proof and disable-versus-in-flight semantics remain an explicit blocker for any later live provider effect adapter; no such adapter is created here.
+11. Clean and M03-upgrade migrations, security/adversarial/recovery tests, benchmarks and exact-head CI are evidenced; no unresolved introduced CRITICAL/HIGH finding remains.
+12. Four MODERATE advisories and all provider/wallet limitations remain explicit in release-facing evidence; no unproven capability is presented as live.
+13. English-default, Brazilian Portuguese and Spanish user-facing wallet/permission/evidence flows are complete.
+14. M05 remains unstarted; no Checkpoint promotion or merge is included in M04 implementation closeout.
 
 ## TESTS / PROOF OBLIGATIONS
 
-- **Admission:** verify M03/M04/Work Order states; exact base/branch/Issue; each real Context Lock blob; allowed changed-file set; scaffold-only Evidence Bundle; GEF 1.1.2; Source Pack.
+- **Preflight:** verify the exact M03/M04 checkpoint preconditions; exact base/branch/Issue/PR; all 64 real Context Lock blobs; official wallet/EIP/network sources; GEF 1.1.2; Source Pack.
 - **M04-WID-001:** valid wallet/account/chain proof; wrong chain/address; changed binding; replayed binding proof; malformed and unverifiable issuer.
 - **M04-AID-001:** stable agent identity, issuer mismatch, duplicate identity, spoofed label, and attempts to replace or self-approve an agent.
 - **M04-CAP-001/M04-COMP-001:** canonical hash determinism; exact scope binding; unknown field/action; wildcard; unbounded capability; arbitrary call/target/selector/calldata; privilege expansion; quantity/policy overrun; expired grant.
@@ -174,18 +162,14 @@ Read in the following order before future M04 implementation. Compare the 64 Con
 
 ## DELIVERABLES
 
-Future M04 implementation deliverables are the Wallet Identity and Agent Identity model; Capability Grant schema; deterministic Permission Compiler; EIP-712 authorization adapter; read-only EIP-7702 delegation detector/state; temporary/session authority; revocation engine; durable replay ledger; verifiable permission-evidence chain; Flight Recorder/M03 integration; bounded APIs and status UI; append-oriented migrations; adversarial/replay/concurrency/recovery tests; CI/security/benchmark proof; operating/security documentation; and a completed Evidence Bundle.
-
-The current admission deliverables are this Work Order, fresh Context Lock, Codex execution brief, scaffold-only Evidence Bundle, Issue #13, exact-base branch, draft PR and minimal admission validator updates. No M04 product code belongs in the admission diff.
+Deliver the Wallet Identity and Agent Identity model; Capability Grant schema; deterministic Permission Compiler; EIP-712 authorization adapter; read-only EIP-7702 delegation detector/state; temporary/session authority; revocation engine; durable replay ledger; verifiable permission-evidence chain; Flight Recorder/M03 integration; bounded APIs and status UI; append-oriented migrations; adversarial/replay/concurrency/recovery tests; CI/security/benchmark proof; operating/security documentation; and a completed Evidence Bundle.
 
 ## REVIEW FORMAT
 
-For this admission, report in Brazilian Portuguese: exact base/head SHA; Issue/branch/PR state; precondition result; Context Lock fingerprint count; changed-file inventory; validator changes; every local/hosted check and its exact-head status; security/compatibility/dependency impacts; any non-blocking observations; explicit confirmation that no M04 product code was implemented; no merge/Checkpoint promotion/M05; and this admission STOP CONDITION.
-
-For future M04 implementation review, also report each acceptance/proof obligation, exact official source URLs/revisions and wallet/network support, permission/signature/delegate/revocation/replay evidence, M03 boundary and mainnet/Perpl gates, migrations, security findings, four MODERATE advisories, exact testnet/live-effect status, and the implementation Evidence Bundle.
+Report in Brazilian Portuguese: exact base/head SHA; Issue/branch/PR state; preconditions; 64-fingerprint Context Lock validation; changed-file inventory; every local/hosted check and its exact-head status; official source URLs/revisions and wallet/network limits; implementation proof obligations; M03 boundary and mainnet/Perpl gates; migrations; security findings and four MODERATE advisories; any non-blocking observations; completed Evidence Bundle; and explicit confirmation of no merge, Checkpoint promotion or M05.
 
 ## STOP CONDITION
 
-`NERVA_WO_005_ADMITTED_READY_FOR_EXECUTION`
+`NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT`
 
-Stop immediately after the admission artifacts, exact-base Context Lock, required validator recognition, exact-head applicable checks, and draft PR are complete. Do not implement M04 product code, merge, promote the Checkpoint, enable mainnet/live Perpl effects, or start M05.
+Stop immediately after the complete in-scope M04 implementation, Evidence Bundle, same-branch commit/push and PR #14 update are verified on the exact head. Do not merge, promote the Checkpoint, enable mainnet/live Perpl effects, or start M05.

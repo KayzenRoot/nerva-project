@@ -69,8 +69,8 @@ if (fs.existsSync(m04LockPath)) {
   if (event === 'pull_request' && process.env.GITHUB_BASE_REF !== 'main') {
     throw new Error('NERVA-WO-005 admission PR must target main');
   }
-  if (event === 'push')
-    throw new Error('NERVA-WO-005 admission validation does not authorize a main push');
+  if (event === 'push' && process.env.GITHUB_REF === 'refs/heads/main')
+    throw new Error('NERVA-WO-005 implementation validation cannot run on a main push');
   git(['merge-base', '--is-ancestor', base, 'HEAD']);
 
   const allowedPaths = new Set([
@@ -80,6 +80,62 @@ if (fs.existsSync(m04LockPath)) {
     '.engineering/evidence/NERVA-WO-005-EVIDENCE.md',
     '.github/scripts/validate-nerva-context-lock.mjs',
     '.github/scripts/validate-source-pack.mjs',
+    '.github/scripts/check-no-forbidden-deps.mjs',
+    '.github/scripts/validate-workspaces.mjs',
+    '.github/scripts/verify-m03-safety.mjs',
+    '.github/scripts/verify-db-schema.mjs',
+    '.github/scripts/migration-from-m02.mjs',
+    '.github/scripts/m04-permissions-benchmark.ts',
+    '.github/workflows/m01-ci.yml',
+    'apps/web/package.json',
+    'apps/web/src/app/api/executions/route.ts',
+    'apps/web/src/app/api/executions/[attemptId]/recovery/route.ts',
+    'apps/web/src/app/api/permissions/route.ts',
+    'apps/web/src/app/flight-recorder/page.tsx',
+    'apps/web/src/app/m03-readonly-view.tsx',
+    'apps/web/src/app/api/permissions/bind/route.ts',
+    'apps/web/src/app/api/permissions/agents/route.ts',
+    'apps/web/src/app/api/permissions/grants/route.ts',
+    'apps/web/src/app/api/permissions/delegation/route.ts',
+    'apps/web/src/app/api/permissions/authorize/route.ts',
+    'apps/web/src/app/api/permissions/sessions/route.ts',
+    'apps/web/src/app/api/permissions/sessions/revoke/route.ts',
+    'apps/web/src/app/api/permissions/revoke/route.ts',
+    'apps/web/src/app/api/permissions/unbind/route.ts',
+    'apps/web/src/app/api/permissions/evidence/verify/route.ts',
+    'apps/web/src/app/permissions/page.tsx',
+    'apps/web/src/app/permissions/permissions-read-view.tsx',
+    'apps/web/src/app/page.tsx',
+    'apps/web/src/app/i18n.ts',
+    'apps/web/src/server/m03-api.ts',
+    'apps/web/src/server/m03-api.test.ts',
+    'apps/web/src/server/m04-trust.ts',
+    'apps/web/src/server/monad-testnet-rpc.ts',
+    'docs/M04-AGENT-WALLET-PERMISSIONS.md',
+    'packages/contracts/src/index.ts',
+    'packages/contracts/src/m04.test.ts',
+    'packages/db/package.json',
+    'packages/db/src/index.ts',
+    'packages/db/src/m04.ts',
+    'packages/db/src/schema.ts',
+    'packages/db/migrations/0003_curved_smasher.sql',
+    'packages/db/migrations/0004_brave_husk.sql',
+    'packages/db/migrations/0005_cloudy_dagger.sql',
+    'packages/db/migrations/0006_spooky_starfox.sql',
+    'packages/db/migrations/0007_lush_hairball.sql',
+    'packages/db/migrations/0008_purple_anita_blake.sql',
+    'packages/db/migrations/meta/0003_snapshot.json',
+    'packages/db/migrations/meta/0004_snapshot.json',
+    'packages/db/migrations/meta/0005_snapshot.json',
+    'packages/db/migrations/meta/0006_snapshot.json',
+    'packages/db/migrations/meta/0007_snapshot.json',
+    'packages/db/migrations/meta/0008_snapshot.json',
+    'packages/db/migrations/meta/_journal.json',
+    'packages/permissions/package.json',
+    'packages/permissions/src/index.ts',
+    'packages/permissions/src/index.test.ts',
+    'package-lock.json',
+    'tsconfig.json',
     'package.json',
   ]);
   const committedChanges = git(['diff', '--name-only', `${base}..HEAD`])
@@ -100,7 +156,7 @@ if (fs.existsSync(m04LockPath)) {
   );
   if (unexpected.length > 0) {
     throw new Error(
-      `NERVA-WO-005 admission changed files outside scope: ${JSON.stringify(unexpected)}`,
+      `NERVA-WO-005 implementation changed files outside scope: ${JSON.stringify(unexpected)}`,
     );
   }
   if (committedChanges.length + worktreeChanges.length === 0) {
@@ -137,7 +193,7 @@ if (fs.existsSync(m04LockPath)) {
     'LIQUIDATION_DISTANCE',
     'MAINTENANCE_MARGIN',
     'FUNDING_DIRECTION',
-    'NERVA_WO_005_ADMITTED_READY_FOR_EXECUTION',
+    'NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT',
   ];
   for (const text of requiredSafetyText) {
     if (!workOrder.includes(text))
@@ -152,8 +208,8 @@ if (fs.existsSync(m04LockPath)) {
       branch,
       issue: lock.issueNumber,
       criticalFingerprints: fingerprints.length,
-      admissionFiles: committedChanges.length + worktreeChanges.length,
-      state: 'NERVA_WO_005_ADMISSION_CONTEXT_VALIDATED',
+      implementationFiles: committedChanges.length + worktreeChanges.length,
+      state: 'NERVA_M04_IMPLEMENTATION_CONTEXT_VALIDATED',
     }),
   );
   process.exit(0);

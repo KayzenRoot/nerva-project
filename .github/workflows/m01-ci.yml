@@ -1,4 +1,4 @@
-name: NERVA M01-M03 policy, simulation and safety validation
+name: NERVA M01-M04 policy, simulation and safety validation
 
 on:
   pull_request:
@@ -70,6 +70,8 @@ jobs:
         run: npm run risk:benchmark
       - name: Deterministic M03 policy and decision-to-plan benchmark
         run: npm run m03:benchmark
+      - name: M04 permission compiler and evidence-chain benchmark
+        run: npm run m04:benchmark
       - name: Build web and worker
         run: npm run build
       - name: Scan client assets
@@ -103,7 +105,7 @@ jobs:
           cache: npm
       - name: Clean install
         run: npm ci --no-audit --no-fund
-      - name: Bounded domain, contracts, config, policy, execution, Perpl and risk tests
-        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/contracts/src/observation.test.ts packages/config/src/environment.test.ts packages/perpl/src/client.test.ts packages/perpl/src/normalizer.test.ts packages/risk/src/engine.test.ts packages/policy/src/index.test.ts packages/execution/src/index.test.ts
+      - name: Bounded domain, contracts, config, policy, permissions, execution, Perpl and risk tests
+        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/contracts/src/observation.test.ts packages/contracts/src/m04.test.ts packages/config/src/environment.test.ts packages/perpl/src/client.test.ts packages/perpl/src/normalizer.test.ts packages/risk/src/engine.test.ts packages/policy/src/index.test.ts packages/permissions/src/index.test.ts packages/execution/src/index.test.ts
       - name: Strict typecheck
         run: npm run typecheck

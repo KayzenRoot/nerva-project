@@ -4,6 +4,8 @@ import {
   listM03EvaluationReadModels,
   listM03SimulationReadModels,
   readM03ExecutionReadModel,
+  listM04PermissionEvidence,
+  verifyM04PermissionEvidence,
 } from '@nerva/db';
 import { loadServerConfig } from '@nerva/config';
 import { resolveLocale } from '../i18n.ts';
@@ -39,12 +41,15 @@ export default async function FlightRecorderPage({
     );
   const { pool } = createDatabase(config);
   try {
-    const [events, evaluations, simulations, integrations] = await Promise.all([
-      readM03ExecutionReadModel(pool),
-      listM03EvaluationReadModels(pool),
-      listM03SimulationReadModels(pool),
-      latestIntegrationHealth(pool),
-    ]);
+    const [events, evaluations, simulations, integrations, permissionEvents, permissionIntegrity] =
+      await Promise.all([
+        readM03ExecutionReadModel(pool),
+        listM03EvaluationReadModels(pool),
+        listM03SimulationReadModels(pool),
+        latestIntegrationHealth(pool),
+        listM04PermissionEvidence(pool),
+        verifyM04PermissionEvidence(pool),
+      ]);
     return (
       <M03ReadOnlyView
         locale={locale}
@@ -53,6 +58,8 @@ export default async function FlightRecorderPage({
         evaluations={records(evaluations)}
         simulations={records(simulations)}
         integrations={records(integrations)}
+        permissionEvents={records(permissionEvents)}
+        permissionEvidenceIntegrity={permissionIntegrity.verified ? 'VERIFIED' : 'FAILED'}
         available
       />
     );
@@ -65,6 +72,8 @@ export default async function FlightRecorderPage({
         evaluations={[]}
         simulations={[]}
         integrations={[]}
+        permissionEvents={[]}
+        permissionEvidenceIntegrity="UNKNOWN"
         available={false}
       />
     );

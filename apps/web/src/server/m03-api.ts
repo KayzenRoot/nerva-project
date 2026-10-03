@@ -22,6 +22,7 @@ export const M03ExecutionRequestSchema = z
     schemaVersion: z.literal('0.1'),
     planDigest: z.string().regex(/^[0-9a-f]{64}$/),
     idempotencyKey: z.string().regex(/^[0-9a-f]{64}$/),
+    m04AuthorizationRef: z.string().regex(/^[0-9a-f]{64}$/),
     authorizationProof: M03ExecutionAuthorizationProofSchema,
     correlationId: z.string().min(1).max(200),
   })
@@ -107,6 +108,38 @@ export async function withM03Database(
   }
 }
 
+export function latestM03SimulationsAreCurrentPass(
+  rows: readonly Readonly<{
+    kind: string;
+    status: string;
+    checkedAt: Date;
+    expiresAt: Date;
+  }>[],
+  now: string,
+): boolean {
+  const nowMs = Date.parse(now);
+  if (!Number.isFinite(nowMs)) return false;
+  for (const kind of ['DETERMINISTIC_DRY_RUN', 'PROVIDER_TESTNET_PREFLIGHT']) {
+    const matching = rows.filter((row) => row.kind === kind);
+    if (!matching.length) return false;
+    const timestamps = matching.map((row) => row.checkedAt.getTime());
+    if (timestamps.some((timestamp) => !Number.isFinite(timestamp) || timestamp > nowMs))
+      return false;
+    const latestTimestamp = Math.max(...timestamps);
+    const latestRows = matching.filter((row) => row.checkedAt.getTime() === latestTimestamp);
+    if (
+      latestRows.some(
+        (row) =>
+          row.status !== 'PASS' ||
+          !Number.isFinite(row.expiresAt.getTime()) ||
+          row.expiresAt.getTime() <= nowMs,
+      )
+    )
+      return false;
+  }
+  return true;
+}
+
 export function trustedM03IssuerUnavailable(correlation: string): NextResponse | undefined {
   return hasM03TrustedIssuers()
     ? undefined
@@ -138,5 +171,10 @@ export function apiError(status: number, code: string, message: string, correlat
 }
 
 export function apiJson(body: unknown, status = 200) {
-  return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+  const safeBody = JSON.parse(
+    JSON.stringify(body, (_key, value: unknown) =>
+      typeof value === 'bigint' ? value.toString() : value,
+    ),
+  ) as unknown;
+  return NextResponse.json(safeBody, { status, headers: { 'Cache-Control': 'no-store' } });
 }

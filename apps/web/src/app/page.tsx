@@ -57,6 +57,9 @@ export default async function HomePage({
         <Link href={`/flight-recorder?lang=${locale}`}>
           {copy.flightRecorder} <small>{copy.preparing}</small>
         </Link>
+        <Link href={`/permissions?lang=${locale}`}>
+          {copy.permissions} <small>{copy.preparing}</small>
+        </Link>
       </nav>
       <footer>
         {copy.systemStatus} · <Link href="/api/health/live">{copy.serviceHealth}</Link>

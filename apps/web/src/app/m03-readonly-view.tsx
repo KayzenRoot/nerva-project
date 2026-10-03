@@ -28,6 +28,8 @@ const copyKeys = [
   'sourceSnapshot',
   'plan',
   'authority',
+  'permissionEvidence',
+  'permissionIntegrity',
 ] as const;
 
 type Copy = Record<(typeof copyKeys)[number], string>;
@@ -60,6 +62,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Source snapshot',
     'Plan digest',
     'Authority',
+    'M04 permission evidence',
+    'Permission chain integrity',
   ],
   'pt-BR': [
     'Estado das políticas',
@@ -88,6 +92,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Snapshot de origem',
     'Digest do plano',
     'Autoridade',
+    'Evidências de permissão M04',
+    'Integridade da cadeia de permissões',
   ],
   es: [
     'Estado de políticas',
@@ -116,6 +122,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Snapshot de origen',
     'Digest del plan',
     'Autoridad',
+    'Evidencia de permisos M04',
+    'Integridad de la cadena de permisos',
   ],
 };
 
@@ -180,6 +188,8 @@ export function M03ReadOnlyView({
   evaluations = [],
   simulations = [],
   integrations = [],
+  permissionEvents = [],
+  permissionEvidenceIntegrity = 'UNKNOWN',
   available,
 }: {
   readonly locale: Locale;
@@ -188,12 +198,19 @@ export function M03ReadOnlyView({
   readonly evaluations?: readonly Record<string, unknown>[];
   readonly simulations?: readonly Record<string, unknown>[];
   readonly integrations?: readonly Record<string, unknown>[];
+  readonly permissionEvents?: readonly Record<string, unknown>[];
+  readonly permissionEvidenceIntegrity?: 'VERIFIED' | 'FAILED' | 'UNKNOWN';
   readonly available: boolean;
 }) {
   const labels = copy[locale];
   const title = view === 'policies' ? labels.policies : labels.recorder;
   const hasRecords =
-    records.length + evaluations.length + simulations.length + integrations.length > 0;
+    records.length +
+      evaluations.length +
+      simulations.length +
+      integrations.length +
+      permissionEvents.length >
+    0;
   return (
     <main className="dashboard-shell" lang={locale}>
       <header className="dashboard-topbar">
@@ -297,6 +314,25 @@ export function M03ReadOnlyView({
                 {field(record, 'reason')}
               </p>
             ))}
+          </section>
+          <section className="dashboard-card market-card">
+            <h2>{labels.permissionEvidence}</h2>
+            <p>
+              {labels.permissionIntegrity}: {permissionEvidenceIntegrity}
+            </p>
+            <RecordEntries
+              records={permissionEvents}
+              keyFields={['sequence']}
+              fields={[
+                { label: labels.event, key: 'kind' },
+                { label: labels.outcome, key: 'result' },
+                { label: labels.reason, key: 'reason_code' },
+                { label: labels.plan, key: 'subject_ref_hash', code: true },
+                { label: labels.correlation, key: 'correlation_id', code: true },
+                { label: labels.time, key: 'occurred_at' },
+                { label: labels.hash, key: 'entry_hash', code: true },
+              ]}
+            />
           </section>
         </>
       )}
