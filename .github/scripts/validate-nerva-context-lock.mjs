@@ -10,9 +10,17 @@ if (fs.existsSync(m03LockPath)) {
   const gitCandidates =
     process.platform === 'win32'
       ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
-      : ['/usr/bin/git','/bin/git','/usr/local/bin/git','/opt/homebrew/bin/git','/opt/local/bin/git'];
+      : [
+          '/usr/bin/git',
+          '/bin/git',
+          '/usr/local/bin/git',
+          '/opt/homebrew/bin/git',
+          '/opt/local/bin/git',
+        ];
   const gitExecutable = gitCandidates.find((candidate) => fs.existsSync(candidate));
-  if (!gitExecutable) throw new Error('NERVA-WO-004 validation requires Git in a trusted system directory');
+  if (!gitExecutable) {
+    throw new Error('NERVA-WO-004 validation requires Git in a trusted system directory');
+  }
   const git = (args) => execFileSync(gitExecutable, args, { encoding: 'utf8' }).trim();
   const blobAt = (ref, file) => git(['rev-parse', `${ref}:${file}`]);
 
@@ -26,13 +34,18 @@ if (fs.existsSync(m03LockPath)) {
     lock.issueNumber !== 10 ||
     lock.repository !== 'KayzenRoot/nerva-project' ||
     lock.gef !== '@gef-bootstrap/cli@1.1.2'
-  ) throw new Error('NERVA-WO-004 Context Lock identity/base mismatch');
+  ) {
+    throw new Error('NERVA-WO-004 Context Lock identity/base mismatch');
+  }
 
   const fingerprints = Object.entries(lock.criticalInputs ?? {});
-  if (fingerprints.length !== 36) throw new Error('NERVA-WO-004 fingerprint count mismatch');
+  if (fingerprints.length !== 36) {
+    throw new Error('NERVA-WO-004 fingerprint count mismatch');
+  }
   for (const [file, expectedBlob] of fingerprints) {
-    if (blobAt(base, file) !== expectedBlob)
+    if (blobAt(base, file) !== expectedBlob) {
       throw new Error(`NERVA-WO-004 base fingerprint mismatch for ${file}`);
+    }
   }
 
   const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
@@ -45,12 +58,14 @@ if (fs.existsSync(m03LockPath)) {
     checkpoint.runtimeProductCode !== 'M03_POLICY_SIMULATION_CLOSED_EFFECT_BOUNDARY' ||
     checkpoint.knownCritical !== 0 ||
     checkpoint.knownHigh !== 0
-  ) throw new Error('Checkpoint is not the audited M03 promotion state');
+  ) {
+    throw new Error('Checkpoint is not the audited M03 promotion state');
+  }
 
   const event = process.env.GITHUB_EVENT_NAME ?? 'local';
-  const head = git(['rev-parse','HEAD']);
-  const main = git(['rev-parse','origin/main']);
-  const branch = process.env.GITHUB_HEAD_REF || git(['branch','--show-current']);
+  const head = git(['rev-parse', 'HEAD']);
+  const main = git(['rev-parse', 'origin/main']);
+  const branch = process.env.GITHUB_HEAD_REF || git(['branch', '--show-current']);
   const allowedPromotionPaths = new Set([
     '.engineering/BACKLOG.md',
     '.engineering/CHECKPOINT.json',
@@ -62,12 +77,18 @@ if (fs.existsSync(m03LockPath)) {
     '.github/scripts/validate-source-pack.mjs',
     'README.md',
   ]);
+
   const assertPromotionOnly = (from, to) => {
-    const changed = git(['diff','--name-only',`${from}..${to}`])
-      .split(/\r?\n/).map((entry)=>entry.trim()).filter(Boolean);
-    const forbidden = changed.filter((file)=>!allowedPromotionPaths.has(file));
-    if (forbidden.length > 0)
-      throw new Error(`Post-audit M03 promotion contains non-promotion paths: ${forbidden.join(', ')}`);
+    const changed = git(['diff', '--name-only', `${from}..${to}`])
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const forbidden = changed.filter((file) => !allowedPromotionPaths.has(file));
+    if (forbidden.length > 0) {
+      throw new Error(
+        `Post-audit M03 promotion contains non-promotion paths: ${forbidden.join(', ')}`,
+      );
+    }
     return changed;
   };
 
@@ -78,44 +99,60 @@ if (fs.existsSync(m03LockPath)) {
     main === head;
 
   if (mainPush) {
-    if (git(['rev-parse', 'HEAD^']) !== base)
+    if (git(['rev-parse', 'HEAD^']) !== base) {
       throw new Error('M03 squash merge parent does not match the accepted M02 baseline');
+    }
     const changed = assertPromotionOnly(auditedHead, 'HEAD');
-    if (changed.length === 0) throw new Error('M03 post-merge tree lacks promotion delta');
-    console.log(JSON.stringify({
-      ok:true,
-      executionBase:base,
-      auditedHead,
-      mergedHead:head,
-      criticalFingerprints:fingerprints.length,
-      promotionFiles:changed.length,
-      state:'M03_POST_MERGE_CONTEXT_LOCK_HISTORICAL',
-    }));
+    if (changed.length === 0) {
+      throw new Error('M03 post-merge tree lacks promotion delta');
+    }
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        mergedHead: head,
+        criticalFingerprints: fingerprints.length,
+        promotionFiles: changed.length,
+        state: 'M03_POST_MERGE_CONTEXT_LOCK_HISTORICAL',
+      }),
+    );
     process.exit(0);
   }
 
-  if (branch !== expectedBranch) throw new Error(`NERVA-WO-004 branch mismatch: ${branch}`);
-  if (main !== base) throw new Error(`NERVA-WO-004 Context Lock stale: origin/main is ${main}`);
-  git(['merge-base','--is-ancestor',auditedHead,'HEAD']);
-  const changed = assertPromotionOnly(auditedHead,'HEAD');
-  if (changed.length === 0) throw new Error('No M03 promotion delta is present');
+  if (branch !== expectedBranch) {
+    throw new Error(`NERVA-WO-004 branch mismatch: ${branch}`);
+  }
+  if (main !== base) {
+    throw new Error(`NERVA-WO-004 Context Lock stale: origin/main is ${main}`);
+  }
+  git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
+  const changed = assertPromotionOnly(auditedHead, 'HEAD');
+  if (changed.length === 0) {
+    throw new Error('No M03 promotion delta is present');
+  }
 
-  const workOrder = fs.readFileSync('.engineering/work-orders/NERVA-WO-004.md','utf8');
-  if (!workOrder.includes('NERVA_M03_POLICY_SIM_EXEC_READY_FOR_AUDIT'))
+  const workOrder = fs.readFileSync('.engineering/work-orders/NERVA-WO-004.md', 'utf8');
+  if (!workOrder.includes('NERVA_M03_POLICY_SIM_EXEC_READY_FOR_AUDIT')) {
     throw new Error('M03 stop condition missing');
-  const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-004-EVIDENCE.md','utf8');
-  if (!evidence.includes('22fe67a49dd90b0ab5567a8b93cbcd940ba4b0b9')) throw new Error('M03 audit receipt is missing exact audited head');
+  }
+  const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-004-EVIDENCE.md', 'utf8');
+  if (!evidence.includes('22fe67a49dd90b0ab5567a8b93cbcd940ba4b0b9')) {
+    throw new Error('M03 audit receipt is missing exact audited head');
+  }
 
-  console.log(JSON.stringify({
-    ok:true,
-    executionBase:base,
-    auditedHead,
-    head,
-    branch,
-    criticalFingerprints:fingerprints.length,
-    promotionFiles:changed.length,
-    state:'M03_PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
-  }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      executionBase: base,
+      auditedHead,
+      head,
+      branch,
+      criticalFingerprints: fingerprints.length,
+      promotionFiles: changed.length,
+      state: 'M03_PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
+    }),
+  );
   process.exit(0);
 }
 
