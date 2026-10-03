@@ -108,6 +108,31 @@ export async function withM03Database(
   }
 }
 
+export async function withM04DatabaseRequest<TSchema extends z.ZodTypeAny>(
+  request: Request,
+  schema: TSchema,
+  messages: Readonly<{
+    invalid: Readonly<{ code: string; message: string }>;
+    unavailable: Readonly<{ code: string; message: string }>;
+    failure: Readonly<{ code: string; message: string }>;
+    conflict: Readonly<{ code: string; message: string }>;
+  }>,
+  operation: (pool: M03Pool, data: z.infer<TSchema>, correlation: string) => Promise<Response>,
+): Promise<Response> {
+  const parsed = await parseM03Request(request, schema, messages.invalid);
+  if (!parsed.ok) return parsed.response;
+  return withM03Database(
+    {
+      correlationId: parsed.correlationId,
+      unavailable: messages.unavailable,
+      failure: messages.failure,
+      onError: () =>
+        apiError(409, messages.conflict.code, messages.conflict.message, parsed.correlationId),
+    },
+    (pool) => operation(pool, parsed.data, parsed.correlationId),
+  );
+}
+
 export function latestM03SimulationsAreCurrentPass(
   rows: readonly Readonly<{
     kind: string;

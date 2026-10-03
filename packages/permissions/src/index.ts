@@ -1266,6 +1266,39 @@ export interface Eip7702Delegation {
   readonly reason?: string;
 }
 
+export function isCurrentM04DelegationObservation(input: {
+  readonly expected: Readonly<{
+    status: 'ABSENT' | 'ACTIVE';
+    delegateAddress?: string;
+    delegateCodeHash?: string;
+  }>;
+  readonly observation?: Eip7702Delegation;
+  readonly observedAt?: string;
+  readonly now: string;
+}): boolean {
+  const now = Date.parse(input.now);
+  const observedAt = input.observedAt ? Date.parse(input.observedAt) : Number.NaN;
+  const observation = input.observation;
+  if (
+    !Number.isFinite(now) ||
+    !validTimestamp(input.now) ||
+    !observation ||
+    !validTimestamp(input.observedAt) ||
+    observation.status !== input.expected.status ||
+    !Number.isFinite(observedAt) ||
+    observedAt > now ||
+    now - observedAt > 30_000
+  )
+    return false;
+  if (input.expected.status === 'ABSENT') return true;
+  return (
+    typeof input.expected.delegateAddress === 'string' &&
+    typeof input.expected.delegateCodeHash === 'string' &&
+    observation.delegateAddress?.toLowerCase() === input.expected.delegateAddress.toLowerCase() &&
+    observation.delegateCodeHash === input.expected.delegateCodeHash
+  );
+}
+
 export function classifyEip7702Code(code: string, previous?: Eip7702Delegation): Eip7702Delegation {
   if (typeof code !== 'string' || !/^0x(?:[0-9a-fA-F]{2})*$/.test(code))
     return Object.freeze({ status: 'UNKNOWN', reason: 'RPC_CODE_MALFORMED' });

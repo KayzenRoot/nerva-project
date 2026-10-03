@@ -1,27 +1,20 @@
 import { loadM04SessionForRevocation, revokeM04Session } from '@nerva/db';
 import { M04SessionRevocationRequestSchema } from '@nerva/contracts';
 import { buildSessionRevocationTypedData, verifySessionRevocation } from '@nerva/permissions';
-import {
-  apiError,
-  apiJson,
-  parseM03Request,
-  withM03Database,
-} from '../../../../../server/m03-api.ts';
+import { apiError, apiJson, withM04DatabaseRequest } from '../../../../../server/m03-api.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const parsed = await parseM03Request(request, M04SessionRevocationRequestSchema, {
-    code: 'M04_SESSION_REVOCATION_INVALID',
-    message: 'A fresh wallet-owner proof for the exact session is required.',
-  });
-  if (!parsed.ok) return parsed.response;
-  const input = parsed.data;
-  const now = new Date().toISOString();
-  return withM03Database(
+  return withM04DatabaseRequest(
+    request,
+    M04SessionRevocationRequestSchema,
     {
-      correlationId: parsed.correlationId,
+      invalid: {
+        code: 'M04_SESSION_REVOCATION_INVALID',
+        message: 'A fresh wallet-owner proof for the exact session is required.',
+      },
       unavailable: {
         code: 'DATABASE_UNAVAILABLE',
         message: 'Session authority cannot be revoked safely.',
@@ -30,22 +23,20 @@ export async function POST(request: Request) {
         code: 'M04_SESSION_REVOCATION_FAILED',
         message: 'The session revocation could not be verified or persisted.',
       },
-      onError: () =>
-        apiError(
-          409,
-          'M04_SESSION_REVOCATION_CONFLICT',
-          'The session or parent grant changed, or this nonce was already consumed.',
-          parsed.correlationId,
-        ),
+      conflict: {
+        code: 'M04_SESSION_REVOCATION_CONFLICT',
+        message: 'The session or parent grant changed, or this nonce was already consumed.',
+      },
     },
-    async (pool) => {
+    async (pool, input, correlationId) => {
+      const now = new Date().toISOString();
       const current = await loadM04SessionForRevocation(pool, input.sessionId);
       if (!current)
         return apiError(
           404,
           'SESSION_NOT_FOUND',
           'No current session with verifiable parent authority was found.',
-          parsed.correlationId,
+          correlationId,
         );
       if (current.revoked || current.grantRevoked)
         return apiJson({
@@ -55,7 +46,7 @@ export async function POST(request: Request) {
           revocationGeneration: current.generation,
           reason: current.revoked ? 'SESSION_ALREADY_REVOKED' : 'PARENT_GRANT_REVOKED',
           executionEnabled: false,
-          correlationId: parsed.correlationId,
+          correlationId: correlationId,
         });
       let typedData;
       try {
@@ -73,7 +64,7 @@ export async function POST(request: Request) {
           422,
           'M04_SESSION_REVOCATION_INVALID',
           'The session revocation message is outside the bounded domain.',
-          parsed.correlationId,
+          correlationId,
         );
       }
       if (!input.signature)
@@ -84,7 +75,7 @@ export async function POST(request: Request) {
           sessionHash: current.sessionHash,
           typedData,
           executionEnabled: false,
-          correlationId: parsed.correlationId,
+          correlationId: correlationId,
         });
       const verified = await verifySessionRevocation({
         sessionId: current.sessionId,
@@ -100,7 +91,7 @@ export async function POST(request: Request) {
           403,
           'M04_SESSION_REVOCATION_SIGNATURE_INVALID',
           'The wallet owner did not authorize this exact session revocation.',
-          parsed.correlationId,
+          correlationId,
         );
       const generation = await revokeM04Session(pool, {
         sessionId: current.sessionId,
@@ -117,7 +108,7 @@ export async function POST(request: Request) {
           409,
           'M04_SESSION_AUTHORITY_CHANGED',
           'The session, wallet binding or parent grant changed before revocation committed.',
-          parsed.correlationId,
+          correlationId,
         );
       return apiJson({
         schemaVersion: '0.1',
@@ -126,7 +117,7 @@ export async function POST(request: Request) {
         revocationGeneration: generation,
         proofRefHash: verified.proofRefHash,
         executionEnabled: false,
-        correlationId: parsed.correlationId,
+        correlationId: correlationId,
       });
     },
   );

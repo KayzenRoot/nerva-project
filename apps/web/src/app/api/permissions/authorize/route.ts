@@ -4,29 +4,30 @@ import {
   persistM04Authorization,
 } from '@nerva/db';
 import { M04AuthorizationRequestSchema } from '@nerva/contracts';
-import { buildAuthorizationTypedData, verifyAuthorization } from '@nerva/permissions';
+import {
+  buildAuthorizationTypedData,
+  isCurrentM04DelegationObservation,
+  verifyAuthorization,
+} from '@nerva/permissions';
 import {
   apiError,
   apiJson,
   latestM03SimulationsAreCurrentPass,
-  parseM03Request,
-  withM03Database,
+  withM04DatabaseRequest,
 } from '../../../../server/m03-api.ts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const parsed = await parseM03Request(request, M04AuthorizationRequestSchema, {
-    code: 'M04_AUTHORIZATION_INVALID',
-    message: 'An exact M03-plan-bound wallet authorization is required.',
-  });
-  if (!parsed.ok) return parsed.response;
-  const input = parsed.data;
-  const now = new Date().toISOString();
-  return withM03Database(
+  return withM04DatabaseRequest(
+    request,
+    M04AuthorizationRequestSchema,
     {
-      correlationId: parsed.correlationId,
+      invalid: {
+        code: 'M04_AUTHORIZATION_INVALID',
+        message: 'An exact M03-plan-bound wallet authorization is required.',
+      },
       unavailable: {
         code: 'DATABASE_UNAVAILABLE',
         message: 'M04 authorization cannot be verified.',
@@ -35,15 +36,13 @@ export async function POST(request: Request) {
         code: 'M04_AUTHORIZATION_FAILED',
         message: 'The exact plan-bound authorization was refused.',
       },
-      onError: () =>
-        apiError(
-          409,
-          'M04_AUTHORIZATION_CONFLICT',
-          'The authorization nonce was consumed or the grant changed.',
-          parsed.correlationId,
-        ),
+      conflict: {
+        code: 'M04_AUTHORIZATION_CONFLICT',
+        message: 'The authorization nonce was consumed or the grant changed.',
+      },
     },
-    async (pool) => {
+    async (pool, input, correlationId) => {
+      const now = new Date().toISOString();
       const loaded = await loadM04CompiledGrant(pool, input.grantId);
       if (
         !loaded ||
@@ -55,25 +54,22 @@ export async function POST(request: Request) {
           403,
           'ACTIVE_GRANT_REQUIRED',
           'A current non-revoked capability grant is required.',
-          parsed.correlationId,
+          correlationId,
         );
       const delegation = await latestM04DelegationObservation(pool, loaded.grant.walletAddress);
       if (
-        !delegation ||
-        !['ABSENT', 'ACTIVE'].includes(delegation.observation.status) ||
-        Date.parse(now) - Date.parse(delegation.observedAt) < 0 ||
-        Date.parse(now) - Date.parse(delegation.observedAt) > 30_000 ||
-        delegation.observation.status !== loaded.grant.delegation.status ||
-        (delegation.observation.status === 'ACTIVE' &&
-          (delegation.observation.delegateAddress?.toLowerCase() !==
-            loaded.grant.delegation.delegateAddress?.toLowerCase() ||
-            delegation.observation.delegateCodeHash !== loaded.grant.delegation.delegateCodeHash))
+        !isCurrentM04DelegationObservation({
+          expected: loaded.grant.delegation,
+          observation: delegation?.observation,
+          observedAt: delegation?.observedAt,
+          now,
+        })
       )
         return apiError(
           409,
           'DELEGATION_AUTHORITY_INVALID',
           'EIP-7702 delegation is stale, unknown, changed or revoked.',
-          parsed.correlationId,
+          correlationId,
         );
       const planResult = await pool.query<{
         digest: string;
@@ -120,7 +116,7 @@ export async function POST(request: Request) {
           403,
           'PLAN_OUTSIDE_GRANT',
           'The persisted testnet plan exceeds this grant or is not effect eligible.',
-          parsed.correlationId,
+          correlationId,
         );
       const quantity = await pool.query<{ size_scaled: string }>(
         'SELECT size_scaled FROM position_snapshots WHERE snapshot_id=$1 LIMIT 1',
@@ -136,7 +132,7 @@ export async function POST(request: Request) {
           403,
           'PLAN_FRACTION_EXCEEDS_GRANT',
           'The plan quantity exceeds the grant fraction ceiling.',
-          parsed.correlationId,
+          correlationId,
         );
       const checks = await pool.query<{
         kind: string;
@@ -163,7 +159,7 @@ export async function POST(request: Request) {
           409,
           'SIMULATION_OR_PREFLIGHT_NOT_PASS',
           'A current PASS simulation and testnet preflight are required; UNKNOWN blocks authorization.',
-          parsed.correlationId,
+          correlationId,
         );
       const killSwitch = await pool.query<{ enabled: boolean }>(
         `SELECT enabled FROM runtime_controls WHERE control_key='GLOBAL_EXECUTION_DISABLED' LIMIT 1`,
@@ -173,7 +169,7 @@ export async function POST(request: Request) {
           409,
           'M03_KILL_SWITCH_ACTIVE',
           'The M03 kill switch prevents authorization.',
-          parsed.correlationId,
+          correlationId,
         );
       let typedData;
       try {
@@ -190,7 +186,7 @@ export async function POST(request: Request) {
           422,
           'M04_AUTHORIZATION_INVALID',
           'The exact authorization payload does not fit the active grant.',
-          parsed.correlationId,
+          correlationId,
         );
       }
       if (!input.signature)
@@ -201,7 +197,7 @@ export async function POST(request: Request) {
           action: input.action,
           typedData,
           executionEnabled: false,
-          correlationId: parsed.correlationId,
+          correlationId: correlationId,
         });
       const verified = await verifyAuthorization({
         grant: loaded.grant,
@@ -221,14 +217,14 @@ export async function POST(request: Request) {
           403,
           'M04_WALLET_SIGNATURE_INVALID',
           'The user-controlled wallet signature failed verification.',
-          parsed.correlationId,
+          correlationId,
         );
       const persisted = await persistM04Authorization(pool, {
         grantId: input.grantId,
         generation: loaded.generation,
         verified,
         domainHash: verified.typedDataDigest,
-        correlationId: parsed.correlationId,
+        correlationId: correlationId,
         verifiedAt: now,
       });
       if (!persisted)
@@ -236,7 +232,7 @@ export async function POST(request: Request) {
           409,
           'M04_AUTHORITY_CHANGED',
           'Revocation or delegate state changed before authorization was consumed.',
-          parsed.correlationId,
+          correlationId,
         );
       return apiJson(
         {
@@ -250,7 +246,7 @@ export async function POST(request: Request) {
           executionEnabled: false,
           livePerplEffect: 'BLOCKED',
           mainnetEffect: 'HARD_BLOCKED',
-          correlationId: parsed.correlationId,
+          correlationId: correlationId,
         },
         201,
       );

@@ -12,103 +12,86 @@ declare global {
 }
 
 const copy = {
-  en: {
-    title: 'Wallet permissions',
-    intro:
-      'Read-only view of verified identity and bounded authority. Sign a short-lived read request with the currently bound wallet.',
-    account: 'Account ID',
-    lookup: 'Connect and view status',
-    none: 'No permission records were found for this account.',
-    connect: 'A browser wallet with EIP-712 support is required.',
-    wrongChain: 'Switch the wallet to Monad Testnet (10143).',
-    wallets: 'Wallet identity',
-    agents: 'Verified agents',
-    grants: 'Capability grants',
-    sessions: 'Sessions',
-    delegation: 'EIP-7702 delegation observations',
-    evidence: 'Permission evidence',
-    integrity: 'Chain integrity',
-    enabled: 'Execution enabled',
-    no: 'No',
-    hard: 'Mainnet effects: HARD_BLOCKED',
-    live: 'Live Perpl effects: BLOCKED',
-    bound: 'Binding',
-    status: 'Status',
-    expires: 'Expires',
-    actions: 'Allowed actions',
-    revoked: 'Revoked',
-    verified: 'VERIFIED',
-    failed: 'FAILED',
-    back: 'Back to NERVA',
-    unavailable: 'Read-only status is unavailable.',
-    signing: 'Waiting for wallet approval…',
-    readError: 'The wallet-authorized status read failed.',
-  },
-  'pt-BR': {
-    title: 'Permissões da carteira',
-    intro:
-      'Visão somente leitura de identidade verificada e autoridade limitada. Assine uma consulta curta com a carteira atualmente vinculada.',
-    account: 'ID da conta',
-    lookup: 'Conectar e ver estado',
-    none: 'Nenhum registro de permissão para esta conta.',
-    connect: 'É necessária uma carteira do navegador compatível com EIP-712.',
-    wrongChain: 'Altere a carteira para Monad Testnet (10143).',
-    wallets: 'Identidade da carteira',
-    agents: 'Agentes verificados',
-    grants: 'Concessões de capacidade',
-    sessions: 'Sessões',
-    delegation: 'Observações de delegação EIP-7702',
-    evidence: 'Evidências de permissão',
-    integrity: 'Integridade da cadeia',
-    enabled: 'Execução habilitada',
-    no: 'Não',
-    hard: 'Efeitos em mainnet: HARD_BLOCKED',
-    live: 'Efeitos Perpl ao vivo: BLOCKED',
-    bound: 'Vínculo',
-    status: 'Estado',
-    expires: 'Expira',
-    actions: 'Ações permitidas',
-    revoked: 'Revogada',
-    verified: 'VERIFICADA',
-    failed: 'FALHOU',
-    back: 'Voltar ao NERVA',
-    unavailable: 'Estado somente leitura indisponível.',
-    signing: 'Aguardando aprovação da carteira…',
-    readError: 'A leitura autorizada pela carteira falhou.',
-  },
-  es: {
-    title: 'Permisos de cartera',
-    intro:
-      'Vista de solo lectura de identidad verificada y autoridad limitada. Firma una consulta breve con la cartera vinculada.',
-    account: 'ID de cuenta',
-    lookup: 'Conectar y ver estado',
-    none: 'No hay registros de permisos para esta cuenta.',
-    connect: 'Se requiere una cartera de navegador compatible con EIP-712.',
-    wrongChain: 'Cambia la cartera a Monad Testnet (10143).',
-    wallets: 'Identidad de cartera',
-    agents: 'Agentes verificados',
-    grants: 'Concesiones de capacidad',
-    sessions: 'Sesiones',
-    delegation: 'Observaciones de delegación EIP-7702',
-    evidence: 'Evidencia de permisos',
-    integrity: 'Integridad de la cadena',
-    enabled: 'Ejecución habilitada',
-    no: 'No',
-    hard: 'Efectos en mainnet: HARD_BLOCKED',
-    live: 'Efectos Perpl en vivo: BLOCKED',
-    bound: 'Vínculo',
-    status: 'Estado',
-    expires: 'Caduca',
-    actions: 'Acciones permitidas',
-    revoked: 'Revocada',
-    verified: 'VERIFICADA',
-    failed: 'FALLÓ',
-    back: 'Volver a NERVA',
-    unavailable: 'Estado de solo lectura no disponible.',
-    signing: 'Esperando aprobación de la cartera…',
-    readError: 'Falló la lectura autorizada por la cartera.',
-  },
+  title: ['Wallet permissions', 'Permissões da carteira', 'Permisos de cartera'],
+  intro: [
+    'Read-only view of verified identity and bounded authority. Sign a short-lived read request with the currently bound wallet.',
+    'Visão somente leitura de identidade verificada e autoridade limitada. Assine uma consulta curta com a carteira atualmente vinculada.',
+    'Vista de solo lectura de identidad verificada y autoridad limitada. Firma una consulta breve con la cartera vinculada.',
+  ],
+  account: ['Account ID', 'ID da conta', 'ID de cuenta'],
+  lookup: ['Connect and view status', 'Conectar e ver estado', 'Conectar y ver estado'],
+  none: [
+    'No permission records were found for this account.',
+    'Nenhum registro de permissão para esta conta.',
+    'No hay registros de permisos para esta cuenta.',
+  ],
+  connect: [
+    'A browser wallet with EIP-712 support is required.',
+    'É necessária uma carteira do navegador compatível com EIP-712.',
+    'Se requiere una cartera de navegador compatible con EIP-712.',
+  ],
+  wrongChain: [
+    'Switch the wallet to Monad Testnet (10143).',
+    'Altere a carteira para Monad Testnet (10143).',
+    'Cambia la cartera a Monad Testnet (10143).',
+  ],
+  wallets: ['Wallet identity', 'Identidade da carteira', 'Identidad de cartera'],
+  agents: ['Verified agents', 'Agentes verificados', 'Agentes verificados'],
+  grants: ['Capability grants', 'Concessões de capacidade', 'Concesiones de capacidad'],
+  sessions: ['Sessions', 'Sessões', 'Sesiones'],
+  delegation: [
+    'EIP-7702 delegation observations',
+    'Observações de delegação EIP-7702',
+    'Observaciones de delegación EIP-7702',
+  ],
+  evidence: ['Permission evidence', 'Evidências de permissão', 'Evidencia de permisos'],
+  integrity: ['Chain integrity', 'Integridade da cadeia', 'Integridad de la cadena'],
+  enabled: ['Execution enabled', 'Execução habilitada', 'Ejecución habilitada'],
+  no: ['No', 'Não', 'No'],
+  hard: [
+    'Mainnet effects: HARD_BLOCKED',
+    'Efeitos em mainnet: HARD_BLOCKED',
+    'Efectos en mainnet: HARD_BLOCKED',
+  ],
+  live: [
+    'Live Perpl effects: BLOCKED',
+    'Efeitos Perpl ao vivo: BLOCKED',
+    'Efectos Perpl en vivo: BLOCKED',
+  ],
+  bound: ['Binding', 'Vínculo', 'Vínculo'],
+  status: ['Status', 'Estado', 'Estado'],
+  expires: ['Expires', 'Expira', 'Caduca'],
+  actions: ['Allowed actions', 'Ações permitidas', 'Acciones permitidas'],
+  revoked: ['Revoked', 'Revogada', 'Revocada'],
+  verified: ['VERIFIED', 'VERIFICADA', 'VERIFICADA'],
+  failed: ['FAILED', 'FALHOU', 'FALLÓ'],
+  back: ['Back to NERVA', 'Voltar ao NERVA', 'Volver al NERVA'],
+  unavailable: [
+    'Read-only status is unavailable.',
+    'Estado somente leitura indisponível.',
+    'Estado de solo lectura no disponible.',
+  ],
+  signing: [
+    'Waiting for wallet approval…',
+    'Aguardando aprovação da carteira…',
+    'Esperando aprobación de la cartera…',
+  ],
+  readError: [
+    'The wallet-authorized status read failed.',
+    'A leitura autorizada pela carteira falhou.',
+    'Falló la lectura autorizada por la cartera.',
+  ],
 } as const;
+
+type CopyKey = keyof typeof copy;
+type LocalizedCopy = { [Key in CopyKey]: (typeof copy)[Key][number] };
+
+function localizedCopy(locale: Locale): LocalizedCopy {
+  const localeIndex = locale === 'pt-BR' ? 1 : locale === 'es' ? 2 : 0;
+  return Object.fromEntries(
+    (Object.keys(copy) as CopyKey[]).map((key) => [key, copy[key][localeIndex]]),
+  ) as LocalizedCopy;
+}
 
 function rows(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value)
@@ -126,7 +109,7 @@ export default function PermissionsReadView({
   locale: Locale;
   initialAccountId: string;
 }) {
-  const text = copy[locale];
+  const text = localizedCopy(locale);
   const [accountId, setAccountId] = useState(initialAccountId);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');

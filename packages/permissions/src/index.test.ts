@@ -1,5 +1,5 @@
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { keccak256, toHex } from 'viem';
+import { getAddress, keccak256, toHex } from 'viem';
 import { describe, expect, it } from 'vitest';
 import {
   appendPermissionEvidence,
@@ -8,6 +8,7 @@ import {
   buildGrantRevocationTypedData,
   buildSessionRevocationTypedData,
   classifyEip7702Code,
+  isCurrentM04DelegationObservation,
   compileCapabilityGrant,
   deriveSessionAuthority,
   buildWalletBindingTypedData,
@@ -368,6 +369,47 @@ describe('M04 bounded permission authority', () => {
     expect(classifyEip7702Code('not-hex').status).toBe('UNKNOWN');
     expect(classifyEip7702Code(`0xef0100${'2'.repeat(40)}`, first).status).toBe('CHANGED');
     expect(classifyEip7702Code('0x', first).status).toBe('REVOKED');
+  });
+
+  it('requires fresh matching finalized delegation authority for grants and sessions', () => {
+    const active = {
+      status: 'ACTIVE' as const,
+      delegateAddress: getAddress(`0x${'2'.repeat(40)}`),
+      delegateCodeHash: hash('f'),
+      observedAt: now,
+    };
+    expect(
+      isCurrentM04DelegationObservation({
+        expected: active,
+        observation: active,
+        observedAt: now,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      isCurrentM04DelegationObservation({
+        expected: active,
+        observation: { ...active, delegateAddress: getAddress(`0x${'3'.repeat(40)}`) },
+        observedAt: now,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isCurrentM04DelegationObservation({
+        expected: { status: 'ABSENT' },
+        observation: { status: 'UNKNOWN' },
+        observedAt: now,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      isCurrentM04DelegationObservation({
+        expected: active,
+        observation: active,
+        observedAt: '2026-10-03T14:59:29.999Z',
+        now,
+      }),
+    ).toBe(false);
   });
 
   it('observes delegate address and runtime code at one finalized hash; uncertainty blocks', async () => {

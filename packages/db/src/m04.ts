@@ -26,7 +26,7 @@ async function lockM04WalletIdentity(
   const locks = [
     `m04-wallet-account:${accountId}`,
     `m04-wallet-address:${10_143}:${walletAddress.toLowerCase()}`,
-  ].sort();
+  ].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
   for (const key of locks) await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [key]);
 }
 
