@@ -1,4 +1,3 @@
-import prettier from 'prettier';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
@@ -7,9 +6,7 @@ const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
 
 const gitExecutable =
-  process.platform === 'win32'
-    ? 'C:\\Program Files\\Git\\cmd\\git.exe'
-    : '/usr/bin/git';
+  process.platform === 'win32' ? 'C:\\Program Files\\Git\\cmd\\git.exe' : '/usr/bin/git';
 
 if (!fs.existsSync(gitExecutable)) {
   throw new Error('M05 admission validation requires Git at the trusted system path');
@@ -132,16 +129,6 @@ if (!evidence.includes('EXECUTION_NOT_STARTED')) {
   throw new Error('M05 evidence must remain scaffold-only at admission');
 }
 
-const selfSource = fs.readFileSync(new URL(import.meta.url), 'utf8');
-const selfFormatted = await prettier.format(selfSource, {
-  filepath: new URL(import.meta.url).pathname,
-  singleQuote: true,
-  trailingComma: 'all',
-  printWidth: 100,
-});
-console.log('M05_PRETTIER_PROBE_BEGIN');
-console.log(Buffer.from(selfFormatted, 'utf8').toString('base64'));
-console.log('M05_PRETTIER_PROBE_END');
 
 console.log(
   JSON.stringify({
