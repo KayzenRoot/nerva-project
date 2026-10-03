@@ -82,3 +82,22 @@ The review should verify the changed-file inventory and exact base/HEAD from PR 
 ## STOP CONDITION
 
 `NERVA_M03_POLICY_SIM_EXEC_READY_FOR_AUDIT`
+
+## Auditor receipt — exact implementation head
+
+- Verdict: `APPROVED`.
+- Audited head: `22fe67a49dd90b0ab5567a8b93cbcd940ba4b0b9`.
+- Hosted M01-M03 run: `37103448209` / `SUCCESS`.
+- GEF 1.1.2 run: `37103448222` / `SUCCESS`.
+- Source Pack run: `37103448212` / `SUCCESS`.
+- SonarCloud: `SUCCESS`.
+- Socket Security PR Alerts / Project Report: `SUCCESS`.
+- Tests: 98/98 across 22 files.
+- Hosted risk p95: 0.278 ms.
+- Hosted M03 evaluation p95: 0.125 ms.
+- Hosted decision-to-ready-plan p95: 0.359 ms.
+- Introduced HIGH/CRITICAL findings: 0.
+- Live Perpl effect: not run and not claimed.
+- M04: not started.
+
+Carry-forward: live provider effects stay closed until protective-only capability/scope and enrollment provenance are proven. Before any future live effect adapter is enabled, add explicit DB-level kill-switch concurrency proof and document in-flight semantics.
