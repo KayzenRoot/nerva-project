@@ -72,7 +72,18 @@ if (!/Object\.freeze\(\{\s*mt:\s*5,/.test(perplText) || !/mt:\s*29,/.test(perplT
   throw new Error(
     'Perpl WebSocket may send public subscription and read-only API sign-in frames only',
   );
-const orderRoutes = [];
+const mutatingRoutes = [];
+const allowedM03Routes = new Set([
+  'policies/proposals/route.ts',
+  'policies/compile/route.ts',
+  'policies/confirm/route.ts',
+  'policies/control/route.ts',
+  'evaluations/route.ts',
+  'plans/route.ts',
+  'simulations/route.ts',
+  'executions/route.ts',
+  'executions/[attemptId]/recovery/route.ts',
+]);
 const apiRoot = path.join(root, 'apps/web/src/app/api');
 if (fs.existsSync(apiRoot)) {
   for (const file of files) {
@@ -80,12 +91,23 @@ if (fs.existsSync(apiRoot)) {
     if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
       continue;
     const source = fs.readFileSync(file, 'utf8');
-    if (/export\s+(?:async\s+)?function\s+(?:POST|PUT|PATCH|DELETE)\b/.test(source))
-      orderRoutes.push(path.relative(root, file));
+    if (/export\s+(?:async\s+)?function\s+(?:POST|PUT|PATCH|DELETE)\b/.test(source)) {
+      const apiRelative = relative.replaceAll('\\', '/');
+      if (!allowedM03Routes.has(apiRelative)) mutatingRoutes.push(path.relative(root, file));
+    }
   }
 }
-if (orderRoutes.length > 0)
-  throw new Error(`M02 API surface contains mutating route handlers: ${orderRoutes.join(', ')}`);
+if (mutatingRoutes.length > 0)
+  throw new Error(`API contains an unadmitted mutating route: ${mutatingRoutes.join(', ')}`);
+const M03RouteFiles = [...allowedM03Routes].map((route) => path.join(apiRoot, route));
+for (const route of M03RouteFiles) {
+  if (!fs.existsSync(route)) continue;
+  const source = fs.readFileSync(route, 'utf8');
+  if (!/M03|m03|@nerva\/(?:policy|execution)/.test(source))
+    throw new Error(
+      `M03 mutation route is missing its M03 trust boundary: ${path.relative(root, route)}`,
+    );
+}
 console.log(
   JSON.stringify({
     ok: true,
@@ -95,6 +117,6 @@ console.log(
     executionPaths: 0,
     perplRestMethods: ['GET'],
     perplWebSocketOutboundMessageTypes: [5, 29],
-    mutatingApiRoutes: orderRoutes.length,
+    mutatingApiRoutes: M03RouteFiles.filter((route) => fs.existsSync(route)).length,
   }),
 );

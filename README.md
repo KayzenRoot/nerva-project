@@ -1,8 +1,8 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. **M02 Monad/Perpl Data & Risk Intelligence is approved for promotion/merge. M03 remains NOT_ADMITTED until the M02 merge and post-merge validation complete.**
+NERVA is a Monad-native, non-custodial risk and policy platform. M03 is approved for promotion/merge and provides strict policy compilation, provenance-bound confirmation, deterministic triggers/planning, synthetic dry-run simulation, append-oriented evidence, refusal/recovery APIs and read-only operator surfaces. M04 remains NOT_ADMITTED.
 
-M02 provides read-only Perpl observation, normalized market/account/position records, deterministic risk snapshots, GET-only APIs, and a read-only dashboard. Financial execution remains disabled. The Perpl adapter may sign documented API read requests, but contains no wallet transaction signing, order submission or financial execution path. Liquidation distance and maintenance margin remain explicitly unproven/non-actionable. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) for configuration, API states, risk units and limitations.
+The current Perpl documentation grants only broad `trade` scope to order writes and requires separate on-chain order-forwarding permission; NERVA has no proven protective-only write scope, so the Perpl effect adapter stays hard-blocked. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain unproven/unknown and cannot authorize actions. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) and [M03 Policy, Simulation and Execution Safety](docs/M03-POLICY-SIM-EXEC.md).
 
 ## Governance
 
@@ -20,7 +20,7 @@ Start here:
 8. [Security](.engineering/SECURITY.md)
 9. [Module Roadmap](.engineering/MODULE-ROADMAP.md)
 
-M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 evidence and its promoted Checkpoint Delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`.
+M01 evidence is in `.engineering/evidence/NERVA-WO-002-EVIDENCE.md`. M02 evidence and its promoted Checkpoint Delta are in `.engineering/evidence/NERVA-WO-003-EVIDENCE.md` and `.engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md`. The M03 implementation evidence is maintained in `.engineering/evidence/NERVA-WO-004-EVIDENCE.md` and remains subject to audit.
 
 ## Local development
 
@@ -47,9 +47,10 @@ The `.env.example` contains `replace-me` placeholders for local development; Com
 - Policy transitions validate the strict V0.1 payload, reject expired policy versions, and bind confirmation to an immutable version hash. Eligibility and execution transitions derive authority, version identity, expiry, and digest from factory-issued immutable policy and plan values instead of caller-supplied success flags.
 - Canonical serialization sorts object keys; policy and plan digests use SHA-256. Basis-point values are bounded integers; notionals use decimal strings or `bigint` domain values.
 - `MAINNET_EXECUTION` is rejected at process startup. Execution defaults OFF; the persisted `GLOBAL_EXECUTION_DISABLED` control is seeded enabled.
-- Audit events and policy versions are append-only in PostgreSQL. M01 creates only `policies`, `policy_versions`, `audit_events`, `integration_health_samples`, and `runtime_controls`.
+- Audit events and policy versions are append-only in PostgreSQL. M03 adds immutable policy confirmations, lifecycle/evaluation/simulation/plan/provenance/idempotency/attempt/receipt records with database mutation guards.
 - Logs carry a correlation ID and redact common authorization, token, key, seed, and password fields.
-- Demo-only state cannot satisfy execution eligibility or authorization. There is no wallet/transaction signing, order submission, or financial execution path.
+- M03 admits only `REDUCE_POSITION`, `CLOSE_POSITION` and `NO_ACTION`; actor proofs bind exact policy/plan scopes, and replay nonces persist across restarts. Unproven signals, stale/unknown simulations, missing position binding, missing exact Perpl scope, kill-switch state and ambiguous outcomes fail closed.
+- Mainnet financial effects are hard-blocked. The application has no wallet transaction-signing path. Perpl write submission is intentionally unavailable until official provider documentation proves a protective-only capability.
 
 ## Validation commands
 
@@ -71,9 +72,11 @@ npm run smoke:boot
 npm run sourcepack:validate
 npm run gef:package:verify
 npm run gef:verify
+npm run m03:safety:verify
+npm run db:upgrade-smoke
 ```
 
-Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance, including a disposable M01-to-M02 migration upgrade, deterministic replay fixtures, and a one-position p95 risk benchmark. A bounded Windows lane covers domain, contracts, config, Perpl adapter, risk engine, and strict type checks. External provider availability and API credentials are not required in CI.
+Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance, including a clean M01-to-M03 schema build and a disposable accepted-M02-to-M03 migration upgrade, deterministic replay/adversarial/recovery fixtures, and a one-position p95 risk benchmark. A bounded Windows lane covers domain, contracts, config, policy, execution, Perpl adapter and risk engine. External provider availability and credentials are not required in CI; no live testnet effect is represented by fixtures.
 
 ## Additional contracts
 

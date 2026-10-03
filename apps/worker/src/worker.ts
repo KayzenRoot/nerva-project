@@ -7,11 +7,17 @@ import {
 } from '@nerva/config';
 import {
   appendIntegrationHealth,
+  appendM03DryRun,
+  appendM03ExecutionPlan,
+  appendM03PlanningRefusal,
+  appendM03TriggerEvaluation,
   appendMarketSnapshot,
   appendPortfolioSnapshot,
   appendPositionSnapshot,
   appendRiskSnapshot,
   createDatabase,
+  latestM03EffectAt,
+  listActiveM03PolicyConfirmations,
   readGlobalExecutionDisabled,
   upsertProviderCheckpoint,
 } from '@nerva/db';
@@ -37,6 +43,13 @@ import {
   normalizePerplWallet,
 } from '@nerva/perpl/normalizer';
 import { evaluateRisk } from '@nerva/risk';
+import {
+  compileM03Policy,
+  evaluateM03Triggers,
+  planM03Action,
+  restoreConfirmedM03Policy,
+  simulateM03Plan,
+} from '@nerva/policy';
 import { createLogger } from '@nerva/observability';
 
 export interface WorkerRuntime {
@@ -435,6 +448,104 @@ export async function startWorker(
           maxAccountSourceAgeMs: perplConfig.accountFreshnessMs,
         });
         await appendRiskSnapshot(database.pool, risk);
+        try {
+          const activePolicies = await listActiveM03PolicyConfirmations(database.pool);
+          for (const value of activePolicies) {
+            const row = object(value, 'persisted M03 policy');
+            const compiled = await compileM03Policy(row.payload);
+            if (
+              !compiled.policy ||
+              compiled.policy.versionId !== row.policy_version_id ||
+              compiled.policy.canonicalHash !== row.content_hash ||
+              compiled.policy.canonicalHash !== row.canonical_hash
+            ) {
+              continue;
+            }
+            const confirmedAtValue = row.provenance_confirmed_at;
+            const confirmedAt =
+              confirmedAtValue instanceof Date
+                ? confirmedAtValue.toISOString()
+                : typeof confirmedAtValue === 'string'
+                  ? confirmedAtValue
+                  : '';
+            const confirmed = restoreConfirmedM03Policy({
+              compiled: compiled.policy,
+              now,
+              persisted: {
+                state: String(row.state),
+                canonicalHash: String(row.canonical_hash),
+                actorId: String(row.actor_ref),
+                issuerId: String(row.issuer_ref),
+                proofRefHash: String(row.proof_ref_hash),
+                confirmedAt,
+              },
+            });
+            if (!confirmed) continue;
+            const lastEffectAt = await latestM03EffectAt(database.pool, compiled.policy.versionId);
+            const evaluation = await evaluateM03Triggers({
+              policy: confirmed,
+              risk,
+              now,
+              ...(lastEffectAt ? { lastEffectAt } : {}),
+            });
+            await appendM03TriggerEvaluation(database.pool, {
+              evaluation,
+              evaluationId: evaluation.evaluationId,
+              policyVersionId: compiled.policy.versionId,
+              policyVersionHash: evaluation.policyVersionHash,
+              snapshotId: risk.snapshotId,
+              snapshotHash: evaluation.sourceSnapshotHash,
+              result: evaluation.result,
+              reason: evaluation.reason,
+              correlationId: evaluation.correlationId,
+              evaluatedAt: evaluation.evaluatedAt,
+            });
+            if (evaluation.result !== 'MATCH') continue;
+            if (await refreshKillSwitch()) {
+              await appendM03PlanningRefusal(database.pool, {
+                evaluationId: evaluation.evaluationId,
+                policyId: compiled.policy.policyId,
+                policyVersionHash: compiled.policy.canonicalHash,
+                snapshotHash: risk.snapshotHash!,
+                reason: 'KILL_SWITCH_ENABLED',
+                actorRef: confirmed.actorId,
+                correlationId: evaluation.correlationId,
+                occurredAt: now,
+              });
+              continue;
+            }
+            const planned = await planM03Action({ policy: confirmed, evaluation, risk, now });
+            if (planned.status === 'REFUSED') {
+              await appendM03PlanningRefusal(database.pool, {
+                evaluationId: evaluation.evaluationId,
+                policyId: compiled.policy.policyId,
+                policyVersionHash: compiled.policy.canonicalHash,
+                snapshotHash: risk.snapshotHash!,
+                reason: planned.reason,
+                actorRef: confirmed.actorId,
+                correlationId: evaluation.correlationId,
+                occurredAt: now,
+              });
+              continue;
+            }
+            await appendM03ExecutionPlan(database.pool, planned.plan);
+            const simulation = await simulateM03Plan({
+              plan: planned.plan,
+              policy: confirmed,
+              risk,
+              now,
+            });
+            await appendM03DryRun(database.pool, simulation);
+          }
+        } catch {
+          await persistHealth(
+            database.pool,
+            'm03-policy-runtime',
+            'DEGRADED',
+            'POLICY_EVALUATION_OR_PLAN_PERSISTENCE_FAILURE',
+          );
+          logger.warn({ component: 'm03-policy-runtime' }, 'M03 policy cycle failed closed');
+        }
         await persistHealth(database.pool, 'perpl-public-rest', 'HEALTHY', 'READS_VALIDATED');
         await persistHealth(
           database.pool,

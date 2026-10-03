@@ -39,7 +39,8 @@ export function asMicros(value: bigint): Micros {
   return value as Micros;
 }
 
-export type SafetyEnvironment = 'LOCAL' | 'TESTNET_DEMO' | 'MAINNET_READONLY' | 'MAINNET_EXECUTION';
+export type SafetyEnvironment =
+  'LOCAL' | 'TESTNET_DEMO' | 'TESTNET' | 'MAINNET_READONLY' | 'MAINNET_EXECUTION';
 export type SafetyNetwork = 'local' | 'monad-testnet' | 'monad-mainnet';
 export type ProtocolCapability = 'generic-risk-preview-v0';
 export type MarketSelector = string;

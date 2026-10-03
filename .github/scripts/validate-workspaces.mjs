@@ -14,11 +14,13 @@ const expectedPaths = [
   'packages/testing',
   'packages/perpl',
   'packages/risk',
+  'packages/policy',
+  'packages/execution',
 ];
 if (
   JSON.stringify([...rootManifest.workspaces].sort()) !== JSON.stringify([...expectedPaths].sort())
 ) {
-  throw new Error('Workspace list differs from the admitted M01/M02 shape');
+  throw new Error('Workspace list differs from the M01-M03 implementation shape');
 }
 
 const manifests = new Map();
@@ -60,6 +62,8 @@ for (const [name, { workspace, manifest }] of manifests) {
       'packages/testing': ['@nerva/domain', '@nerva/contracts'],
       'packages/perpl': ['@nerva/domain'],
       'packages/risk': ['@nerva/domain'],
+      'packages/policy': ['@nerva/domain', '@nerva/contracts'],
+      'packages/execution': ['@nerva/domain', '@nerva/contracts', '@nerva/policy'],
     }[workspace];
     for (const dep of internal)
       if (!allowed.includes(dep)) throw new Error(`${workspace} may not depend on ${dep}`);

@@ -15,6 +15,8 @@
     "@nerva/domain": "0.1.0",
     "@nerva/observability": "0.1.0",
     "@nerva/perpl": "0.1.0",
+    "@nerva/policy": "0.1.0",
+    "@nerva/execution": "0.1.0",
     "@nerva/risk": "0.1.0",
     "next": "16.3.8",
     "react": "19.3.0",

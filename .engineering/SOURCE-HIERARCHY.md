@@ -1,6 +1,6 @@
 # NERVA Source Hierarchy
 
-Status: CANONICAL — NERVA-WO-003
+Status: CANONICAL — NERVA-WO-004
 
 When sources disagree, use this order:
 1. `.engineering/CHECKPOINT.md`
@@ -19,18 +19,18 @@ Git, code, tests, deployed artifacts and objective provider evidence override co
 
 ## Rules
 - A lower source may refine but never silently contradict a higher source.
-- Approved decisions are changed only by a later explicit decision/ADR.
+- Approved decisions change only through a later explicit decision/ADR.
 - Checkpoint promotion occurs only after objective audit.
-- External program/API facts are observations, not canonical product truth; capability-sensitive facts must be revalidated during each module preflight.
-- If Scope, DoD, Architecture, Checkpoint or a relevant decision changes, the active Context Lock becomes STALE until rebuilt.
+- External API/program facts are observations and must be revalidated when capability-sensitive.
+- A new module requires a fresh Context Lock against its merged predecessor baseline.
 
 ## Current bindings
 - Repository: `KayzenRoot/nerva-project`
 - GEF: `@gef-bootstrap/cli@1.1.2`
-- Last approved Work Order: `NERVA-WO-003`
+- Last approved Work Order: `NERVA-WO-004`
 - M00: APPROVED
 - M01: APPROVED
 - M02: APPROVED
-- Runtime: M02 OBSERVATION + RISK FOUNDATION
-- Next implementation module: M03 — Work Order NOT_ADMITTED
-- M02 Context Lock becomes historical after promotion/merge; M03 requires a fresh Context Lock against the merged M02 baseline.
+- M03: APPROVED
+- Runtime: M03 POLICY + SIMULATION + CLOSED EFFECT BOUNDARY
+- Next implementation module: M04 — Work Order NOT_ADMITTED
