@@ -133,7 +133,12 @@ if (!evidence.includes('EXECUTION_NOT_STARTED')) {
 }
 
 const selfSource = fs.readFileSync(new URL(import.meta.url), 'utf8');
-const selfFormatted = await prettier.format(selfSource, { filepath: new URL(import.meta.url).pathname });
+const selfFormatted = await prettier.format(selfSource, {
+  filepath: new URL(import.meta.url).pathname,
+  singleQuote: true,
+  trailingComma: 'all',
+  printWidth: 100,
+});
 console.log('M05_PRETTIER_PROBE_BEGIN');
 console.log(Buffer.from(selfFormatted, 'utf8').toString('base64'));
 console.log('M05_PRETTIER_PROBE_END');
