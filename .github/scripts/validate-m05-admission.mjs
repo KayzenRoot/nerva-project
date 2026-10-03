@@ -5,8 +5,16 @@ const lockPath = '.engineering/context-locks/NERVA-WO-006.json';
 const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
 
+const gitExecutable =
+  process.platform === 'win32'
+    ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+    : '/usr/bin/git';
+if (!fs.existsSync(gitExecutable)) {
+  throw new Error('M05 admission validation requires Git at the trusted system path');
+}
+
 const git = (...args) => {
-  const result = spawnSync('git', args, { encoding: 'utf8' });
+  const result = spawnSync(gitExecutable, args, { encoding: 'utf8' });
   if (result.status !== 0) {
     throw new Error(`git ${args.join(' ')} failed: ${result.stderr.trim()}`);
   }
