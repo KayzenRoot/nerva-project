@@ -18,11 +18,14 @@ if (
   lock.status !== 'LOCKED' ||
   lock.repository !== 'KayzenRoot/nerva-project' ||
   lock.executionBase !== expectedBase
-) throw new Error('NERVA-WO-003 Context Lock identity, status, repository or base mismatch');
+) {
+  throw new Error('NERVA-WO-003 Context Lock identity, status, repository or base mismatch');
+}
 
 function git(args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
+
 function blobAt(ref, file) {
   return git(['rev-parse', `${ref}:${file}`]);
 }
@@ -33,8 +36,9 @@ const main = git(['rev-parse', 'origin/main']);
 const branch = process.env.GITHUB_HEAD_REF || git(['branch', '--show-current']);
 
 for (const [file, expectedBlob] of Object.entries(lock.criticalInputs)) {
-  if (blobAt(base, file) !== expectedBlob)
+  if (blobAt(base, file) !== expectedBlob) {
     throw new Error(`Critical input fingerprint mismatch at execution base for ${file}`);
+  }
 }
 
 const postMergeMain =
@@ -54,34 +58,43 @@ if (postMergeMain) {
     checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-003' ||
     checkpoint.knownCritical !== 0 ||
     checkpoint.knownHigh !== 0
-  ) throw new Error('Post-merge Checkpoint is not the approved M02 state');
+  ) {
+    throw new Error('Post-merge Checkpoint is not the approved M02 state');
+  }
 
   git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
-  console.log(JSON.stringify({
-    ok: true,
-    executionBase: base,
-    auditedHead,
-    mergedHead: head,
-    criticalInputs: Object.keys(lock.criticalInputs).length,
-    state: 'POST_MERGE_CONTEXT_LOCK_HISTORICAL',
-  }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      executionBase: base,
+      auditedHead,
+      mergedHead: head,
+      criticalInputs: Object.keys(lock.criticalInputs).length,
+      state: 'POST_MERGE_CONTEXT_LOCK_HISTORICAL',
+    }),
+  );
   process.exit(0);
 }
 
-if (main !== base)
+if (main !== base) {
   throw new Error(`Context Lock base moved before merge: origin/main=${main}, expected=${base}`);
-if (branch && branch !== expectedBranch)
+}
+if (branch && branch !== expectedBranch) {
   throw new Error(`Execution branch mismatch: ${branch}`);
+}
 
 git(['merge-base', '--is-ancestor', admittedHead, 'HEAD']);
 git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
 
-if (blobAt(admittedHead, lockPath) !== expectedLockBlob)
+if (blobAt(admittedHead, lockPath) !== expectedLockBlob) {
   throw new Error('Admitted Context Lock blob changed');
-if (blobAt(admittedHead, workOrderPath) !== blobAt(auditedHead, workOrderPath))
+}
+if (blobAt(admittedHead, workOrderPath) !== blobAt(auditedHead, workOrderPath)) {
   throw new Error('NERVA-WO-003 changed after admission');
-if (blobAt(admittedHead, lockPath) !== blobAt(auditedHead, lockPath))
+}
+if (blobAt(admittedHead, lockPath) !== blobAt(auditedHead, lockPath)) {
   throw new Error('Context Lock document changed during M02 execution');
+}
 
 const immutablePaths = [
   '.engineering/CHECKPOINT.md',
@@ -100,13 +113,16 @@ const immutablePaths = [
   '.engineering/decisions/ADR-0001-AUTHORIZATION-BOUNDARY.md',
   '.engineering/decisions/ADR-0002-GUARDIAN-NERVA-BOUNDARY.md',
 ];
+
 for (const file of immutablePaths) {
   const baseBlob = blobAt(base, file);
   const lockedBlob = lock.criticalInputs[file];
-  if (lockedBlob !== undefined && baseBlob !== lockedBlob)
+  if (lockedBlob !== undefined && baseBlob !== lockedBlob) {
     throw new Error(`Context Lock fingerprint mismatch for immutable input: ${file}`);
-  if (blobAt(auditedHead, file) !== baseBlob)
+  }
+  if (blobAt(auditedHead, file) !== baseBlob) {
     throw new Error(`Audited implementation changed immutable governance input: ${file}`);
+  }
 }
 
 const allowedPromotionPaths = new Set([
@@ -120,15 +136,22 @@ const allowedPromotionPaths = new Set([
   '.github/scripts/validate-source-pack.mjs',
   'README.md',
 ]);
+
 const promotionDiff = git(['diff', '--name-only', `${auditedHead}..HEAD`])
   .split(/\r?\n/)
   .map((entry) => entry.trim())
   .filter(Boolean);
-if (promotionDiff.length === 0)
+
+if (promotionDiff.length === 0) {
   throw new Error('No post-audit promotion delta is present');
+}
+
 const forbidden = promotionDiff.filter((file) => !allowedPromotionPaths.has(file));
-if (forbidden.length > 0)
-  throw new Error(`Post-audit Context Lock drift includes non-promotion paths: ${forbidden.join(', ')}`);
+if (forbidden.length > 0) {
+  throw new Error(
+    `Post-audit Context Lock drift includes non-promotion paths: ${forbidden.join(', ')}`,
+  );
+}
 
 if (
   checkpoint.m00Status !== 'APPROVED' ||
@@ -140,18 +163,22 @@ if (
   checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-003' ||
   checkpoint.knownCritical !== 0 ||
   checkpoint.knownHigh !== 0
-) throw new Error('Checkpoint is not the audited M02 promotion state');
+) {
+  throw new Error('Checkpoint is not the audited M02 promotion state');
+}
 
-console.log(JSON.stringify({
-  ok: true,
-  executionBase: base,
-  admittedHead,
-  auditedHead,
-  head,
-  originMain: main,
-  branch,
-  criticalInputs: Object.keys(lock.criticalInputs).length,
-  immutableGovernanceFiles: immutablePaths.length,
-  promotionFiles: promotionDiff.length,
-  state: 'PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
-}));
+console.log(
+  JSON.stringify({
+    ok: true,
+    executionBase: base,
+    admittedHead,
+    auditedHead,
+    head,
+    originMain: main,
+    branch,
+    criticalInputs: Object.keys(lock.criticalInputs).length,
+    immutableGovernanceFiles: immutablePaths.length,
+    promotionFiles: promotionDiff.length,
+    state: 'PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
+  }),
+);
