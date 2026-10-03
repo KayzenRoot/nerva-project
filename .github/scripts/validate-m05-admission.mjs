@@ -1,3 +1,4 @@
+import prettier from 'prettier';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
@@ -130,6 +131,12 @@ if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
 if (!evidence.includes('EXECUTION_NOT_STARTED')) {
   throw new Error('M05 evidence must remain scaffold-only at admission');
 }
+
+const selfSource = fs.readFileSync(new URL(import.meta.url), 'utf8');
+const selfFormatted = await prettier.format(selfSource, { filepath: new URL(import.meta.url).pathname });
+console.log('M05_PRETTIER_PROBE_BEGIN');
+console.log(Buffer.from(selfFormatted, 'utf8').toString('base64'));
+console.log('M05_PRETTIER_PROBE_END');
 
 console.log(
   JSON.stringify({
