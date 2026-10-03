@@ -181,12 +181,20 @@ if (fs.existsSync(m03LockPath)) {
   }
 
   const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-004-EVIDENCE.md', 'utf8');
+  const admissionHead = '7148ad6e4a2b33e4155a688801b2a20161dc3112';
+  const isAdmissionScaffold = evidence.includes('SCAFFOLD — M03 IMPLEMENTATION NOT STARTED');
   if (
-    !evidence.includes('SCAFFOLD — M03 IMPLEMENTATION NOT STARTED') ||
-    !evidence.includes('Implementation head: `PENDING') ||
-    !evidence.includes('NOT STARTED')
+    isAdmissionScaffold &&
+    (head !== admissionHead || m03Git(['status', '--porcelain']).length > 0)
   ) {
-    throw new Error('NERVA-WO-004 Evidence Bundle must remain an implementation-free scaffold');
+    throw new Error(
+      'The M03 scaffold is valid only on the clean admitted head, before implementation',
+    );
+  }
+  if (!isAdmissionScaffold && !evidence.includes('NERVA_M03_POLICY_SIM_EXEC_READY_FOR_AUDIT')) {
+    throw new Error(
+      'NERVA-WO-004 implementation Evidence Bundle is missing its exact stop condition',
+    );
   }
 
   console.log(

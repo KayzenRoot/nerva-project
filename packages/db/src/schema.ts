@@ -27,7 +27,7 @@ export const policies = pgTable(
     ),
     check(
       'policies_environment_ck',
-      sql`${table.environment} in ('LOCAL','TESTNET_DEMO','MAINNET_READONLY')`,
+      sql`${table.environment} in ('LOCAL','TESTNET_DEMO','TESTNET','MAINNET_READONLY')`,
     ),
   ],
 );
@@ -224,6 +224,326 @@ export const runtimeControls = pgTable('runtime_controls', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const m03PolicyConfirmations = pgTable(
+  'm03_policy_confirmations',
+  {
+    policyVersionId: text('policy_version_id')
+      .primaryKey()
+      .references(() => policyVersions.policyVersionId),
+    canonicalHash: text('canonical_hash').notNull(),
+    actorRef: text('actor_ref').notNull(),
+    issuerRef: text('issuer_ref').notNull(),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    check('m03_policy_confirmations_hash_ck', sql`${table.canonicalHash} ~ '^[0-9a-f]{64}$'`),
+    check('m03_policy_confirmations_proof_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m03PolicyLifecycleEvents = pgTable(
+  'm03_policy_lifecycle_events',
+  {
+    eventId: text('event_id').primaryKey(),
+    policyVersionId: text('policy_version_id')
+      .notNull()
+      .references(() => policyVersions.policyVersionId),
+    eventType: text('event_type').notNull(),
+    actorRef: text('actor_ref').notNull(),
+    issuerRef: text('issuer_ref').notNull(),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    correlationId: text('correlation_id').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    index('m03_policy_lifecycle_events_version_idx').on(table.policyVersionId, table.occurredAt),
+    check(
+      'm03_policy_lifecycle_events_type_ck',
+      sql`${table.eventType} in ('CONFIRMED','PAUSED','REVOKED','EXPIRED')`,
+    ),
+    check('m03_policy_lifecycle_events_proof_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m03TriggerEvaluations = pgTable(
+  'm03_trigger_evaluations',
+  {
+    evaluationId: text('evaluation_id').primaryKey(),
+    policyVersionId: text('policy_version_id')
+      .notNull()
+      .references(() => policyVersions.policyVersionId),
+    policyVersionHash: text('policy_version_hash').notNull(),
+    snapshotId: text('snapshot_id')
+      .notNull()
+      .references(() => riskSnapshots.snapshotId),
+    snapshotHash: text('snapshot_hash').notNull(),
+    result: text('result').notNull(),
+    reason: text('reason').notNull(),
+    correlationId: text('correlation_id').notNull(),
+    evaluatedAt: timestamp('evaluated_at', { withTimezone: true }).notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    index('m03_trigger_evaluations_version_time_idx').on(table.policyVersionId, table.evaluatedAt),
+    check(
+      'm03_trigger_evaluations_policy_hash_ck',
+      sql`${table.policyVersionHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'm03_trigger_evaluations_snapshot_hash_ck',
+      sql`${table.snapshotHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'm03_trigger_evaluations_result_ck',
+      sql`${table.result} in ('MATCH','NO_MATCH','REFUSED')`,
+    ),
+  ],
+);
+
+export const m03ExecutionPlans = pgTable(
+  'm03_execution_plans',
+  {
+    planId: text('plan_id').primaryKey(),
+    digest: text('digest').notNull(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    policyVersionId: text('policy_version_id')
+      .notNull()
+      .references(() => policyVersions.policyVersionId),
+    policyVersionHash: text('policy_version_hash').notNull(),
+    snapshotId: text('snapshot_id')
+      .notNull()
+      .references(() => riskSnapshots.snapshotId),
+    snapshotHash: text('snapshot_hash').notNull(),
+    accountId: text('account_id').notNull(),
+    positionId: text('position_id').notNull(),
+    marketSelector: text('market_selector').notNull(),
+    action: text('action').notNull(),
+    quantityScaled: text('quantity_scaled').notNull(),
+    notionalMicros: text('notional_micros').notNull(),
+    slippageBps: integer('slippage_bps').notNull(),
+    environment: text('environment').notNull(),
+    network: text('network').notNull(),
+    chainId: integer('chain_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    correlationId: text('correlation_id').notNull(),
+    externalEffect: boolean('external_effect').notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    uniqueIndex('m03_execution_plans_digest_uq').on(table.digest),
+    uniqueIndex('m03_execution_plans_idempotency_uq').on(table.idempotencyKey),
+    index('m03_execution_plans_policy_idx').on(table.policyVersionId, table.createdAt),
+    check('m03_execution_plans_digest_ck', sql`${table.digest} ~ '^[0-9a-f]{64}$'`),
+    check('m03_execution_plans_policy_hash_ck', sql`${table.policyVersionHash} ~ '^[0-9a-f]{64}$'`),
+    check('m03_execution_plans_snapshot_hash_ck', sql`${table.snapshotHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm03_execution_plans_action_ck',
+      sql`${table.action} in ('REDUCE_POSITION','CLOSE_POSITION','NO_ACTION')`,
+    ),
+    check(
+      'm03_execution_plans_environment_ck',
+      sql`${table.environment} in ('LOCAL','TESTNET_DEMO','TESTNET','MAINNET_READONLY')`,
+    ),
+    check(
+      'm03_execution_plans_network_ck',
+      sql`(${table.environment} = 'LOCAL' and ${table.network} = 'local' and ${table.chainId} = 0) or (${table.environment} in ('TESTNET_DEMO','TESTNET') and ${table.network} = 'monad-testnet' and ${table.chainId} = 10143) or (${table.environment} = 'MAINNET_READONLY' and ${table.network} = 'monad-mainnet' and ${table.chainId} = 143)`,
+    ),
+    check(
+      'm03_execution_plans_quantity_ck',
+      sql`${table.quantityScaled} ~ '^(0|[1-9][0-9]{0,37})$'`,
+    ),
+    check(
+      'm03_execution_plans_notional_ck',
+      sql`${table.notionalMicros} ~ '^(0|[1-9][0-9]{0,37})$'`,
+    ),
+    check('m03_execution_plans_slippage_ck', sql`${table.slippageBps} between 0 and 10000`),
+    check(
+      'm03_execution_plans_mainnet_no_effect_ck',
+      sql`${table.environment} <> 'MAINNET_READONLY' or (${table.action} = 'NO_ACTION' and ${table.externalEffect} = false)`,
+    ),
+    check(
+      'm03_execution_plans_demo_no_effect_ck',
+      sql`${table.environment} <> 'TESTNET_DEMO' or ${table.externalEffect} = false`,
+    ),
+  ],
+);
+
+export const m03SimulationResults = pgTable(
+  'm03_simulation_results',
+  {
+    simulationId: text('simulation_id').primaryKey(),
+    planDigest: text('plan_digest')
+      .notNull()
+      .references(() => m03ExecutionPlans.digest),
+    kind: text('kind').notNull(),
+    authority: text('authority').notNull(),
+    status: text('status').notNull(),
+    simulatorVersion: text('simulator_version').notNull(),
+    checkedAt: timestamp('checked_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    index('m03_simulation_results_plan_idx').on(table.planDigest, table.checkedAt),
+    check(
+      'm03_simulation_results_kind_ck',
+      sql`${table.kind} in ('DETERMINISTIC_DRY_RUN','PROVIDER_TESTNET_PREFLIGHT')`,
+    ),
+    check(
+      'm03_simulation_results_authority_ck',
+      sql`${table.authority} in ('DRY_RUN_ONLY','PROVIDER_TESTNET_VERIFIED')`,
+    ),
+    check('m03_simulation_results_status_ck', sql`${table.status} in ('PASS','FAIL','UNKNOWN')`),
+  ],
+);
+
+export const m03AuthorizationRefs = pgTable(
+  'm03_authorization_refs',
+  {
+    authorizationRef: text('authorization_ref').primaryKey(),
+    planDigest: text('plan_digest')
+      .notNull()
+      .references(() => m03ExecutionPlans.digest),
+    policyVersionHash: text('policy_version_hash').notNull(),
+    actorRef: text('actor_ref').notNull(),
+    issuerRef: text('issuer_ref').notNull(),
+    scope: text('scope').notNull(),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m03_authorization_refs_plan_uq').on(table.planDigest),
+    check(
+      'm03_authorization_refs_policy_hash_ck',
+      sql`${table.policyVersionHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('m03_authorization_refs_proof_hash_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m03ProviderEnrollmentRefs = pgTable(
+  'm03_provider_enrollment_refs',
+  {
+    enrollmentRef: text('enrollment_ref').primaryKey(),
+    provider: text('provider').notNull(),
+    accountId: text('account_id').notNull(),
+    network: text('network').notNull(),
+    chainId: integer('chain_id').notNull(),
+    capabilityRef: text('capability_ref').notNull(),
+    capabilityEvidenceHash: text('capability_evidence_hash').notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m03_provider_enrollment_scope_uq').on(
+      table.provider,
+      table.accountId,
+      table.network,
+      table.capabilityRef,
+    ),
+    check('m03_provider_enrollment_provider_ck', sql`${table.provider} = 'perpl'`),
+    check(
+      'm03_provider_enrollment_testnet_ck',
+      sql`${table.network} = 'monad-testnet' and ${table.chainId} = 10143`,
+    ),
+    check(
+      'm03_provider_enrollment_evidence_ck',
+      sql`${table.capabilityEvidenceHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const m03NonceLedger = pgTable(
+  'm03_nonce_ledger',
+  {
+    nonceHash: text('nonce_hash').primaryKey(),
+    issuerRef: text('issuer_ref').notNull(),
+    purpose: text('purpose').notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('m03_nonce_ledger_hash_ck', sql`${table.nonceHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm03_nonce_ledger_purpose_ck',
+      sql`${table.purpose} in ('policy-confirmation','execution-authorization','provider-enrollment','policy-control')`,
+    ),
+  ],
+);
+
+export const m03ExecutionIdempotency = pgTable(
+  'm03_execution_idempotency',
+  {
+    idempotencyKey: text('idempotency_key').primaryKey(),
+    provider: text('provider').notNull(),
+    network: text('network').notNull(),
+    chainId: integer('chain_id').notNull(),
+    accountId: text('account_id').notNull(),
+    planDigest: text('plan_digest').notNull(),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('m03_execution_idempotency_provider_ck', sql`${table.provider} = 'perpl'`),
+    check(
+      'm03_execution_idempotency_testnet_ck',
+      sql`${table.network} = 'monad-testnet' and ${table.chainId} = 10143`,
+    ),
+    check('m03_execution_idempotency_digest_ck', sql`${table.planDigest} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m03ExecutionAttemptEvents = pgTable(
+  'm03_execution_attempt_events',
+  {
+    eventId: text('event_id').primaryKey(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    planDigest: text('plan_digest').notNull(),
+    state: text('state').notNull(),
+    reason: text('reason').notNull(),
+    correlationId: text('correlation_id').notNull(),
+    providerReferenceHash: text('provider_reference_hash'),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    index('m03_execution_attempt_events_key_idx').on(table.idempotencyKey, table.occurredAt),
+    check('m03_execution_attempt_events_digest_ck', sql`${table.planDigest} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm03_execution_attempt_events_state_ck',
+      sql`${table.state} in ('NOT_STARTED','PREFLIGHTED','AUTHORIZED','SUBMITTED','CONFIRMED','REFUSED','FAILED','UNKNOWN','RECOVERY_REQUIRED')`,
+    ),
+    check(
+      'm03_execution_attempt_events_provider_hash_ck',
+      sql`${table.providerReferenceHash} is null or ${table.providerReferenceHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const m03ExecutionReceipts = pgTable(
+  'm03_execution_receipts',
+  {
+    receiptId: text('receipt_id').primaryKey(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    planDigest: text('plan_digest').notNull(),
+    outcome: text('outcome').notNull(),
+    reason: text('reason').notNull(),
+    correlationId: text('correlation_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    payload: jsonb('payload').notNull(),
+  },
+  (table) => [
+    index('m03_execution_receipts_key_idx').on(table.idempotencyKey, table.createdAt),
+    check('m03_execution_receipts_digest_ck', sql`${table.planDigest} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm03_execution_receipts_outcome_ck',
+      sql`${table.outcome} in ('CONFIRMED','NO_ACTION','REFUSED','FAILED','UNKNOWN','RECOVERY_REQUIRED')`,
+    ),
+  ],
+);
+
 export const schema = {
   policies,
   policyVersions,
@@ -236,4 +556,15 @@ export const schema = {
   riskSnapshots,
   riskMetrics,
   providerCheckpoints,
+  m03PolicyConfirmations,
+  m03PolicyLifecycleEvents,
+  m03TriggerEvaluations,
+  m03ExecutionPlans,
+  m03SimulationResults,
+  m03AuthorizationRefs,
+  m03ProviderEnrollmentRefs,
+  m03NonceLedger,
+  m03ExecutionIdempotency,
+  m03ExecutionAttemptEvents,
+  m03ExecutionReceipts,
 };

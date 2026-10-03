@@ -17,6 +17,17 @@ export {
   riskSnapshots,
   riskMetrics,
   providerCheckpoints,
+  m03PolicyConfirmations,
+  m03PolicyLifecycleEvents,
+  m03TriggerEvaluations,
+  m03ExecutionPlans,
+  m03SimulationResults,
+  m03AuthorizationRefs,
+  m03ProviderEnrollmentRefs,
+  m03NonceLedger,
+  m03ExecutionIdempotency,
+  m03ExecutionAttemptEvents,
+  m03ExecutionReceipts,
 } from './schema.ts';
 export {
   appendIntegrationHealth,
@@ -33,6 +44,27 @@ export {
   metricsForPosition,
   upsertProviderCheckpoint,
 } from './observations.ts';
+export {
+  appendM03DryRun,
+  appendM03ExecutionPlan,
+  appendM03AuthorizationRef,
+  recordM03ExecutionRefusal,
+  recordM03ExecutionRecoveryRequired,
+  appendM03PolicyConfirmation,
+  appendM03PolicyLifecycleEvent,
+  appendM03TriggerEvaluation,
+  createPgM03ExecutionStore,
+  listM03PolicyReadModels,
+  listM03EvaluationReadModels,
+  listM03SimulationReadModels,
+  readM03ExecutionReadModel,
+  consumeM03Nonce,
+  runM03IfExecutionEnabled,
+  setM03ExecutionDisabled,
+  latestM03EffectAt,
+  listActiveM03PolicyConfirmations,
+  appendM03PlanningRefusal,
+} from './m03.ts';
 export type Database = NodePgDatabase<typeof schema>;
 
 export function createDatabase(config: Pick<ServerConfig, 'databaseUrl'>): {

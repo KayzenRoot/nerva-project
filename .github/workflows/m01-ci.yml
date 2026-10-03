@@ -1,4 +1,4 @@
-name: NERVA M01/M02 observation and risk foundation
+name: NERVA M01-M03 policy, simulation and safety validation
 
 on:
   pull_request:
@@ -54,19 +54,22 @@ jobs:
           npm run sourcepack:validate
           npm run gef:package:verify
           npm run gef:verify
-      - name: Validate workspace graph and observation-only boundaries
+      - name: Validate workspace graph and M03 safety boundaries
         run: |
           npm run workspace:validate
           npm run deps:boundary
+          npm run m03:safety:verify
       - name: Format, lint, and strict types
         run: |
           npm run format:check
           npm run lint
           npm run typecheck
-      - name: Unit, replay and invariant tests
+      - name: Unit, replay, adversarial and recovery tests
         run: npm test -- --reporter=dot
       - name: Deterministic risk p95 benchmark
         run: npm run risk:benchmark
+      - name: Deterministic M03 policy and decision-to-plan benchmark
+        run: npm run m03:benchmark
       - name: Build web and worker
         run: npm run build
       - name: Scan client assets
@@ -77,7 +80,7 @@ jobs:
         run: |
           npm run db:check
           npm run db:smoke
-      - name: Upgrade migration from accepted M01 schema
+      - name: Upgrade accepted M02 schema through the M03 migration
         run: npm run db:upgrade-smoke
         env:
           NERVA_ALLOW_DISPOSABLE_DATABASE: 'true'
@@ -100,7 +103,7 @@ jobs:
           cache: npm
       - name: Clean install
         run: npm ci --no-audit --no-fund
-      - name: Bounded domain, contracts, config, Perpl and risk tests
-        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/contracts/src/observation.test.ts packages/config/src/environment.test.ts packages/perpl/src/client.test.ts packages/perpl/src/normalizer.test.ts packages/risk/src/engine.test.ts
+      - name: Bounded domain, contracts, config, policy, execution, Perpl and risk tests
+        run: npm test -- --reporter=dot packages/domain/src/safety.test.ts packages/contracts/src/policy.test.ts packages/contracts/src/observation.test.ts packages/config/src/environment.test.ts packages/perpl/src/client.test.ts packages/perpl/src/normalizer.test.ts packages/risk/src/engine.test.ts packages/policy/src/index.test.ts packages/execution/src/index.test.ts
       - name: Strict typecheck
         run: npm run typecheck

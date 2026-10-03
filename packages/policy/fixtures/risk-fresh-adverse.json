@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "0.1",
+  "snapshotId": "risk-fixture-fresh-1",
+  "snapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observedAt": "2026-10-03T03:00:00.000Z",
+  "generatedAt": "2026-10-03T03:00:00.000Z",
+  "quality": "FRESH",
+  "actionable": false,
+  "correlationId": "m03-replay-fresh-1",
+  "sourceSnapshotHashes": ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+  "metrics": [
+    {
+      "name": "POSITION_ADVERSE_MOVE_BPS",
+      "valueBps": 1500,
+      "unit": "basis-points",
+      "quality": "FRESH",
+      "observedAt": "2026-10-03T03:00:00.000Z",
+      "source": "synthetic-replay",
+      "metadata": { "positionId": "21" }
+    },
+    {
+      "name": "LIQUIDATION_DISTANCE_BPS",
+      "valueBps": 0,
+      "unit": "basis-points",
+      "quality": "FRESH",
+      "observedAt": "2026-10-03T03:00:00.000Z",
+      "source": "synthetic-replay",
+      "reason": "UNAVAILABLE_UNPROVEN"
+    },
+    {
+      "name": "MARGIN_SAFETY",
+      "value": "SAFE",
+      "unit": "status",
+      "quality": "UNKNOWN",
+      "observedAt": "2026-10-03T03:00:00.000Z",
+      "source": "synthetic-replay",
+      "reason": "UNAVAILABLE_UNPROVEN"
+    },
+    {
+      "name": "FUNDING_DIRECTION",
+      "value": "ADVERSE",
+      "unit": "status",
+      "quality": "UNKNOWN",
+      "observedAt": "2026-10-03T03:00:00.000Z",
+      "source": "synthetic-replay",
+      "reason": "UNAVAILABLE_UNPROVEN"
+    }
+  ],
+  "limitations": ["Synthetic replay fixture. Never provider evidence or financial authority."]
+}

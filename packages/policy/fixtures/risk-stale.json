@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "0.1",
+  "snapshotId": "risk-fixture-stale-1",
+  "snapshotHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "observedAt": "2026-10-03T02:59:00.000Z",
+  "generatedAt": "2026-10-03T02:59:00.000Z",
+  "quality": "STALE",
+  "actionable": false,
+  "correlationId": "m03-replay-stale-1",
+  "sourceSnapshotHashes": ["dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"],
+  "metrics": [
+    {
+      "name": "POSITION_ADVERSE_MOVE_BPS",
+      "valueBps": 1500,
+      "unit": "basis-points",
+      "quality": "STALE",
+      "observedAt": "2026-10-03T02:59:00.000Z",
+      "source": "synthetic-replay",
+      "metadata": { "positionId": "21" }
+    }
+  ],
+  "limitations": ["Synthetic stale replay fixture. Never provider evidence or financial authority."]
+}

@@ -16,7 +16,7 @@ export const messages = {
       'Read-only market observation and deterministic risk. Financial execution is disabled.',
     languageLabel: 'Language',
     environmentLabel: (environment: string) => `Environment ${environment}`,
-    platform: 'Read-only observation · M02',
+    platform: 'Read-only observations and policy · M03',
     headline: 'See the conditions before any future action.',
     intro:
       'NERVA reads Perpl market and account data and computes deterministic risk. Financial execution is disabled.',
@@ -44,7 +44,7 @@ export const messages = {
       'Observação de mercado somente para leitura e risco determinístico. A execução financeira está desabilitada.',
     languageLabel: 'Idioma',
     environmentLabel: (environment: string) => `Ambiente ${environment}`,
-    platform: 'Observação somente para leitura · M02',
+    platform: 'Observação somente para leitura e políticas · M03',
     headline: 'Veja as condições antes de qualquer ação futura.',
     intro:
       'O NERVA lê dados de mercado e conta da Perpl e calcula riscos determinísticos. A execução financeira está desabilitada.',
@@ -72,7 +72,7 @@ export const messages = {
       'Observación de mercado de solo lectura y riesgo determinista. La ejecución financiera está deshabilitada.',
     languageLabel: 'Idioma',
     environmentLabel: (environment: string) => `Entorno ${environment}`,
-    platform: 'Observación de solo lectura · M02',
+    platform: 'Observación de solo lectura y políticas · M03',
     headline: 'Consulta las condiciones antes de una acción futura.',
     intro:
       'NERVA lee datos de mercado y cuenta de Perpl y calcula riesgos deterministas. La ejecución financiera está deshabilitada.',

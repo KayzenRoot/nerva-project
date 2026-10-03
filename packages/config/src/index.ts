@@ -9,6 +9,7 @@ export const MONAD_NETWORKS = Object.freeze({
 const EnvironmentSchema = z.enum([
   'LOCAL',
   'TESTNET_DEMO',
+  'TESTNET',
   'MAINNET_READONLY',
   'MAINNET_EXECUTION',
 ]);
@@ -67,7 +68,7 @@ export function loadPerplConfig(
 ): PerplServerConfig {
   const requestedChain =
     env.PERPL_CHAIN_ID === undefined
-      ? environment === 'TESTNET_DEMO'
+      ? environment === 'TESTNET_DEMO' || environment === 'TESTNET'
         ? 10_143
         : 143
       : Number(env.PERPL_CHAIN_ID);
@@ -75,7 +76,7 @@ export function loadPerplConfig(
     throw new Error('PERPL_CHAIN_ID must be Monad mainnet 143 or testnet 10143');
   const chainId = requestedChain as 143 | 10_143;
   if (
-    (environment === 'TESTNET_DEMO' && chainId !== 10_143) ||
+    ((environment === 'TESTNET_DEMO' || environment === 'TESTNET') && chainId !== 10_143) ||
     (environment === 'MAINNET_READONLY' && chainId !== 143)
   )
     throw new Error('Perpl chain identity does not match NERVA environment network');

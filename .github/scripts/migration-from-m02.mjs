@@ -10,7 +10,7 @@ if (process.env.NERVA_ALLOW_DISPOSABLE_DATABASE !== 'true')
 const sourceUrl = new URL(process.env.DATABASE_URL ?? '');
 if (!['postgres:', 'postgresql:'].includes(sourceUrl.protocol))
   throw new Error('DATABASE_URL must be PostgreSQL');
-const databaseName = `nerva_m02_upgrade_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
+const databaseName = `nerva_m03_upgrade_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
 const adminUrl = new URL(sourceUrl);
 adminUrl.pathname = '/postgres';
 const targetUrl = new URL(sourceUrl);
@@ -34,6 +34,7 @@ try {
     for (const file of [
       'packages/db/migrations/0000_elite_tempest.sql',
       'packages/db/migrations/0001_useful_hobgoblin.sql',
+      'packages/db/migrations/0002_certain_dragon_lord.sql',
     ]) {
       const sql = fs.readFileSync(path.join(root, file), 'utf8');
       await target.query(sql);
@@ -42,27 +43,33 @@ try {
       "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'",
     );
     const evidence = await target.query(
-      "SELECT to_regclass('public.market_snapshots') IS NOT NULL AS market, to_regclass('public.risk_snapshots') IS NOT NULL AS risk, to_regclass('public.provider_checkpoints') IS NOT NULL AS checkpoint",
+      "SELECT to_regclass('public.market_snapshots') IS NOT NULL AS market, to_regclass('public.risk_snapshots') IS NOT NULL AS risk, to_regclass('public.provider_checkpoints') IS NOT NULL AS checkpoint, to_regclass('public.m03_execution_plans') IS NOT NULL AS plans, to_regclass('public.m03_nonce_ledger') IS NOT NULL AS nonce_ledger",
     );
     const triggerCount = await target.query(
-      "SELECT count(*)::int AS n FROM pg_trigger WHERE NOT tgisinternal AND tgname IN ('market_snapshots_append_only','position_snapshots_append_only','portfolio_snapshots_append_only','risk_snapshots_append_only','risk_metrics_append_only')",
+      "SELECT count(*)::int AS n FROM pg_trigger WHERE NOT tgisinternal AND (tgname IN ('market_snapshots_append_only','position_snapshots_append_only','portfolio_snapshots_append_only','risk_snapshots_append_only','risk_metrics_append_only') OR tgname LIKE 'm03_%_append_only')",
     );
     if (
-      tables.rows[0]?.n !== 11 ||
+      tables.rows[0]?.n !== 22 ||
       !evidence.rows[0]?.market ||
       !evidence.rows[0]?.risk ||
       !evidence.rows[0]?.checkpoint ||
-      triggerCount.rows[0]?.n !== 5
+      !evidence.rows[0]?.plans ||
+      !evidence.rows[0]?.nonce_ledger ||
+      triggerCount.rows[0]?.n !== 16
     )
       throw new Error(
-        'The clean M01-to-M02 migration did not produce the expected tables and append-only triggers',
+        'The clean M01-to-M03 migration did not produce the expected tables and append-only triggers',
       );
     console.log(
       JSON.stringify({
         ok: true,
-        migrationPath: ['M01 0000_elite_tempest.sql', 'M02 0001_useful_hobgoblin.sql'],
+        migrationPath: [
+          'M01 0000_elite_tempest.sql',
+          'M02 0001_useful_hobgoblin.sql',
+          'M03 0002_certain_dragon_lord.sql',
+        ],
         tables: tables.rows[0].n,
-        m02AppendOnlyTriggers: triggerCount.rows[0].n,
+        m03AppendOnlyTriggers: triggerCount.rows[0].n,
       }),
     );
   } finally {
