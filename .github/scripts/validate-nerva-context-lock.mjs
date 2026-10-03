@@ -6,7 +6,11 @@ if (fs.existsSync(m03LockPath)) {
   const lock = JSON.parse(fs.readFileSync(m03LockPath, 'utf8'));
   const base = '31cce06cf68aab0a82d3801ed6177b8a3b311869';
   const auditedHead = '22fe67a49dd90b0ab5567a8b93cbcd940ba4b0b9';
+  const promotionHead = '66167892504fe9d13c7f31ffa6de1d1331745247';
+  const expectedPromotionTree = '126f4ff1877a6eb6f4dd115ecc759d587016c620';
+  const acceptedMerge = '3935e2e1a4cce7e35b4e35afe58435ae3a32e72b';
   const expectedBranch = 'feat/nerva-wo-004-m03-policy-sim-exec';
+  const correctionBranch = 'fix/nerva-wo-004-postmerge-validator';
   const gitCandidates =
     process.platform === 'win32'
       ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
@@ -21,6 +25,7 @@ if (fs.existsSync(m03LockPath)) {
   if (!gitExecutable) {
     throw new Error('NERVA-WO-004 validation requires Git in a trusted system directory');
   }
+
   const git = (args) => execFileSync(gitExecutable, args, { encoding: 'utf8' }).trim();
   const blobAt = (ref, file) => git(['rev-parse', `${ref}:${file}`]);
 
@@ -59,98 +64,121 @@ if (fs.existsSync(m03LockPath)) {
     checkpoint.knownCritical !== 0 ||
     checkpoint.knownHigh !== 0
   ) {
-    throw new Error('Checkpoint is not the audited M03 promotion state');
+    throw new Error('Checkpoint is not the approved M03 state');
+  }
+
+  if (git(['rev-parse', `${acceptedMerge}^`]) !== base) {
+    throw new Error('Accepted M03 squash merge parent does not match the accepted M02 baseline');
+  }
+  if (git(['rev-parse', `${acceptedMerge}^{tree}`]) !== expectedPromotionTree) {
+    throw new Error('Accepted M03 squash merge tree does not match the validated promotion tree');
   }
 
   const event = process.env.GITHUB_EVENT_NAME ?? 'local';
   const head = git(['rev-parse', 'HEAD']);
   const main = git(['rev-parse', 'origin/main']);
   const branch = process.env.GITHUB_HEAD_REF || git(['branch', '--show-current']);
-  const allowedPromotionPaths = new Set([
-    '.engineering/BACKLOG.md',
-    '.engineering/CHECKPOINT.json',
-    '.engineering/CHECKPOINT.md',
-    '.engineering/SOURCE-HIERARCHY.md',
-    '.engineering/checkpoint-deltas/NERVA-WO-004-PROPOSED.md',
+
+  const allowedCorrectionPaths = new Set([
     '.engineering/evidence/NERVA-WO-004-EVIDENCE.md',
     '.github/scripts/validate-nerva-context-lock.mjs',
-    '.github/scripts/validate-source-pack.mjs',
-    'README.md',
   ]);
 
-  const assertPromotionOnly = (from, to) => {
+  const assertCorrectionOnly = (from, to) => {
     const changed = git(['diff', '--name-only', `${from}..${to}`])
       .split(/\r?\n/)
       .map((entry) => entry.trim())
       .filter(Boolean);
-    const forbidden = changed.filter((file) => !allowedPromotionPaths.has(file));
+    const forbidden = changed.filter((file) => !allowedCorrectionPaths.has(file));
     if (forbidden.length > 0) {
       throw new Error(
-        `Post-audit M03 promotion contains non-promotion paths: ${forbidden.join(', ')}`,
+        `NERVA-WO-004 post-merge correction contains forbidden paths: ${forbidden.join(', ')}`,
       );
     }
     return changed;
   };
 
-  const mainPush =
-    event === 'push' &&
-    process.env.GITHUB_REF === 'refs/heads/main' &&
-    branch === 'main' &&
-    main === head;
+  const correctionPr =
+    event === 'pull_request' && main === acceptedMerge && branch === correctionBranch;
 
-  if (mainPush) {
-    if (git(['rev-parse', 'HEAD^']) !== base) {
-      throw new Error('M03 squash merge parent does not match the accepted M02 baseline');
-    }
-    const changed = assertPromotionOnly(auditedHead, 'HEAD');
+  if (correctionPr) {
+    git(['merge-base', '--is-ancestor', acceptedMerge, 'HEAD']);
+    const changed = assertCorrectionOnly(acceptedMerge, 'HEAD');
     if (changed.length === 0) {
-      throw new Error('M03 post-merge tree lacks promotion delta');
+      throw new Error('NERVA-WO-004 correction PR contains no correction delta');
     }
     console.log(
       JSON.stringify({
         ok: true,
         executionBase: base,
         auditedHead,
-        mergedHead: head,
+        promotionHead,
+        promotionTree: expectedPromotionTree,
+        acceptedMerge,
+        correctionHead: head,
+        correctionFiles: changed.length,
         criticalFingerprints: fingerprints.length,
-        promotionFiles: changed.length,
+        state: 'M03_POST_MERGE_CORRECTION_VALIDATED',
+      }),
+    );
+    process.exit(0);
+  }
+
+  const postMergeMain =
+    event === 'push' &&
+    process.env.GITHUB_REF === 'refs/heads/main' &&
+    main === head &&
+    main !== base;
+
+  if (postMergeMain) {
+    git(['merge-base', '--is-ancestor', acceptedMerge, 'HEAD']);
+    const changed = assertCorrectionOnly(acceptedMerge, 'HEAD');
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        promotionHead,
+        promotionTree: expectedPromotionTree,
+        acceptedMerge,
+        mainHead: head,
+        correctionFiles: changed.length,
+        criticalFingerprints: fingerprints.length,
         state: 'M03_POST_MERGE_CONTEXT_LOCK_HISTORICAL',
       }),
     );
     process.exit(0);
   }
 
-  if (branch !== expectedBranch) {
-    throw new Error(`NERVA-WO-004 branch mismatch: ${branch}`);
-  }
-  if (main !== base) {
-    throw new Error(`NERVA-WO-004 Context Lock stale: origin/main is ${main}`);
-  }
-  git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
-  const changed = assertPromotionOnly(auditedHead, 'HEAD');
-  if (changed.length === 0) {
-    throw new Error('No M03 promotion delta is present');
-  }
-
-  const workOrder = fs.readFileSync('.engineering/work-orders/NERVA-WO-004.md', 'utf8');
-  if (!workOrder.includes('NERVA_M03_POLICY_SIM_EXEC_READY_FOR_AUDIT')) {
-    throw new Error('M03 stop condition missing');
-  }
-  const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-004-EVIDENCE.md', 'utf8');
-  if (!evidence.includes('22fe67a49dd90b0ab5567a8b93cbcd940ba4b0b9')) {
-    throw new Error('M03 audit receipt is missing exact audited head');
+  if (main === base && branch === expectedBranch) {
+    git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        head,
+        branch,
+        criticalFingerprints: fingerprints.length,
+        state: 'M03_PROMOTION_BRANCH_HISTORICAL',
+      }),
+    );
+    process.exit(0);
   }
 
+  git(['merge-base', '--is-ancestor', acceptedMerge, main]);
+  git(['merge-base', '--is-ancestor', main, 'HEAD']);
   console.log(
     JSON.stringify({
       ok: true,
       executionBase: base,
       auditedHead,
+      acceptedMerge,
+      currentMain: main,
       head,
       branch,
       criticalFingerprints: fingerprints.length,
-      promotionFiles: changed.length,
-      state: 'M03_PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
+      state: 'M03_CONTEXT_LOCK_HISTORICAL',
     }),
   );
   process.exit(0);
