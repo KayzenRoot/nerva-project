@@ -154,9 +154,6 @@ if (fs.existsSync(m05LockPath)) {
   process.exit(0);
 }
 
-import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
-
 const m04LockPath = '.engineering/context-locks/NERVA-WO-005.json';
 if (fs.existsSync(m04LockPath)) {
   const lock = JSON.parse(fs.readFileSync(m04LockPath, 'utf8'));
