@@ -1,8 +1,8 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. M02 provides the approved read-only data and deterministic risk foundation. The M03 implementation candidate is being prepared for audit; no Checkpoint promotion or merge is implied by this branch.
+NERVA is a Monad-native, non-custodial risk and policy platform. M03 is approved for promotion/merge and provides strict policy compilation, provenance-bound confirmation, deterministic triggers/planning, synthetic dry-run simulation, append-oriented evidence, refusal/recovery APIs and read-only operator surfaces. M04 remains NOT_ADMITTED.
 
-M02 provides read-only Perpl observation, normalized market/account/position records, deterministic risk snapshots and a read-only dashboard. M03 adds strict policy compilation, provenance-bound confirmation, deterministic triggers and bounded planning, synthetic dry-run simulation, append-oriented event storage, refusal/recovery APIs and read-only policy/flight-recorder surfaces. Financial execution remains disabled. The current Perpl documentation grants only broad `trade` scope to order writes and requires separate on-chain order-forwarding permission; NERVA has no proven protective-only write scope, so the Perpl effect adapter stays hard-blocked. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain unproven/unknown and cannot authorize actions. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) and [M03 Policy, Simulation and Execution Safety](docs/M03-POLICY-SIM-EXEC.md).
+The current Perpl documentation grants only broad `trade` scope to order writes and requires separate on-chain order-forwarding permission; NERVA has no proven protective-only write scope, so the Perpl effect adapter stays hard-blocked. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain unproven/unknown and cannot authorize actions. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) and [M03 Policy, Simulation and Execution Safety](docs/M03-POLICY-SIM-EXEC.md).
 
 ## Governance
 
