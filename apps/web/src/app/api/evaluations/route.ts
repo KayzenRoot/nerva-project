@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import { createDatabase } from '@nerva/db';
-import { loadServerConfig } from '@nerva/config';
-import { apiError, apiJson, correlationId, readM03Json } from '../../../server/m03-api.ts';
+import { apiError, apiJson, parseM03Request, withM03Database } from '../../../server/m03-api.ts';
 import { hasM03TrustedIssuers } from '../../../server/m03-trust.ts';
 import { evaluateCurrentM03Policy } from '../../../server/m03-workflow.ts';
 
@@ -18,25 +16,12 @@ const RequestSchema = z
   .strict();
 
 export async function POST(request: Request) {
-  const body = await readM03Json(request);
-  const correlation = correlationId(request, body.ok ? body.value : undefined);
-  if (!body.ok)
-    return apiError(400, 'INVALID_JSON', 'A bounded JSON body is required.', correlation);
-  const parsed = RequestSchema.safeParse(body.value);
-  if (!parsed.success)
-    return apiError(
-      422,
-      'EVALUATION_REQUEST_INVALID',
-      'The policy evaluation request is invalid.',
-      correlation,
-    );
-  if (parsed.data.correlationId !== correlation)
-    return apiError(
-      400,
-      'CORRELATION_MISMATCH',
-      'The body and request correlation identifiers must match.',
-      correlation,
-    );
+  const parsed = await parseM03Request(request, RequestSchema, {
+    code: 'EVALUATION_REQUEST_INVALID',
+    message: 'The policy evaluation request is invalid.',
+  });
+  if (!parsed.ok) return parsed.response;
+  const correlation = parsed.correlationId;
   if (!hasM03TrustedIssuers())
     return apiError(
       503,
@@ -44,47 +29,42 @@ export async function POST(request: Request) {
       'No trusted actor issuer keys are configured.',
       correlation,
     );
-  const config = loadServerConfig();
-  if (!config.databaseUrl)
-    return apiError(
-      503,
-      'DATABASE_UNAVAILABLE',
-      'The current risk and policy stores are unavailable.',
-      correlation,
-    );
-  const { pool } = createDatabase(config);
-  try {
-    const result = await evaluateCurrentM03Policy({
-      pool,
-      policyValue: parsed.data.policy,
-      proofValue: parsed.data.proof,
-      now: new Date().toISOString(),
-    });
-    if (!result.ok)
-      return apiError(
-        result.status,
-        result.code,
-        'The policy evaluation was refused.',
-        correlation,
-      );
-    return apiJson({
-      schemaVersion: '0.1',
-      status: result.evaluation.result,
-      correlationId: result.evaluation.correlationId,
-      evaluation: result.evaluation,
-      policyVersionHash: result.policy.compiled.canonicalHash,
-      sourceSnapshotHash: result.risk.snapshotHash,
-      authority: 'DETERMINISTIC_RISK_ONLY',
-      safety: { executionEnabled: false },
-    });
-  } catch {
-    return apiError(
-      503,
-      'EVALUATION_PERSISTENCE_UNAVAILABLE',
-      'The evaluation could not be durably recorded.',
-      correlation,
-    );
-  } finally {
-    await pool.end();
-  }
+  return withM03Database(
+    {
+      correlationId: correlation,
+      unavailable: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'The current risk and policy stores are unavailable.',
+      },
+      failure: {
+        code: 'EVALUATION_PERSISTENCE_UNAVAILABLE',
+        message: 'The evaluation could not be durably recorded.',
+      },
+    },
+    async (pool) => {
+      const result = await evaluateCurrentM03Policy({
+        pool,
+        policyValue: parsed.data.policy,
+        proofValue: parsed.data.proof,
+        now: new Date().toISOString(),
+      });
+      if (!result.ok)
+        return apiError(
+          result.status,
+          result.code,
+          'The policy evaluation was refused.',
+          correlation,
+        );
+      return apiJson({
+        schemaVersion: '0.1',
+        status: result.evaluation.result,
+        correlationId: result.evaluation.correlationId,
+        evaluation: result.evaluation,
+        policyVersionHash: result.policy.compiled.canonicalHash,
+        sourceSnapshotHash: result.risk.snapshotHash,
+        authority: 'DETERMINISTIC_RISK_ONLY',
+        safety: { executionEnabled: false },
+      });
+    },
+  );
 }

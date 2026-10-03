@@ -60,7 +60,10 @@ if (
   )
 )
   throw new Error('Authorization and provider-enrollment proof replay is not blocked durably');
-if (!execution.includes('const provenProtectiveScopes = new Set<string>()'))
+if (
+  !execution.includes('function isDocumentedProtectiveOnlyScope') ||
+  !execution.includes('!enrollment.scopes.every(isDocumentedProtectiveOnlyScope)')
+)
   throw new Error('An undocumented provider write scope has been admitted');
 if (!execution.includes('AMBIGUOUS_PROVIDER_OUTCOME_NO_RETRY'))
   throw new Error('Ambiguous provider outcome does not require no-retry recovery');

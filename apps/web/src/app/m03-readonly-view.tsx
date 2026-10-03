@@ -101,6 +101,44 @@ function field(record: Record<string, unknown>, key: string): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : 'UNKNOWN';
 }
 
+interface DisplayField {
+  readonly label: string;
+  readonly key: string;
+  readonly code?: boolean;
+  readonly appendKey?: string;
+}
+
+function RecordEntries({
+  records,
+  keyFields,
+  fields,
+}: {
+  readonly records: readonly Record<string, unknown>[];
+  readonly keyFields: readonly string[];
+  readonly fields: readonly DisplayField[];
+}) {
+  return records.map((record, index) => (
+    <article
+      className="dashboard-card"
+      key={`${keyFields.map((key) => field(record, key)).join('-')}-${index}`}
+    >
+      <dl className="metric-list">
+        {fields.map((item) => {
+          const value = item.appendKey
+            ? `${field(record, item.key)} · ${field(record, item.appendKey)}`
+            : field(record, item.key);
+          return (
+            <div key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.code ? <code>{value}</code> : value}</dd>
+            </div>
+          );
+        })}
+      </dl>
+    </article>
+  ));
+}
+
 export function M03ReadOnlyView({
   locale,
   view,
@@ -160,146 +198,62 @@ export function M03ReadOnlyView({
         <section className="dashboard-card market-card">
           <h2>{labels.policiesSafety}</h2>
           <p>{labels.providerBlock}</p>
-          {records.map((record, index) => (
-            <article
-              className="dashboard-card"
-              key={`${field(record, 'policy_id')}-${field(record, 'version')}-${index}`}
-            >
-              <dl className="metric-list">
-                <div>
-                  <dt>{labels.policy}</dt>
-                  <dd>{field(record, 'policy_id')}</dd>
-                </div>
-                <div>
-                  <dt>{labels.version}</dt>
-                  <dd>{field(record, 'version')}</dd>
-                </div>
-                <div>
-                  <dt>{labels.environment}</dt>
-                  <dd>{field(record, 'environment')}</dd>
-                </div>
-                <div>
-                  <dt>{labels.state}</dt>
-                  <dd>{field(record, 'state')}</dd>
-                </div>
-                <div>
-                  <dt>{labels.hash}</dt>
-                  <dd>
-                    <code>{field(record, 'content_hash')}</code>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{labels.latestDecision}</dt>
-                  <dd>{field(record, 'latest_evaluation')}</dd>
-                </div>
-                <div>
-                  <dt>{labels.decisionReason}</dt>
-                  <dd>{field(record, 'latest_evaluation_reason')}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
+          <RecordEntries
+            records={records}
+            keyFields={['policy_id', 'version']}
+            fields={[
+              { label: labels.policy, key: 'policy_id' },
+              { label: labels.version, key: 'version' },
+              { label: labels.environment, key: 'environment' },
+              { label: labels.state, key: 'state' },
+              { label: labels.hash, key: 'content_hash', code: true },
+              { label: labels.latestDecision, key: 'latest_evaluation' },
+              { label: labels.decisionReason, key: 'latest_evaluation_reason' },
+            ]}
+          />
         </section>
       ) : (
         <>
           <section className="dashboard-card market-card">
             <h2>{labels.evaluations}</h2>
-            {evaluations.map((record, index) => (
-              <article
-                className="dashboard-card"
-                key={`${field(record, 'evaluation_id')}-${index}`}
-              >
-                <dl className="metric-list">
-                  <div>
-                    <dt>{labels.outcome}</dt>
-                    <dd>{field(record, 'result')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.reason}</dt>
-                    <dd>{field(record, 'reason')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.sourceSnapshot}</dt>
-                    <dd>
-                      <code>{field(record, 'snapshot_hash')}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{labels.correlation}</dt>
-                    <dd>
-                      <code>{field(record, 'correlation_id')}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{labels.time}</dt>
-                    <dd>{field(record, 'evaluated_at')}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
+            <RecordEntries
+              records={evaluations}
+              keyFields={['evaluation_id']}
+              fields={[
+                { label: labels.outcome, key: 'result' },
+                { label: labels.reason, key: 'reason' },
+                { label: labels.sourceSnapshot, key: 'snapshot_hash', code: true },
+                { label: labels.correlation, key: 'correlation_id', code: true },
+                { label: labels.time, key: 'evaluated_at' },
+              ]}
+            />
           </section>
           <section className="dashboard-card market-card">
             <h2>{labels.simulations}</h2>
-            {simulations.map((record, index) => (
-              <article
-                className="dashboard-card"
-                key={`${field(record, 'simulation_id')}-${index}`}
-              >
-                <dl className="metric-list">
-                  <div>
-                    <dt>{labels.outcome}</dt>
-                    <dd>{field(record, 'status')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.authority}</dt>
-                    <dd>{field(record, 'authority')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.plan}</dt>
-                    <dd>
-                      <code>{field(record, 'plan_digest')}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{labels.reason}</dt>
-                    <dd>
-                      {field(record, 'kind')} · {field(record, 'simulator_version')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{labels.time}</dt>
-                    <dd>{field(record, 'checked_at')}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
+            <RecordEntries
+              records={simulations}
+              keyFields={['simulation_id']}
+              fields={[
+                { label: labels.outcome, key: 'status' },
+                { label: labels.authority, key: 'authority' },
+                { label: labels.plan, key: 'plan_digest', code: true },
+                { label: labels.reason, key: 'kind', appendKey: 'simulator_version' },
+                { label: labels.time, key: 'checked_at' },
+              ]}
+            />
           </section>
           <section className="dashboard-card market-card">
             <h2>{labels.providerBlock}</h2>
-            {records.map((record, index) => (
-              <article className="dashboard-card" key={`${field(record, 'event_id')}-${index}`}>
-                <dl className="metric-list">
-                  <div>
-                    <dt>{labels.event}</dt>
-                    <dd>{field(record, 'state')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.reason}</dt>
-                    <dd>{field(record, 'reason')}</dd>
-                  </div>
-                  <div>
-                    <dt>{labels.correlation}</dt>
-                    <dd>
-                      <code>{field(record, 'correlation_id')}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{labels.time}</dt>
-                    <dd>{field(record, 'occurred_at')}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
+            <RecordEntries
+              records={records}
+              keyFields={['event_id']}
+              fields={[
+                { label: labels.event, key: 'state' },
+                { label: labels.reason, key: 'reason' },
+                { label: labels.correlation, key: 'correlation_id', code: true },
+                { label: labels.time, key: 'occurred_at' },
+              ]}
+            />
           </section>
           <section className="dashboard-card market-card">
             <h2>{labels.health}</h2>

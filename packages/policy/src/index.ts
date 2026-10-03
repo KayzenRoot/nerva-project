@@ -89,8 +89,8 @@ export async function compileM03Policy(input: unknown): Promise<PolicyCompileRes
     ),
     constraints: {
       ...parsed.data.constraints,
-      allowedProtocols: [...parsed.data.constraints.allowedProtocols].sort(),
-      allowedMarkets: [...parsed.data.constraints.allowedMarkets].sort(),
+      allowedProtocols: [...parsed.data.constraints.allowedProtocols].sort(compareCanonicalText),
+      allowedMarkets: [...parsed.data.constraints.allowedMarkets].sort(compareCanonicalText),
     },
   };
   const frozen = deepFreeze(structuredClone(normalized));
@@ -106,6 +106,10 @@ export async function compileM03Policy(input: unknown): Promise<PolicyCompileRes
   });
   compiledPolicyVersions.add(version);
   return { ok: true, policy: version, diagnostics: [] };
+}
+
+function compareCanonicalText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 export function isCompiledPolicyVersion(value: unknown): value is CompiledPolicyVersion {

@@ -89,6 +89,17 @@ export interface PerplEnrollmentVerifier {
   ): Promise<Readonly<{ issuerId: string; scopeRef: string }> | undefined>;
 }
 
+function isDocumentedProtectiveOnlyScope(scope: string): boolean {
+  // Current documented scopes are read and broad trade; unknown future scopes also fail closed.
+  switch (scope) {
+    case 'read':
+    case 'trade':
+    case 'read trade':
+    default:
+      return false;
+  }
+}
+
 export interface ProviderPreflightVerifier {
   verify(
     input: Readonly<{
@@ -330,13 +341,7 @@ export async function executeM03Testnet(input: ExecuteM03Input): Promise<Execute
     Date.parse(enrollment.expiresAt) <= now
   )
     return refuse('PERPL_ENROLLMENT_SCOPE_BINDING_INVALID');
-  // The current provider contract has no verified protective-only write scope to allowlist.
-  // This list must stay empty until current official Perpl evidence supports an exact scope.
-  const provenProtectiveScopes = new Set<string>();
-  if (
-    enrollment.scopes.length !== 1 ||
-    enrollment.scopes.some((scope) => !provenProtectiveScopes.has(scope))
-  )
+  if (enrollment.scopes.length !== 1 || !enrollment.scopes.every(isDocumentedProtectiveOnlyScope))
     return refuse('NO_DOCUMENTED_PROTECTIVE_ONLY_PERPL_SCOPE');
   const verifiedScope = await input.enrollmentVerifier.verify(enrollment, {
     accountId: input.plan.accountId,

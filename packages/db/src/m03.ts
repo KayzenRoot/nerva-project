@@ -412,17 +412,28 @@ export async function recordM03ExecutionRefusal(
     occurredAt: input.occurredAt,
   };
   const event: M03ExecutionEvent = { ...body, eventId: sha256(JSON.stringify(body)) };
+  await appendExecutionReceipt(pool, event, 'REFUSED');
+}
+
+async function appendExecutionReceipt(
+  pool: Pool,
+  event: M03ExecutionEvent,
+  outcome: 'REFUSED' | 'RECOVERY_REQUIRED',
+): Promise<void> {
+  if (event.state !== outcome)
+    throw new TypeError('M03 receipt outcome does not match event state');
   safePayload(event);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     await client.query(
       `INSERT INTO m03_execution_attempt_events (event_id,idempotency_key,plan_digest,state,reason,correlation_id,occurred_at,payload)
-       VALUES ($1,$2,$3,'REFUSED',$4,$5,$6,$7::jsonb) ON CONFLICT (event_id) DO NOTHING`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb) ON CONFLICT (event_id) DO NOTHING`,
       [
         event.eventId,
         event.idempotencyKey,
         event.planDigest,
+        outcome,
         event.reason,
         event.correlationId,
         event.occurredAt,
@@ -430,26 +441,28 @@ export async function recordM03ExecutionRefusal(
       ],
     );
     const receiptId = sha256(`${event.eventId}:receipt`);
+    const receipt = {
+      schemaVersion: '0.1',
+      receiptId,
+      idempotencyKey: event.idempotencyKey,
+      planDigest: event.planDigest,
+      outcome,
+      reason: event.reason,
+      correlationId: event.correlationId,
+      createdAt: event.occurredAt,
+    };
     await client.query(
       `INSERT INTO m03_execution_receipts (receipt_id,idempotency_key,plan_digest,outcome,reason,correlation_id,created_at,payload)
-       VALUES ($1,$2,$3,'REFUSED',$4,$5,$6,$7::jsonb) ON CONFLICT (receipt_id) DO NOTHING`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb) ON CONFLICT (receipt_id) DO NOTHING`,
       [
         receiptId,
         event.idempotencyKey,
         event.planDigest,
+        outcome,
         event.reason,
         event.correlationId,
         event.occurredAt,
-        JSON.stringify({
-          schemaVersion: '0.1',
-          receiptId,
-          idempotencyKey: event.idempotencyKey,
-          planDigest: event.planDigest,
-          outcome: 'REFUSED',
-          reason: event.reason,
-          correlationId: event.correlationId,
-          createdAt: event.occurredAt,
-        }),
+        JSON.stringify(receipt),
       ],
     );
     await client.query('COMMIT');
@@ -486,53 +499,7 @@ export async function recordM03ExecutionRecoveryRequired(
     ...body,
     eventId: sha256(`${input.attemptEventId}:reconcile-unavailable`),
   };
-  safePayload(event);
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO m03_execution_attempt_events (event_id,idempotency_key,plan_digest,state,reason,correlation_id,occurred_at,payload)
-       VALUES ($1,$2,$3,'RECOVERY_REQUIRED',$4,$5,$6,$7::jsonb) ON CONFLICT (event_id) DO NOTHING`,
-      [
-        event.eventId,
-        event.idempotencyKey,
-        event.planDigest,
-        event.reason,
-        event.correlationId,
-        event.occurredAt,
-        JSON.stringify(event),
-      ],
-    );
-    const receiptId = sha256(`${event.eventId}:receipt`);
-    await client.query(
-      `INSERT INTO m03_execution_receipts (receipt_id,idempotency_key,plan_digest,outcome,reason,correlation_id,created_at,payload)
-       VALUES ($1,$2,$3,'RECOVERY_REQUIRED',$4,$5,$6,$7::jsonb) ON CONFLICT (receipt_id) DO NOTHING`,
-      [
-        receiptId,
-        event.idempotencyKey,
-        event.planDigest,
-        event.reason,
-        event.correlationId,
-        event.occurredAt,
-        JSON.stringify({
-          schemaVersion: '0.1',
-          receiptId,
-          idempotencyKey: event.idempotencyKey,
-          planDigest: event.planDigest,
-          outcome: 'RECOVERY_REQUIRED',
-          reason: event.reason,
-          correlationId: event.correlationId,
-          createdAt: event.occurredAt,
-        }),
-      ],
-    );
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+  await appendExecutionReceipt(pool, event, 'RECOVERY_REQUIRED');
 }
 
 export async function appendM03DryRun(pool: Pool, simulation: M03DryRunSimulation): Promise<void> {
