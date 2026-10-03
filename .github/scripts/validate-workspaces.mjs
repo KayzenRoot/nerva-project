@@ -16,6 +16,7 @@ const expectedPaths = [
   'packages/risk',
   'packages/policy',
   'packages/execution',
+  'packages/permissions',
 ];
 if (
   JSON.stringify([...rootManifest.workspaces].sort()) !== JSON.stringify([...expectedPaths].sort())
@@ -58,12 +59,13 @@ for (const [name, { workspace, manifest }] of manifests) {
       'packages/contracts': ['@nerva/domain'],
       'packages/config': ['@nerva/domain'],
       'packages/observability': ['@nerva/domain'],
-      'packages/db': ['@nerva/domain', '@nerva/config'],
+      'packages/db': ['@nerva/domain', '@nerva/config', '@nerva/permissions'],
       'packages/testing': ['@nerva/domain', '@nerva/contracts'],
       'packages/perpl': ['@nerva/domain'],
       'packages/risk': ['@nerva/domain'],
       'packages/policy': ['@nerva/domain', '@nerva/contracts'],
       'packages/execution': ['@nerva/domain', '@nerva/contracts', '@nerva/policy'],
+      'packages/permissions': ['@nerva/domain'],
     }[workspace];
     for (const dep of internal)
       if (!allowed.includes(dep)) throw new Error(`${workspace} may not depend on ${dep}`);

@@ -544,6 +544,340 @@ export const m03ExecutionReceipts = pgTable(
   ],
 );
 
+export const m04WalletBindings = pgTable(
+  'm04_wallet_bindings',
+  {
+    bindingId: text('binding_id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    chainId: integer('chain_id').notNull(),
+    network: text('network').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    providerId: text('provider_id').notNull(),
+    eventType: text('event_type').notNull(),
+    generation: integer('generation').notNull(),
+    provenanceHash: text('provenance_hash').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_wallet_binding_generation_uq').on(
+      table.chainId,
+      table.walletAddress,
+      table.generation,
+    ),
+    uniqueIndex('m04_wallet_binding_account_generation_uq').on(
+      table.chainId,
+      table.accountId,
+      table.generation,
+    ),
+    check('m04_wallet_binding_chain_ck', sql`${table.chainId} = 10143`),
+    check('m04_wallet_binding_network_ck', sql`${table.network} = 'monad-testnet'`),
+    check('m04_wallet_binding_provider_ck', sql`${table.providerId} = 'eip712-compatible-wallet'`),
+    check('m04_wallet_binding_event_ck', sql`${table.eventType} in ('BOUND','UNBOUND')`),
+    check('m04_wallet_binding_generation_ck', sql`${table.generation} > 0`),
+    check('m04_wallet_binding_provenance_ck', sql`${table.provenanceHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m04AgentIdentities = pgTable(
+  'm04_agent_identities',
+  {
+    agentIdentityId: text('agent_identity_id').primaryKey(),
+    agentId: text('agent_id').notNull(),
+    version: integer('version').notNull(),
+    issuerId: text('issuer_id').notNull(),
+    provenanceHash: text('provenance_hash').notNull(),
+    chainId: integer('chain_id').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_agent_identity_version_uq').on(table.agentId, table.version),
+    check('m04_agent_identity_version_ck', sql`${table.version} > 0`),
+    check('m04_agent_identity_chain_ck', sql`${table.chainId} = 10143`),
+    check('m04_agent_identity_provenance_ck', sql`${table.provenanceHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m04CapabilityGrants = pgTable(
+  'm04_capability_grants',
+  {
+    grantId: text('grant_id').primaryKey(),
+    grantHash: text('grant_hash').notNull(),
+    accountId: text('account_id').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    agentId: text('agent_id').notNull(),
+    agentVersion: integer('agent_version').notNull(),
+    chainId: integer('chain_id').notNull(),
+    policyHash: text('policy_hash').notNull(),
+    scope: jsonb('scope').notNull(),
+    actions: jsonb('actions').notNull(),
+    limits: jsonb('limits').notNull(),
+    grantDocument: jsonb('grant_document').notNull(),
+    nonceDomainHash: text('nonce_domain_hash').notNull(),
+    delegationObservationHash: text('delegation_observation_hash').notNull(),
+    grantApprovalRefHash: text('grant_approval_ref_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_capability_grant_hash_uq').on(table.grantHash),
+    uniqueIndex('m04_capability_nonce_domain_uq').on(table.nonceDomainHash),
+    check('m04_capability_grant_chain_ck', sql`${table.chainId} = 10143`),
+    check('m04_capability_grant_action_ck', sql`jsonb_typeof(${table.actions}) = 'array'`),
+    check('m04_capability_grant_limits_ck', sql`jsonb_typeof(${table.limits}) = 'object'`),
+    check('m04_capability_grant_scope_ck', sql`jsonb_typeof(${table.scope}) = 'object'`),
+    check('m04_capability_grant_expiry_ck', sql`${table.expiresAt} > ${table.createdAt}`),
+    check('m04_capability_grant_hash_ck', sql`${table.grantHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_capability_policy_hash_ck', sql`${table.policyHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_capability_nonce_domain_hash_ck', sql`${table.nonceDomainHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm04_capability_delegate_observation_ck',
+      sql`${table.delegationObservationHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'm04_capability_grant_approval_ck',
+      sql`${table.grantApprovalRefHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const m04AuthorityStates = pgTable(
+  'm04_authority_states',
+  {
+    grantId: text('grant_id')
+      .primaryKey()
+      .references(() => m04CapabilityGrants.grantId),
+    generation: integer('generation').notNull().default(0),
+    revoked: boolean('revoked').notNull().default(false),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [check('m04_authority_generation_ck', sql`${table.generation} >= 0`)],
+);
+
+export const m04Sessions = pgTable(
+  'm04_sessions',
+  {
+    sessionId: text('session_id').primaryKey(),
+    grantId: text('grant_id')
+      .notNull()
+      .references(() => m04CapabilityGrants.grantId),
+    sessionHash: text('session_hash').notNull(),
+    nonceDomainHash: text('nonce_domain_hash').notNull(),
+    actions: jsonb('actions').notNull(),
+    limits: jsonb('limits').notNull(),
+    issuanceProofRefHash: text('issuance_proof_ref_hash'),
+    issuanceTypedDataDigest: text('issuance_typed_data_digest'),
+    issuanceNonceHash: text('issuance_nonce_hash'),
+    revocationGeneration: integer('revocation_generation'),
+    delegationObservationHash: text('delegation_observation_hash'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_session_hash_uq').on(table.sessionHash),
+    uniqueIndex('m04_session_nonce_domain_uq').on(table.nonceDomainHash),
+    check('m04_session_hash_ck', sql`${table.sessionHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_session_domain_hash_ck', sql`${table.nonceDomainHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_session_expiry_ck', sql`${table.expiresAt} > ${table.createdAt}`),
+    check('m04_session_actions_ck', sql`jsonb_typeof(${table.actions}) = 'array'`),
+    check('m04_session_limits_ck', sql`jsonb_typeof(${table.limits}) = 'object'`),
+    check(
+      'm04_session_issuance_proof_hash_ck',
+      sql`${table.issuanceProofRefHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      'm04_session_issuance_typed_hash_ck',
+      sql`${table.issuanceTypedDataDigest} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('m04_session_issuance_nonce_hash_ck', sql`${table.issuanceNonceHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_session_revocation_generation_ck', sql`${table.revocationGeneration} >= 0`),
+    check(
+      'm04_session_delegation_hash_ck',
+      sql`${table.delegationObservationHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const m04SessionRevocations = pgTable(
+  'm04_session_revocations',
+  {
+    sessionId: text('session_id')
+      .primaryKey()
+      .references(() => m04Sessions.sessionId),
+    generation: integer('generation').notNull(),
+    actorRef: text('actor_ref').notNull(),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    nonceHash: text('nonce_hash').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_session_revocation_generation_uq').on(table.sessionId, table.generation),
+    check('m04_session_revocation_generation_ck', sql`${table.generation} = 1`),
+    check('m04_session_revocation_actor_ck', sql`${table.actorRef} <> ''`),
+    check('m04_session_revocation_proof_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_session_revocation_nonce_ck', sql`${table.nonceHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m04NonceLedger = pgTable(
+  'm04_nonce_ledger',
+  {
+    nonceHash: text('nonce_hash').primaryKey(),
+    chainId: integer('chain_id').notNull(),
+    accountId: text('account_id').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    agentId: text('agent_id').notNull(),
+    grantId: text('grant_id').references(() => m04CapabilityGrants.grantId),
+    operation: text('operation').notNull(),
+    domainHash: text('domain_hash').notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('m04_nonce_chain_ck', sql`${table.chainId} = 10143`),
+    check(
+      'm04_nonce_operation_ck',
+      sql`${table.operation} in ('WALLET_BINDING','AGENT_IDENTITY','GRANT_APPROVAL','AUTHORIZATION','SESSION','REVOCATION','READ_ACCESS')`,
+    ),
+    check(
+      'm04_nonce_grant_ck',
+      sql`${table.operation} in ('WALLET_BINDING','AGENT_IDENTITY','GRANT_APPROVAL','READ_ACCESS') or ${table.grantId} is not null`,
+    ),
+    check('m04_nonce_hash_ck', sql`${table.nonceHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_nonce_domain_hash_ck', sql`${table.domainHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m04AuthorizationRefs = pgTable(
+  'm04_authorization_refs',
+  {
+    authorizationRef: text('authorization_ref').primaryKey(),
+    grantId: text('grant_id')
+      .notNull()
+      .references(() => m04CapabilityGrants.grantId),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    typedDataDigest: text('typed_data_digest').notNull(),
+    authorizationNonceHash: text('authorization_nonce_hash'),
+    planDigest: text('plan_digest').notNull(),
+    action: text('action').notNull(),
+    verifiedSigner: text('verified_signer').notNull(),
+    sessionId: text('session_id').references(() => m04Sessions.sessionId),
+    sessionHash: text('session_hash'),
+    revocationGeneration: integer('revocation_generation').notNull(),
+    delegationObservationHash: text('delegation_observation_hash').notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_authorization_digest_uq').on(table.typedDataDigest),
+    check(
+      'm04_authorization_action_ck',
+      sql`${table.action} in ('REDUCE_POSITION','CLOSE_POSITION','NO_ACTION')`,
+    ),
+    check('m04_authorization_proof_hash_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_authorization_typed_hash_ck', sql`${table.typedDataDigest} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm04_authorization_nonce_hash_ck',
+      sql`${table.authorizationNonceHash} is null or ${table.authorizationNonceHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check('m04_authorization_plan_hash_ck', sql`${table.planDigest} ~ '^[0-9a-f]{64}$'`),
+    check('m04_authorization_generation_ck', sql`${table.revocationGeneration} >= 0`),
+    check(
+      'm04_authorization_session_pair_ck',
+      sql`(${table.sessionId} is null and ${table.sessionHash} is null) or (${table.sessionId} is not null and ${table.sessionHash} ~ '^[0-9a-f]{64}$')`,
+    ),
+    check(
+      'm04_authorization_delegation_hash_ck',
+      sql`${table.delegationObservationHash} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export const m04DelegationObservations = pgTable(
+  'm04_delegation_observations',
+  {
+    observationId: text('observation_id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    walletAddress: text('wallet_address').notNull(),
+    chainId: integer('chain_id').notNull(),
+    status: text('status').notNull(),
+    delegateAddress: text('delegate_address'),
+    delegateCodeHash: text('delegate_code_hash'),
+    blockNumber: text('block_number'),
+    blockHash: text('block_hash'),
+    observationHash: text('observation_hash').notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index('m04_delegation_account_idx').on(table.chainId, table.walletAddress, table.observedAt),
+    check('m04_delegation_chain_ck', sql`${table.chainId} = 10143`),
+    check(
+      'm04_delegation_status_ck',
+      sql`${table.status} in ('ABSENT','ACTIVE','CHANGED','REVOKED','UNKNOWN')`,
+    ),
+    check('m04_delegation_observation_hash_ck', sql`${table.observationHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      'm04_delegation_active_ck',
+      sql`${table.status} <> 'ACTIVE' or (${table.delegateAddress} is not null and ${table.delegateCodeHash} ~ '^[0-9a-f]{64}$' and ${table.blockHash} ~ '^0x[0-9a-f]{64}$')`,
+    ),
+  ],
+);
+
+export const m04Revocations = pgTable(
+  'm04_revocations',
+  {
+    revocationId: text('revocation_id').primaryKey(),
+    grantId: text('grant_id')
+      .notNull()
+      .references(() => m04CapabilityGrants.grantId),
+    generation: integer('generation').notNull(),
+    actorRef: text('actor_ref').notNull(),
+    reasonCode: text('reason_code').notNull(),
+    proofRefHash: text('proof_ref_hash').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_revocation_generation_uq').on(table.grantId, table.generation),
+    check('m04_revocation_generation_ck', sql`${table.generation} > 0`),
+    check('m04_revocation_reason_ck', sql`${table.reasonCode} ~ '^[A-Z0-9_]{1,100}$'`),
+    check('m04_revocation_proof_hash_ck', sql`${table.proofRefHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
+export const m04PermissionEvidence = pgTable(
+  'm04_permission_evidence',
+  {
+    sequence: integer('sequence').primaryKey(),
+    eventId: text('event_id').notNull(),
+    previousHash: text('previous_hash').notNull(),
+    entryHash: text('entry_hash').notNull(),
+    event: jsonb('event').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    uniqueIndex('m04_permission_evidence_id_uq').on(table.eventId),
+    uniqueIndex('m04_permission_evidence_hash_uq').on(table.entryHash),
+    check('m04_permission_evidence_previous_ck', sql`${table.previousHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_permission_evidence_entry_ck', sql`${table.entryHash} ~ '^[0-9a-f]{64}$'`),
+    check('m04_permission_evidence_event_ck', sql`jsonb_typeof(${table.event}) = 'object'`),
+  ],
+);
+
+export const m04PermissionEvidenceHead = pgTable(
+  'm04_permission_evidence_head',
+  {
+    singleton: boolean('singleton').primaryKey().default(true),
+    lastSequence: integer('last_sequence').notNull().default(0),
+    lastHash: text('last_hash')
+      .notNull()
+      .default('0000000000000000000000000000000000000000000000000000000000000000'),
+  },
+  (table) => [
+    check('m04_permission_evidence_singleton_ck', sql`${table.singleton} = true`),
+    check('m04_permission_evidence_sequence_ck', sql`${table.lastSequence} >= 0`),
+    check('m04_permission_evidence_head_hash_ck', sql`${table.lastHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
 export const schema = {
   policies,
   policyVersions,
@@ -567,4 +901,16 @@ export const schema = {
   m03ExecutionIdempotency,
   m03ExecutionAttemptEvents,
   m03ExecutionReceipts,
+  m04WalletBindings,
+  m04AgentIdentities,
+  m04CapabilityGrants,
+  m04AuthorityStates,
+  m04Sessions,
+  m04SessionRevocations,
+  m04NonceLedger,
+  m04AuthorizationRefs,
+  m04DelegationObservations,
+  m04Revocations,
+  m04PermissionEvidence,
+  m04PermissionEvidenceHead,
 };

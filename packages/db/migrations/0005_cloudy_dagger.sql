@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "m04_wallet_binding_account_generation_uq" ON "m04_wallet_bindings" USING btree ("chain_id","account_id","generation");

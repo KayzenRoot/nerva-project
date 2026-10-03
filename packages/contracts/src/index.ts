@@ -367,6 +367,219 @@ export const M03ExecutionAuthorizationProofSchema = z
     'Authorization scope must contain only the exact action',
   );
 
+export const M04WalletBindingRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    accountId: z.string().trim().min(1).max(200),
+    address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    chainId: z.literal(10_143),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04AgentRegistrationRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    agentId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    version: z.number().int().min(1).max(2_147_483_647),
+    issuer: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    keyId: z.string().trim().min(1).max(200),
+    walletAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    chainId: z.literal(10_143),
+    issuedAt: z.iso.datetime({ offset: true }),
+    expiresAt: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z.string().min(32).max(2_048),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04GrantRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    grantId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    agentId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    agentVersion: z.number().int().min(1).max(2_147_483_647),
+    policyHash: z.string().regex(/^[0-9a-f]{64}$/),
+    scope: z
+      .object({
+        positionId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+        marketSelector: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,79}$/),
+      })
+      .strict(),
+    actions: z
+      .array(z.enum(['REDUCE_POSITION', 'CLOSE_POSITION', 'NO_ACTION']))
+      .min(1)
+      .max(3),
+    limits: z
+      .object({
+        maxActionFractionBps: z.number().int().min(1).max(10_000),
+        maxNotionalMicros: z.string().regex(/^[1-9][0-9]{0,37}$/),
+        maxSlippageBps: z.number().int().min(0).max(2_000),
+      })
+      .strict(),
+    issuedAt: z.iso.datetime({ offset: true }),
+    expiresAt: z.iso.datetime({ offset: true }),
+    authorizationExpiresAt: z.iso.datetime({ offset: true }),
+    nonceDomain: z.string().regex(/^nerva:[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/),
+    revocationGeneration: z.number().int().min(0).max(2_147_483_647),
+    delegationObservationHash: z.string().regex(/^[0-9a-f]{64}$/),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04AuthorizationRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    grantId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    authority: z.enum(['grant', 'session']).default('grant'),
+    sessionId: z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/)
+      .optional(),
+    sessionHash: z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .optional(),
+    planDigest: z.string().regex(/^[0-9a-f]{64}$/),
+    action: z.enum(['REDUCE_POSITION', 'CLOSE_POSITION', 'NO_ACTION']),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      (value.authority === 'session' && (!value.sessionId || !value.sessionHash)) ||
+      (value.authority === 'grant' &&
+        (value.sessionId !== undefined || value.sessionHash !== undefined))
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'Authority selector must bind one exact grant or session.',
+      });
+  });
+
+export const M04DelegationObserveRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    accountId: z.string().trim().min(1).max(200),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04ReadModelChallengeRequestSchema = z
+  .object({
+    accountId: z.string().trim().min(1).max(200),
+    address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04ReadModelRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    accountId: z.string().trim().min(1).max(200),
+    address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    chainId: z.literal(10_143),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04SessionRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    grantId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    sessionId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    actions: z
+      .array(z.enum(['REDUCE_POSITION', 'CLOSE_POSITION', 'NO_ACTION']))
+      .min(1)
+      .max(3),
+    maxActionFractionBps: z.number().int().min(1).max(10_000),
+    maxNotionalMicros: z.string().regex(/^[1-9][0-9]{0,37}$/),
+    maxSlippageBps: z.number().int().min(0).max(2_000),
+    expiresAt: z.iso.datetime({ offset: true }),
+    nonceDomain: z.string().regex(/^nerva:[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04SessionRevocationRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    sessionId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04GrantRevocationRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    grantId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/),
+    reasonCode: z.enum(['USER_REVOKED', 'POLICY_CHANGED', 'SCOPE_RETIRED']),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
+export const M04WalletUnbindingRequestSchema = z
+  .object({
+    schemaVersion: z.literal('0.1'),
+    accountId: z.string().trim().min(1).max(200),
+    address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+    chainId: z.literal(10_143),
+    bindingGeneration: z.number().int().min(1).max(2_147_483_647),
+    issuedAt: z.iso.datetime({ offset: true }),
+    validUntil: z.iso.datetime({ offset: true }),
+    nonce: z.string().regex(/^0x[0-9a-f]{64}$/),
+    signature: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{130}$/)
+      .optional(),
+    correlationId: z.string().trim().min(1).max(200),
+  })
+  .strict();
+
 export const M03ProviderEnrollmentEvidenceSchemaV0_1 = z
   .object({
     schemaVersion: z.literal('0.1'),

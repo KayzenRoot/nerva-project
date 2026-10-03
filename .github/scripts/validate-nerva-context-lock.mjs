@@ -1,6 +1,174 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
+const m04LockPath = '.engineering/context-locks/NERVA-WO-005.json';
+if (fs.existsSync(m04LockPath)) {
+  const lock = JSON.parse(fs.readFileSync(m04LockPath, 'utf8'));
+  const base = 'd13629e0dc2d66c4f8b2e512b82ce0d11aec1a93';
+  const auditedHead = '070badfa79323328b11840c4eb6c0326d31e2637';
+  const expectedBranch = 'feat/nerva-wo-005-m04-agent-wallet-permissions-evidence';
+  const gitCandidates =
+    process.platform === 'win32'
+      ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
+      : [
+          '/usr/bin/git',
+          '/bin/git',
+          '/usr/local/bin/git',
+          '/opt/homebrew/bin/git',
+          '/opt/local/bin/git',
+        ];
+  const gitExecutable = gitCandidates.find((candidate) => fs.existsSync(candidate));
+  if (!gitExecutable) {
+    throw new Error('NERVA-WO-005 validation requires Git in a trusted system directory');
+  }
+
+  const git = (args) => execFileSync(gitExecutable, args, { encoding: 'utf8' }).trim();
+  const blobAt = (ref, file) => git(['rev-parse', '--verify', `${ref}:${file}`]);
+
+  if (
+    lock.kind !== 'nerva.context-lock' ||
+    lock.workOrder !== 'NERVA-WO-005' ||
+    lock.module !== 'M04' ||
+    lock.status !== 'LOCKED' ||
+    lock.executionBase !== base ||
+    lock.executionBranch !== expectedBranch ||
+    lock.issueNumber !== 13 ||
+    lock.repository !== 'KayzenRoot/nerva-project' ||
+    lock.gef !== '@gef-bootstrap/cli@1.1.2'
+  ) {
+    throw new Error('NERVA-WO-005 Context Lock identity/base mismatch');
+  }
+
+  const fingerprints = Object.entries(lock.criticalInputs ?? {});
+  if (fingerprints.length !== 64) {
+    throw new Error('NERVA-WO-005 fingerprint count mismatch');
+  }
+  for (const [file, expectedBlob] of fingerprints) {
+    if (blobAt(base, file) !== expectedBlob) {
+      throw new Error(`NERVA-WO-005 base fingerprint mismatch for ${file}`);
+    }
+  }
+
+  const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
+  if (
+    checkpoint.m03Status !== 'APPROVED' ||
+    checkpoint.m04Status !== 'APPROVED' ||
+    checkpoint.activeNextModule !== 'M05' ||
+    checkpoint.nextModuleWorkOrder !== 'NOT_ADMITTED' ||
+    checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-005' ||
+    checkpoint.runtimeProductCode !== 'M04_AGENT_WALLET_BOUNDED_PERMISSIONS_VERIFIABLE_EVIDENCE' ||
+    checkpoint.knownCritical !== 0 ||
+    checkpoint.knownHigh !== 0
+  ) {
+    throw new Error('Checkpoint is not the approved M04 promotion state');
+  }
+
+  const event = process.env.GITHUB_EVENT_NAME ?? 'local';
+  const head = git(['rev-parse', 'HEAD']);
+  const main = git(['rev-parse', 'origin/main']);
+  const branch = process.env.GITHUB_HEAD_REF || git(['branch', '--show-current']);
+
+  const allowedPromotionPaths = new Set([
+    '.engineering/BACKLOG.md',
+    '.engineering/CHECKPOINT.json',
+    '.engineering/CHECKPOINT.md',
+    '.engineering/SOURCE-HIERARCHY.md',
+    '.engineering/checkpoint-deltas/NERVA-WO-005-PROPOSED.md',
+    '.engineering/evidence/NERVA-WO-005-EVIDENCE.md',
+    '.github/scripts/validate-nerva-context-lock.mjs',
+    '.github/scripts/validate-source-pack.mjs',
+    'README.md',
+  ]);
+
+  const assertPromotionOnly = (from, to) => {
+    const changed = git(['diff', '--name-only', `${from}..${to}`])
+      .split(/\r?\n/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const forbidden = changed.filter((file) => !allowedPromotionPaths.has(file));
+    if (forbidden.length > 0) {
+      throw new Error(
+        `Post-audit M04 promotion contains non-promotion paths: ${forbidden.join(', ')}`,
+      );
+    }
+    return changed;
+  };
+
+  const mainPush =
+    event === 'push' &&
+    process.env.GITHUB_REF === 'refs/heads/main' &&
+    main === head &&
+    main !== base;
+
+  if (mainPush) {
+    if (git(['rev-parse', 'HEAD^']) !== base) {
+      throw new Error('M04 squash merge parent does not match the accepted M03 baseline');
+    }
+    const changed = assertPromotionOnly(auditedHead, 'HEAD');
+    if (changed.length === 0) {
+      throw new Error('M04 post-merge tree lacks promotion delta');
+    }
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        mergedHead: head,
+        criticalFingerprints: fingerprints.length,
+        promotionFiles: changed.length,
+        state: 'M04_POST_MERGE_CONTEXT_LOCK_HISTORICAL',
+      }),
+    );
+    process.exit(0);
+  }
+
+  if (main === base && branch === expectedBranch) {
+    git(['merge-base', '--is-ancestor', auditedHead, 'HEAD']);
+    const changed = assertPromotionOnly(auditedHead, 'HEAD');
+    if (changed.length === 0) {
+      throw new Error('No M04 promotion delta is present');
+    }
+    const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-005-EVIDENCE.md', 'utf8');
+    if (!evidence.includes(auditedHead) || !evidence.includes('Verdict: `APPROVED`')) {
+      throw new Error('M04 audit receipt is missing from the Evidence Bundle');
+    }
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        head,
+        branch,
+        criticalFingerprints: fingerprints.length,
+        promotionFiles: changed.length,
+        state: 'M04_PROMOTION_ONLY_AFTER_APPROVED_AUDIT',
+      }),
+    );
+    process.exit(0);
+  }
+
+  if (main !== base) {
+    git(['merge-base', '--is-ancestor', base, main]);
+    console.log(
+      JSON.stringify({
+        ok: true,
+        executionBase: base,
+        auditedHead,
+        currentMain: main,
+        head,
+        branch,
+        criticalFingerprints: fingerprints.length,
+        state: 'M04_CONTEXT_LOCK_HISTORICAL',
+      }),
+    );
+    process.exit(0);
+  }
+
+  throw new Error(
+    `NERVA-WO-005 validator is not valid for event=${event} branch=${branch} main=${main}`,
+  );
+}
+
 const m03LockPath = '.engineering/context-locks/NERVA-WO-004.json';
 if (fs.existsSync(m03LockPath)) {
   const lock = JSON.parse(fs.readFileSync(m03LockPath, 'utf8'));

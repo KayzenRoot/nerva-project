@@ -3,6 +3,35 @@ import { eq } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { ServerConfig } from '@nerva/config';
 import { schema } from './schema.ts';
+export {
+  appendM04PermissionEvidence,
+  consumeM04ReadAccess,
+  consumeM04Nonce,
+  listM04PermissionReadModel,
+  isM04WalletBound,
+  latestM04DelegationObservation,
+  listM04PermissionEvidence,
+  loadM04CompiledGrant,
+  loadM04SessionAuthority,
+  loadCurrentM04Wallet,
+  loadCurrentM04Identities,
+  loadCurrentM04IdentitiesByAgent,
+  loadM04GrantMaterial,
+  loadM04SessionForRevocation,
+  persistM04Authorization,
+  persistM04DelegationObservation,
+  persistM04CapabilityGrant,
+  persistM04Session,
+  recordM04AgentIdentity,
+  recordM04WalletBinding,
+  unbindM04Wallet,
+  recordM04M03BoundaryDecision,
+  revokeM04Grant,
+  revokeM04Session,
+  runWithCurrentM04Authority,
+  validateM04AuthorizationRef,
+  verifyM04PermissionEvidence,
+} from './m04.ts';
 
 export {
   schema,
@@ -28,7 +57,27 @@ export {
   m03ExecutionIdempotency,
   m03ExecutionAttemptEvents,
   m03ExecutionReceipts,
+  m04WalletBindings,
+  m04AgentIdentities,
+  m04CapabilityGrants,
+  m04AuthorityStates,
+  m04Sessions,
+  m04SessionRevocations,
+  m04NonceLedger,
+  m04AuthorizationRefs,
+  m04DelegationObservations,
+  m04Revocations,
+  m04PermissionEvidence,
+  m04PermissionEvidenceHead,
 } from './schema.ts';
+export type {
+  WalletIdentity,
+  AgentIdentity,
+  PermissionEvidenceInput,
+  PermissionEvidenceRecord,
+  CompiledCapabilityGrant,
+  SessionAuthority,
+} from '@nerva/permissions';
 export {
   appendIntegrationHealth,
   appendMarketSnapshot,

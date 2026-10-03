@@ -1,6 +1,6 @@
 # NERVA Source Hierarchy
 
-Status: CANONICAL — NERVA-WO-004
+Status: CANONICAL — NERVA-WO-005
 
 When sources disagree, use this order:
 1. `.engineering/CHECKPOINT.md`
@@ -27,10 +27,11 @@ Git, code, tests, deployed artifacts and objective provider evidence override co
 ## Current bindings
 - Repository: `KayzenRoot/nerva-project`
 - GEF: `@gef-bootstrap/cli@1.1.2`
-- Last approved Work Order: `NERVA-WO-004`
+- Last approved Work Order: `NERVA-WO-005`
 - M00: APPROVED
 - M01: APPROVED
 - M02: APPROVED
 - M03: APPROVED
-- Runtime: M03 POLICY + SIMULATION + CLOSED EFFECT BOUNDARY
-- Next implementation module: M04 — Work Order NOT_ADMITTED
+- M04: APPROVED
+- Runtime: M04 AGENT WALLET + BOUNDED PERMISSIONS + VERIFIABLE EVIDENCE
+- Next implementation module: M05 — Work Order NOT_ADMITTED

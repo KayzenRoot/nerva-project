@@ -2,6 +2,8 @@ import {
   readM03ExecutionReadModel,
   recordM03ExecutionRecoveryRequired,
   consumeM03Nonce,
+  validateM04AuthorizationRef,
+  recordM04M03BoundaryDecision,
 } from '@nerva/db';
 import {
   apiError,
@@ -64,6 +66,25 @@ export async function POST(
         [parsed.data.planDigest, parsed.data.idempotencyKey],
       );
       const plan = planResult.rows[0];
+      const m04AuthorizationValid = plan
+        ? await validateM04AuthorizationRef(pool, {
+            authorizationRef: parsed.data.m04AuthorizationRef,
+            planDigest: parsed.data.planDigest,
+            action: plan.action,
+            now: new Date().toISOString(),
+            agentId:
+              typeof plan.policy_payload.createdByActorRef === 'string'
+                ? plan.policy_payload.createdByActorRef
+                : undefined,
+          })
+        : false;
+      if (!m04AuthorizationValid)
+        return apiError(
+          409,
+          'M04_AUTHORIZATION_INVALID_OR_REVOKED',
+          'Recovery requires a current M04 authorization bound to the exact plan.',
+          correlation,
+        );
       const proof = parsed.data.authorizationProof;
       const now = new Date().toISOString();
       const actorId = plan?.policy_payload.createdByActorRef;
@@ -150,6 +171,14 @@ export async function POST(
         planDigest: parsed.data.planDigest,
         correlationId: correlation,
         occurredAt: new Date().toISOString(),
+      });
+      await recordM04M03BoundaryDecision(pool, {
+        planDigest: parsed.data.planDigest,
+        authorizationRefHash: parsed.data.m04AuthorizationRef,
+        correlationId: correlation,
+        occurredAt: new Date().toISOString(),
+        result: 'REFUSED',
+        reasonCode: 'RECOVERY_READ_ONLY_NO_RETRY',
       });
       return apiJson(
         {
