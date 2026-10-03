@@ -11,8 +11,11 @@ const gitExecutable =
   process.platform === 'win32'
     ? 'C:\\Program Files\\Git\\cmd\\git.exe'
     : '/usr/bin/git';
+
 if (!fs.existsSync(gitExecutable)) {
-  throw new Error('M05 admission validation requires Git at the trusted system path');
+  throw new Error(
+    'M05 admission validation requires Git at the trusted system path',
+  );
 }
 
 const git = (...args) => {
@@ -44,6 +47,7 @@ const fingerprints = Object.entries(lock.criticalInputs ?? {});
 if (fingerprints.length !== 89) {
   throw new Error('M05 Context Lock must contain 89 fingerprints');
 }
+
 for (const [path, sha] of fingerprints) {
   if (git('rev-parse', '--verify', `${lock.executionBase}:${path}`) !== sha) {
     throw new Error(`M05 Context Lock fingerprint mismatch: ${path}`);
@@ -58,7 +62,9 @@ if (
   checkpoint.knownCritical !== 0 ||
   checkpoint.knownHigh !== 0
 ) {
-  throw new Error('Canonical checkpoint does not admit M05 planning/execution package');
+  throw new Error(
+    'Canonical checkpoint does not admit M05 planning/execution package',
+  );
 }
 
 if (git('rev-parse', 'origin/main') !== lock.executionBase) {
@@ -70,6 +76,7 @@ const branchName =
   (process.env.GITHUB_REF?.startsWith('refs/heads/')
     ? process.env.GITHUB_REF.slice('refs/heads/'.length)
     : git('branch', '--show-current'));
+
 if (branchName !== lock.executionBranch) {
   throw new Error(`Unexpected M05 branch: ${branchName}`);
 }
@@ -82,9 +89,11 @@ const allowed = new Set([
   '.github/scripts/validate-m05-admission.mjs',
   'package.json',
 ]);
+
 const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .split(/\r?\n/)
   .filter(Boolean);
+
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
   throw new Error(
@@ -92,7 +101,10 @@ if (foreign.length > 0) {
   );
 }
 
-const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
+const wo = fs.readFileSync(
+  '.engineering/work-orders/NERVA-WO-006.md',
+  'utf8',
+);
 const brief = fs.readFileSync(
   '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
   'utf8',
@@ -101,6 +113,7 @@ const evidence = fs.readFileSync(
   '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
   'utf8',
 );
+
 const requiredSections = [
   'OBJECTIVE',
   'CONTEXT',
@@ -116,17 +129,21 @@ const requiredSections = [
   'REVIEW FORMAT',
   'STOP CONDITION',
 ];
+
 for (const section of requiredSections) {
   if (!wo.includes(`## ${section}`)) {
     throw new Error(`WO-006 missing section: ${section}`);
   }
 }
+
 if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
   throw new Error('WO-006 stop marker missing');
 }
+
 if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
   throw new Error('M05 brief stop marker missing');
 }
+
 if (!evidence.includes('EXECUTION_NOT_STARTED')) {
   throw new Error('M05 evidence must remain scaffold-only at admission');
 }
