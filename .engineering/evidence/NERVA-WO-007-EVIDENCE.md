@@ -175,3 +175,14 @@ The Supabase security advisor reports **RLS disabled on all 34 tables in the exp
 The security advisor also reports six WARN findings for mutable function `search_path`.
 
 No final deployment/database readiness or M06 approval may be claimed until the RLS exposure is explicitly dispositioned and the Vercel runtime database connection is established without weakening the fail-closed execution posture.
+
+
+## Owner-approved deny-by-default RLS
+
+- Owner approval received: `APPROVE_DENY_BY_DEFAULT_RLS`.
+- Supabase project `gnujsdlpaznoaeijvmez`: all 34 NERVA `public` tables now have RLS enabled.
+- No permissive RLS policies were created.
+- `anon` and `authenticated` have no table grants and no sequence usage grants in `public`.
+- The six previously reported mutable-function-`search_path` WARN findings were removed by pinning each NERVA trigger/helper function to `public, pg_temp` after verifying its current definition.
+- Post-change Supabase Security Advisor reports only INFO `rls_enabled_no_policy` findings. This is the intended deny-by-default state for M06 and no WARN/ERROR remains for RLS or function `search_path`.
+- Hosted state is versioned in `packages/db/migrations/0010_nerva_release_security_hardening.sql` and registered in the Drizzle migration journal.
