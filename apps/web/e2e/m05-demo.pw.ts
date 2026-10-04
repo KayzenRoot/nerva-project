@@ -26,6 +26,48 @@ async function assertAccessibleRoute(page: Page, route: string) {
   ).toEqual([]);
 }
 
+async function assertNavigationFits(page: Page, label: string, expectedLinks: number) {
+  const navigation = page.getByRole('navigation', { name: label });
+  await expect(navigation).toBeVisible();
+  const geometry = await navigation.evaluate((element) => {
+    const navRect = element.getBoundingClientRect();
+    return {
+      nav: {
+        left: navRect.left,
+        right: navRect.right,
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+      },
+      links: Array.from(element.querySelectorAll('a')).map((link) => {
+        const rect = link.getBoundingClientRect();
+        return {
+          name: link.textContent?.trim() ?? '',
+          href: link.getAttribute('href'),
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          height: rect.height,
+          clientWidth: link.clientWidth,
+          scrollWidth: link.scrollWidth,
+        };
+      }),
+    };
+  });
+
+  expect(geometry.links).toHaveLength(expectedLinks);
+  expect(geometry.nav.scrollWidth).toBeLessThanOrEqual(geometry.nav.clientWidth + 1);
+  for (const link of geometry.links) {
+    expect(link.name).not.toBe('');
+    expect(link.href).not.toBeNull();
+    expect(link.width).toBeGreaterThan(0);
+    expect(link.height).toBeGreaterThan(0);
+    expect(link.left).toBeGreaterThanOrEqual(geometry.nav.left - 1);
+    expect(link.right).toBeLessThanOrEqual(geometry.nav.right + 1);
+    expect(link.scrollWidth).toBeLessThanOrEqual(link.clientWidth + 1);
+  }
+  return geometry.links.map(({ name, href }) => ({ name, href: href! }));
+}
+
 test('M05-UI-001/MODE/DEMO-001/002: clean guided story, bounded timing and deterministic reset', async ({
   page,
 }) => {
@@ -47,10 +89,45 @@ test('M05-UI-001/MODE/DEMO-001/002: clean guided story, bounded timing and deter
     viewport: window.innerWidth,
   }));
   expect(desktopDimensions.document).toBeLessThanOrEqual(desktopDimensions.viewport);
+  await expect(page.locator('.phase-summary')).toContainText('Context · 0–10s');
+  await expect(page.locator('.phase-summary')).toContainText('DEMO-ACCOUNT-01');
+  await expect(page.locator('.phase-summary')).toContainText('DEMO-ETH-PERP-01');
   await page.getByRole('button', { name: 'Start guided demo' }).click();
-  await page.clock.runFor(84_000);
+  await page.clock.runFor(10_000);
+  await expect(page.getByText('10/90s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Risk · 10–25s');
+  await page.clock.runFor(15_000);
+  await expect(page.getByText('25/90s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Policy · 25–40s');
+  const policyConstraints = page.getByTestId('demo-policy-constraints');
+  await expect(policyConstraints).toContainText('Synthetic adverse-move threshold');
+  await expect(policyConstraints).toContainText('REDUCE_POSITION');
+  await expect(policyConstraints).toContainText('10%');
+  await expect(policyConstraints).toContainText('$1,240 synthetic');
+  await expect(policyConstraints).toContainText('75 bps');
+  await expect(policyConstraints).toContainText('Perpl ETH-PERP');
+  await expect(policyConstraints).toContainText('15 minutes');
+  await expect(policyConstraints).toContainText('20 minutes');
+  await expect(policyConstraints).toContainText('NO_ACTION');
+  await expect(policyConstraints).toContainText('no wallet signature');
+  await page.clock.runFor(15_000);
+  await expect(page.getByText('40/90s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Deterioration · 40–55s');
+  await page.clock.runFor(15_000);
+  await expect(page.getByText('55/90s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Safety · 55–70s');
+  await page.clock.runFor(15_000);
+  await expect(page.getByText('70/90s')).toBeVisible();
   await expect(page.getByText('SIMULATED OUTCOME', { exact: true })).toBeVisible();
-  await expect(page.getByText('84/84s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Outcome · 70–82s');
+  await expect(page.getByText('DRY_RUN_ONLY', { exact: false }).first()).toBeVisible();
+  await page.clock.runFor(12_000);
+  await expect(page.getByText('82/90s')).toBeVisible();
+  await expect(page.locator('.phase-summary')).toContainText('Closeout · 82–90s');
+  await expect(page.getByTestId('guided-closeout')).toContainText('Flight Recorder lineage');
+  await expect(page.getByTestId('guided-closeout')).toContainText('institutional teams');
+  await page.clock.runFor(8_000);
+  await expect(page.getByText('90/90s')).toBeVisible();
   const story = await page.locator('.evidence-list').innerText();
   expect(story).toContain('OBSERVED · SYNTHETIC');
   expect(story).toContain('SIMULATED_OUTCOME');
@@ -59,15 +136,15 @@ test('M05-UI-001/MODE/DEMO-001/002: clean guided story, bounded timing and deter
     .poll(() =>
       page.locator('.progress-track').evaluate((track) => (track as HTMLProgressElement).value),
     )
-    .toBe(84);
+    .toBe(90);
   await mkdir(screenshots, { recursive: true });
   await page.screenshot({ path: `${screenshots}/guided-demo-desktop.png` });
   await page.getByRole('button', { name: 'Reset demo' }).click();
-  await expect(page.getByText('0/84s')).toBeVisible();
+  await expect(page.getByText('0/90s')).toBeVisible();
   await expect(page.getByText('SIMULATED OUTCOME', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Start guided demo' }).click();
-  await page.clock.runFor(84_000);
-  await expect(page.getByText('84/84s')).toBeVisible();
+  await page.clock.runFor(90_000);
+  await expect(page.getByText('90/90s')).toBeVisible();
   expect(await page.locator('.evidence-list').innerText()).toBe(story);
   expect(consoleErrors).toEqual([]);
 });
@@ -104,6 +181,16 @@ test('M05-UI-002/RESP-001/A11Y-001/I18N-001: mobile, keyboard and Spanish critic
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/demo?lang=pt-BR');
   await expect(page.getByText('SOMENTE DEMO · DADOS SINTÉTICOS').first()).toBeVisible();
+  const primaryDestinations = await assertNavigationFits(page, 'Navegação principal', 6);
+  for (const destination of primaryDestinations) {
+    const expectedUrl = new URL(destination.href, page.url()).href;
+    await page.getByRole('link', { name: destination.name, exact: true }).click();
+    await expect(page).toHaveURL(expectedUrl);
+    await page.goto('/demo?lang=pt-BR');
+  }
+  await page.goto('/flight-recorder?lang=pt-BR');
+  await assertNavigationFits(page, 'Navegação principal', 5);
+  await page.goto('/demo?lang=pt-BR');
   const mobileA11y = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

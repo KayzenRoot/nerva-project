@@ -21,5 +21,5 @@ This is a proposal only. The canonical `.engineering/CHECKPOINT.md` and `.engine
 
 1. Independent audit verdict on the exact PR head.
 2. Green exact-head Linux, Windows bounded, GEF 1.1.2, Source Pack, Context Lock, SonarCloud and Socket checks.
-3. Complete Evidence Bundle including responsive screenshots, demo reset/replay, 84-second script timing, isolation proof, accessibility, localization, production performance and security outcomes.
+3. Complete Evidence Bundle including responsive screenshots, demo reset/replay, canonical 90-second phase-window proof, isolation proof, accessibility, localization, production performance and security outcomes.
 4. Explicit Checkpoint promotion separately authorized after audit; this proposal itself grants no such authority.

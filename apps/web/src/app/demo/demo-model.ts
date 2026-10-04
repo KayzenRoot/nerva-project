@@ -1,6 +1,5 @@
 export const DEMO_FIXTURE_VERSION = 'nerva-m05-demo-v1' as const;
-export const GUIDED_DEMO_DURATION_SECONDS = 84 as const;
-export const GUIDED_DEMO_PHASE_SECONDS = 12 as const;
+export const GUIDED_DEMO_DURATION_SECONDS = 90 as const;
 
 export type DemoScenarioId =
   | 'protection-story'
@@ -90,15 +89,21 @@ export const DEMO_SCENARIOS: readonly DemoScenario[] = Object.freeze([
 ]);
 
 export const GUIDED_PHASES = Object.freeze([
-  'context',
-  'risk',
-  'policy',
-  'deterioration',
-  'safety',
-  'outcome',
-  'evidence',
-  'closeout',
+  { key: 'context', startSeconds: 0, endSeconds: 10 },
+  { key: 'risk', startSeconds: 10, endSeconds: 25 },
+  { key: 'policy', startSeconds: 25, endSeconds: 40 },
+  { key: 'deterioration', startSeconds: 40, endSeconds: 55 },
+  { key: 'safety', startSeconds: 55, endSeconds: 70 },
+  { key: 'outcome', startSeconds: 70, endSeconds: 82 },
+  { key: 'closeout', startSeconds: 82, endSeconds: 90 },
 ] as const);
+
+export type GuidedPhaseKey = (typeof GUIDED_PHASES)[number]['key'];
+
+function phaseIndexAt(elapsedSeconds: number): number {
+  const index = GUIDED_PHASES.findIndex(({ endSeconds }) => elapsedSeconds < endSeconds);
+  return index === -1 ? GUIDED_PHASES.length - 1 : index;
+}
 
 export function createInitialDemoState(): DemoState {
   return Object.freeze({
@@ -123,28 +128,33 @@ export function selectDemoScenario(id: DemoScenarioId): DemoState {
     fixtureVersion: DEMO_FIXTURE_VERSION,
     scenarioId: scenario.id,
     phase: scenario.outcome === 'REFUSED' ? 4 : 0,
-    elapsedSeconds: scenario.outcome === 'REFUSED' ? 48 : 0,
+    elapsedSeconds: scenario.outcome === 'REFUSED' ? 55 : 0,
     playing: false,
     outcome: scenario.outcome === 'REFUSED' ? 'REFUSED' : 'NOT_STARTED',
   });
 }
 
-export function advanceGuidedDemo(state: DemoState): DemoState {
+export function advanceGuidedDemo(state: DemoState, seconds = 1): DemoState {
   const scenario = getDemoScenario(state.scenarioId);
-  const phase = Math.min(state.phase + 1, GUIDED_PHASES.length - 1);
-  const isComplete = phase === GUIDED_PHASES.length - 1;
+  const elapsedSeconds = Math.min(
+    GUIDED_DEMO_DURATION_SECONDS,
+    state.elapsedSeconds + Math.max(0, Math.trunc(seconds)),
+  );
+  const phase = phaseIndexAt(elapsedSeconds);
+  const isComplete = elapsedSeconds === GUIDED_DEMO_DURATION_SECONDS;
   return Object.freeze({
     ...state,
     phase,
-    elapsedSeconds: phase * GUIDED_DEMO_PHASE_SECONDS,
+    elapsedSeconds,
     playing: state.playing && !isComplete,
-    outcome: isComplete ? scenario.outcome : state.outcome,
+    outcome: elapsedSeconds >= 70 ? scenario.outcome : state.outcome,
   });
 }
 
 export function startGuidedDemo(state: DemoState): DemoState {
   if (state.scenarioId !== 'protection-story') return state;
-  if (state.phase >= GUIDED_PHASES.length - 1) return createInitialDemoStateWithPlayback();
+  if (state.elapsedSeconds >= GUIDED_DEMO_DURATION_SECONDS)
+    return createInitialDemoStateWithPlayback();
   return Object.freeze({ ...state, playing: true });
 }
 

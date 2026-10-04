@@ -10,7 +10,11 @@ describe('localized M05 product copy', () => {
       expect(dashboardCopy[locale].title.length).toBeGreaterThan(0);
       expect(demoCopy[locale].scenarioRefused.length).toBeGreaterThan(0);
       expect(demoCopy[locale].policyFinePrint.length).toBeGreaterThan(0);
-      expect(Object.keys(phaseLabels[locale])).toHaveLength(8);
+      expect(demoCopy[locale].policyMaxNotional.length).toBeGreaterThan(0);
+      expect(demoCopy[locale].confirmationRepresentation.length).toBeGreaterThan(0);
+      expect(demoCopy[locale].closeoutLineage.length).toBeGreaterThan(0);
+      expect(demoCopy[locale].closeout.length).toBeGreaterThan(0);
+      expect(Object.keys(phaseLabels[locale])).toHaveLength(7);
       expect(Object.keys(scenarioNames[locale])).toHaveLength(5);
       expect(Object.keys(scenarioReasons[locale])).toHaveLength(4);
       expect(Object.keys(dashboardCopy[locale].status)).toHaveLength(8);

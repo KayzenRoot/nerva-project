@@ -98,6 +98,8 @@ const allowed = new Set([
   'apps/web/src/app/home-copy.ts',
   'apps/web/src/app/product-copy.json',
   'apps/web/src/app/localization.test.ts',
+  'apps/web/src/app/flight-recorder-lineage.ts',
+  'apps/web/src/app/m03-readonly-view.test.ts',
   'apps/web/src/app/m03-readonly-view.tsx',
   'apps/web/src/app/permissions/permissions-read-view.tsx',
   'apps/web/src/app/policies/page.tsx',

@@ -8,7 +8,6 @@ import {
   DEMO_FIXTURE_VERSION,
   DEMO_SCENARIOS,
   GUIDED_DEMO_DURATION_SECONDS,
-  GUIDED_DEMO_PHASE_SECONDS,
   GUIDED_PHASES,
   advanceGuidedDemo,
   createInitialDemoState,
@@ -66,14 +65,15 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
   const text = copy[locale];
   const [state, setState] = useState<DemoState>(() => createInitialDemoState());
   const [policyDraft, setPolicyDraft] = useState('');
-  const phase = GUIDED_PHASES[state.phase] ?? 'context';
+  const phaseWindow = GUIDED_PHASES[state.phase] ?? GUIDED_PHASES[0];
+  const phase = phaseWindow.key;
   const scenario = useMemo(() => getDemoScenario(state.scenarioId), [state.scenarioId]);
 
   useEffect(() => {
     if (!state.playing) return;
     const timer = window.setInterval(() => {
       setState((current) => advanceGuidedDemo(current));
-    }, GUIDED_DEMO_PHASE_SECONDS * 1000);
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [state.playing]);
 
@@ -95,7 +95,9 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
   }
 
   function nextPhase() {
-    setState((current) => advanceGuidedDemo(current));
+    setState((current) =>
+      advanceGuidedDemo(current, phaseWindow.endSeconds - current.elapsedSeconds),
+    );
     recordDemoAnalytics('guided_demo_phase');
   }
 
@@ -193,16 +195,55 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
                 <div>
                   <p className="eyebrow">
                     {text.phase} {phaseIndex + 1} / {GUIDED_PHASES.length} ·{' '}
-                    {phaseLabels[locale][phase]}
+                    {phaseLabels[locale][phase]} · {phaseWindow.startSeconds}–
+                    {phaseWindow.endSeconds}s
                   </p>
                   <p>{text[phase]}</p>
                 </div>
               </div>
+              {phase === 'policy' ? (
+                <section
+                  className="policy-constraints"
+                  aria-label={text.policyConstraintsTitle}
+                  data-testid="demo-policy-constraints"
+                >
+                  <h3>{text.policyConstraintsTitle}</h3>
+                  <dl>
+                    {[
+                      [text.policyTriggerLabel, text.policyTrigger],
+                      [text.policyActionLabel, text.policyAction],
+                      [text.policyMaxFractionLabel, text.policyMaxFraction],
+                      [text.policyMaxNotionalLabel, text.policyMaxNotional],
+                      [text.policySlippageLabel, text.policySlippage],
+                      [text.policyMarketPositionLabel, text.policyMarketPosition],
+                      [text.policyCooldownLabel, text.policyCooldown],
+                      [text.policyExpiryLabel, text.policyExpiry],
+                      [text.policyRefusalLabel, text.policyRefusal],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <dt>{label}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="confirmation-representation">{text.confirmationRepresentation}</p>
+                </section>
+              ) : null}
               {notice ? (
                 <output className={`decision-banner decision-${notice.tone}`} aria-live="polite">
                   <strong>{notice.heading}</strong>
                   <span>{notice.detail}</span>
                 </output>
+              ) : null}
+              {phase === 'closeout' ? (
+                <section
+                  className="guided-closeout"
+                  aria-label={text.recorder}
+                  data-testid="guided-closeout"
+                >
+                  <p>{text.closeoutLineage}</p>
+                  <p>{text.closeout}</p>
+                </section>
               ) : null}
               <div className="button-row">
                 <button
