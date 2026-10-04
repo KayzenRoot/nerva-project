@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { resolveLocale, messages } from './i18n.ts';
 import './styles.css';
+import './m05.css';
 
 async function getRequestLocale() {
   const requestHeaders = await headers();

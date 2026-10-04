@@ -1,4 +1,4 @@
-name: NERVA M01-M04 policy, simulation and safety validation
+name: NERVA M01-M05 product, policy, simulation and safety validation
 
 on:
   pull_request:
@@ -66,6 +66,12 @@ jobs:
           npm run typecheck
       - name: Unit, replay, adversarial and recovery tests
         run: npm test -- --reporter=dot
+      - name: Verify DEMO_ONLY isolation
+        run: npm run m05:demo:verify
+      - name: Guided demo, refusal, policy and accessibility browser journeys
+        run: |
+          ./node_modules/.bin/playwright install --with-deps chromium
+          npm run test:e2e
       - name: Deterministic risk p95 benchmark
         run: npm run risk:benchmark
       - name: Deterministic M03 policy and decision-to-plan benchmark

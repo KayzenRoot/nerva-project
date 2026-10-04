@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { loadServerConfig, publicConfig } from '@nerva/config';
-import { locales, messages, resolveLocale } from './i18n.ts';
+import { messages, resolveLocale } from './i18n.ts';
+import { ExperienceHeader } from './experience-header.tsx';
+import { homeCopy } from './home-copy.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,57 +14,64 @@ export default async function HomePage({
   const config = publicConfig(loadServerConfig());
   const locale = resolveLocale((await searchParams).lang);
   const copy = messages[locale];
+  const experience = homeCopy[locale];
   return (
-    <main className="shell" lang={locale}>
-      <header className="topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <div className="topbar-tools">
-          <nav className="language-switcher" aria-label={copy.languageLabel}>
-            {locales.map((option) => (
-              <Link
-                key={option}
-                href={`/?lang=${option}`}
-                aria-current={locale === option ? 'page' : undefined}
-              >
-                {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-              </Link>
-            ))}
-          </nav>
-          <span className="environment" aria-label={copy.environmentLabel(config.environment)}>
-            {config.environment}
-          </span>
+    <main className="landing-shell" lang={locale}>
+      <ExperienceHeader locale={locale} active="home" />
+      <section className="landing-hero" aria-labelledby="title">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            {copy.platform} · {config.environment}
+          </p>
+          <h1 id="title">{copy.headline}</h1>
+          <p className="intro">{copy.intro}</p>
+          <div className="hero-actions">
+            <Link className="button button-primary" href={`/demo?lang=${locale}`}>
+              {experience.startDemo} <span aria-hidden="true">↗</span>
+            </Link>
+            <Link className="button button-secondary" href={`/dashboard?lang=${locale}`}>
+              {copy.dashboard}
+            </Link>
+          </div>
+          <p className="landing-note">
+            {copy.executionDisabled}. {copy.noIntegrations}
+          </p>
         </div>
-      </header>
-      <section className="hero" aria-labelledby="title">
-        <p className="eyebrow">{copy.platform}</p>
-        <h1 id="title">{copy.headline}</h1>
-        <p className="intro">{copy.intro}</p>
-        <div className="status-card">
-          <span className="status-dot" aria-hidden="true" />
-          <div>
-            <strong>{copy.executionDisabled}</strong>
-            <p>{copy.noIntegrations}</p>
+        <div className="hero-visual" aria-label={experience.visualLabel}>
+          <div className="orbit orbit-one" />
+          <div className="orbit orbit-two" />
+          <div className="orbit-core">N</div>
+          <div className="signal-card signal-top">
+            <span className="signal-dot" />
+            {experience.observedRisk}
+            <strong>DATA → POLICY → EVIDENCE</strong>
+          </div>
+          <div className="signal-card signal-bottom">
+            {experience.freshness}
+            <strong>UNKNOWN BLOCKS</strong>
           </div>
         </div>
       </section>
-      <nav className="future-nav" aria-label={copy.areas}>
-        <Link href={`/dashboard?lang=${locale}`}>
-          {copy.dashboard} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/policies?lang=${locale}`}>
-          {copy.policies} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/flight-recorder?lang=${locale}`}>
-          {copy.flightRecorder} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/permissions?lang=${locale}`}>
-          {copy.permissions} <small>{copy.preparing}</small>
-        </Link>
-      </nav>
-      <footer>
+      <section className="landing-proof" aria-label={copy.areas}>
+        <div>
+          <span className="proof-index">01</span>
+          <strong>{experience.proofRiskHeading}</strong>
+          <p>{experience.proofRisk}</p>
+        </div>
+        <div>
+          <span className="proof-index">02</span>
+          <strong>{experience.proofAuthorityHeading}</strong>
+          <p>{experience.proofAuthority}</p>
+        </div>
+        <div>
+          <span className="proof-index">03</span>
+          <strong>{experience.proofEvidenceHeading}</strong>
+          <p>{experience.proofEvidence}</p>
+        </div>
+      </section>
+      <footer className="landing-footer">
         {copy.systemStatus} · <Link href="/api/health/live">{copy.serviceHealth}</Link>
+        <span>MAINNET HARD-BLOCKED · LIVE PERPL BLOCKED</span>
       </footer>
     </main>
   );

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { locales, type Locale } from '../i18n.ts';
+import { type Locale } from '../i18n.ts';
+import { ExperienceHeader } from '../experience-header.tsx';
 
 type WalletProvider = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
 declare global {
@@ -180,27 +181,9 @@ export default function PermissionsReadView({
   const delegation = rows(model?.delegation);
   const hasRows =
     wallets.length + agents.length + grants.length + sessions.length + delegation.length > 0;
-  const langHref = (option: Locale) =>
-    `/permissions?lang=${option}${accountId ? `&accountId=${encodeURIComponent(accountId)}` : ''}`;
-
   return (
     <main className="dashboard-shell" lang={locale}>
-      <header className="dashboard-topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <nav className="language-switcher" aria-label="Language">
-          {locales.map((option) => (
-            <Link
-              key={option}
-              href={langHref(option)}
-              aria-current={locale === option ? 'page' : undefined}
-            >
-              {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-            </Link>
-          ))}
-        </nav>
-      </header>
+      <ExperienceHeader locale={locale} active="permissions" />
       <section className="dashboard-heading">
         <p className="eyebrow">NERVA · M04</p>
         <h1>{text.title}</h1>

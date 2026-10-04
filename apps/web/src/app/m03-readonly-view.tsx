@@ -1,5 +1,7 @@
-import Link from 'next/link';
 import { locales, type Locale } from './i18n.ts';
+import { ExperienceHeader } from './experience-header.tsx';
+import { mapEvaluationLineage } from './flight-recorder-lineage.ts';
+import type { ReactNode } from 'react';
 
 const copyKeys = [
   'policies',
@@ -26,6 +28,13 @@ const copyKeys = [
   'simulations',
   'outcome',
   'sourceSnapshot',
+  'evaluationId',
+  'policyVersionId',
+  'policyVersionHash',
+  'sourceSnapshotId',
+  'snapshotHash',
+  'triggerResult',
+  'triggerReason',
   'plan',
   'authority',
   'permissionEvidence',
@@ -60,6 +69,13 @@ const translations: Record<Locale, readonly string[]> = {
     'Simulation and preflight',
     'Outcome',
     'Source snapshot',
+    'Trigger evaluation ID',
+    'Policy version ID',
+    'Policy version hash',
+    'Risk snapshot ID',
+    'Risk snapshot hash',
+    'Trigger result',
+    'Trigger reason',
     'Plan digest',
     'Authority',
     'M04 permission evidence',
@@ -90,6 +106,13 @@ const translations: Record<Locale, readonly string[]> = {
     'Simulação e preflight',
     'Resultado',
     'Snapshot de origem',
+    'ID da avaliação do gatilho',
+    'ID da versão da política',
+    'Hash da versão da política',
+    'ID do snapshot de risco',
+    'Hash do snapshot de risco',
+    'Resultado do gatilho',
+    'Motivo do gatilho',
     'Digest do plano',
     'Autoridade',
     'Evidências de permissão M04',
@@ -120,6 +143,13 @@ const translations: Record<Locale, readonly string[]> = {
     'Simulación y preflight',
     'Resultado',
     'Snapshot de origen',
+    'ID de evaluación del disparador',
+    'ID de versión de política',
+    'Hash de versión de política',
+    'ID de snapshot de riesgo',
+    'Hash de snapshot de riesgo',
+    'Resultado del disparador',
+    'Motivo del disparador',
     'Digest del plan',
     'Autoridad',
     'Evidencia de permisos M04',
@@ -148,6 +178,31 @@ interface DisplayField {
   readonly key: string;
   readonly code?: boolean;
   readonly appendKey?: string;
+}
+
+function EvaluationLineageEntries({
+  records,
+  locale,
+}: {
+  readonly records: readonly Record<string, unknown>[];
+  readonly locale: Locale;
+}) {
+  return records.map((record, index) => (
+    <article
+      className="dashboard-card"
+      key={`${field(record, 'evaluation_id')}-${index}`}
+      data-testid="m03-evaluation-lineage"
+    >
+      <dl className="metric-list">
+        {mapEvaluationLineage(record, copy[locale]).map((entry) => (
+          <div key={entry.label}>
+            <dt>{entry.label}</dt>
+            <dd>{entry.code ? <code>{entry.value}</code> : entry.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </article>
+  ));
 }
 
 function RecordEntries({
@@ -190,6 +245,7 @@ export function M03ReadOnlyView({
   integrations = [],
   permissionEvents = [],
   permissionEvidenceIntegrity = 'UNKNOWN',
+  beforeContent,
   available,
 }: {
   readonly locale: Locale;
@@ -200,6 +256,7 @@ export function M03ReadOnlyView({
   readonly integrations?: readonly Record<string, unknown>[];
   readonly permissionEvents?: readonly Record<string, unknown>[];
   readonly permissionEvidenceIntegrity?: 'VERIFIED' | 'FAILED' | 'UNKNOWN';
+  readonly beforeContent?: ReactNode;
   readonly available: boolean;
 }) {
   const labels = copy[locale];
@@ -213,28 +270,14 @@ export function M03ReadOnlyView({
     0;
   return (
     <main className="dashboard-shell" lang={locale}>
-      <header className="dashboard-topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <nav className="language-switcher" aria-label="Language">
-          {locales.map((option) => (
-            <Link
-              key={option}
-              href={`/${view === 'policies' ? 'policies' : 'flight-recorder'}?lang=${option}`}
-              aria-current={locale === option ? 'page' : undefined}
-            >
-              {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-            </Link>
-          ))}
-        </nav>
-      </header>
+      <ExperienceHeader locale={locale} active={view === 'policies' ? 'policies' : 'recorder'} />
       <section className="dashboard-heading">
         <p className="eyebrow">NERVA · M03</p>
         <h1>{title}</h1>
         <p>{labels.summary}</p>
         <div className="readonly-badge">{labels.readOnly}</div>
       </section>
+      {beforeContent}
       {!available ? (
         <section className="dashboard-card">
           <p>{labels.unavailable}</p>
@@ -265,19 +308,9 @@ export function M03ReadOnlyView({
         </section>
       ) : (
         <>
-          <section className="dashboard-card market-card">
+          <section className="dashboard-card market-card" data-testid="m03-evaluations">
             <h2>{labels.evaluations}</h2>
-            <RecordEntries
-              records={evaluations}
-              keyFields={['evaluation_id']}
-              fields={[
-                { label: labels.outcome, key: 'result' },
-                { label: labels.reason, key: 'reason' },
-                { label: labels.sourceSnapshot, key: 'snapshot_hash', code: true },
-                { label: labels.correlation, key: 'correlation_id', code: true },
-                { label: labels.time, key: 'evaluated_at' },
-              ]}
-            />
+            <EvaluationLineageEntries records={evaluations} locale={locale} />
           </section>
           <section className="dashboard-card market-card">
             <h2>{labels.simulations}</h2>
