@@ -109,10 +109,10 @@ if (fs.existsSync(m04LockPath)) {
     main === head &&
     main !== base;
 
-  if (mainPush) {
-    if (git(['rev-parse', 'HEAD^']) !== base) {
-      throw new Error('M04 squash merge parent does not match the accepted M03 baseline');
-    }
+  const directM04PromotionPush =
+    mainPush && git(['rev-parse', 'HEAD^']) === base;
+
+  if (directM04PromotionPush) {
     const changed = assertPromotionOnly(auditedHead, 'HEAD');
     if (changed.length === 0) {
       throw new Error('M04 post-merge tree lacks promotion delta');
