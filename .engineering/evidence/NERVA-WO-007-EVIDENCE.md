@@ -143,3 +143,16 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - Vercel project `prj_jz7MxL3aphaRgB7kvhQCktiACgct` was corrected to Node `22.x`, framework `nextjs`, root-workspace install command `cd ../.. && npm ci --ignore-scripts --no-audit --no-fund`, and `sourceFilesOutsideRootDirectory=true`.
 - The failed deployment is retained as correction evidence and is not accepted as release proof.
 - This commit triggers a new branch preview using the corrected project configuration.
+
+
+## Public Vercel preview proof — deployment target now exists
+
+- Vercel deployment `dpl_E1Znw4Jt7GurFJNaBe14TuBJ5df6` reached `READY` for branch commit `3203ca9672f0d0df8bfb5dfdfab1f66ba6a3c9cf`.
+- Public HTTPS URL: `https://nerva-project-hu8ggjhfz-claytons-projects-5922d27c.vercel.app`.
+- External GET `/`: HTTP 200 with production CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy and Permissions-Policy.
+- External GET `/api/health/live`: HTTP 200, `executionEnabled=false`.
+- External GET `/api/health/ready`: HTTP 503 because `DATABASE_URL` was not yet configured; `globalExecutionDisabled=true`.
+- This first successful public preview is **not** the final Gate 6 proof because it was created before Vercel TESTNET_DEMO safety environment variables were attached and has no deployment database.
+- Vercel project protection was disabled for the demo project so the preview is publicly reachable over HTTPS; no secret or financial authority was added.
+- Vercel project environment now explicitly sets `NERVA_ENVIRONMENT=TESTNET_DEMO`, `NERVA_EXECUTION_ENABLED=false`, `NERVA_KILL_SWITCH_ENABLED=true`, `NERVA_DEMO_SIMULATION_ENABLED=true`, `PERPL_OBSERVATION_ENABLED=false`, and telemetry disabled for subsequent deployments.
+- This evidence commit triggers a new preview with the explicit safety environment. Final Gate 6 acceptance still requires database-backed readiness HTTP 200.
