@@ -3,6 +3,7 @@ import { loadServerConfig, publicConfig } from '@nerva/config';
 import { messages, resolveLocale } from './i18n.ts';
 import { ExperienceHeader } from './experience-header.tsx';
 import { homeCopy } from './home-copy.ts';
+import { NervaBrand, NervaSymbol } from './nerva-brand.tsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,10 @@ export default async function HomePage({
       <ExperienceHeader locale={locale} active="home" />
       <section className="landing-hero" aria-labelledby="title">
         <div className="hero-copy">
+          <div className="hero-logo-lockup">
+            <NervaBrand />
+            <span>{experience.heroDescriptor}</span>
+          </div>
           <p className="eyebrow">
             {copy.platform} · {config.environment}
           </p>
@@ -40,7 +45,9 @@ export default async function HomePage({
         <div className="hero-visual" aria-label={experience.visualLabel}>
           <div className="orbit orbit-one" />
           <div className="orbit orbit-two" />
-          <div className="orbit-core">N</div>
+          <div className="orbit-core">
+            <NervaSymbol />
+          </div>
           <div className="signal-card signal-top">
             <span className="signal-dot" />
             {experience.observedRisk}
@@ -68,6 +75,14 @@ export default async function HomePage({
           <strong>{experience.proofEvidenceHeading}</strong>
           <p>{experience.proofEvidence}</p>
         </div>
+      </section>
+      <section className="landing-media-links" aria-label={experience.submissionPages}>
+        <div>
+          <p className="eyebrow">{experience.submissionEyebrow}</p>
+          <h2>{experience.submissionTitle}</h2>
+        </div>
+        <Link href="/metropolis/technical-demo">{experience.technicalVideo}</Link>
+        <Link href="/metropolis/pitch-video">{experience.pitchVideo}</Link>
       </section>
       <footer className="landing-footer">
         {copy.systemStatus} · <Link href="/api/health/live">{copy.serviceHealth}</Link>

@@ -39,6 +39,8 @@ const copyKeys = [
   'authority',
   'permissionEvidence',
   'permissionIntegrity',
+  'lineageMap',
+  'lineageNote',
 ] as const;
 
 type Copy = Record<(typeof copyKeys)[number], string>;
@@ -80,6 +82,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Authority',
     'M04 permission evidence',
     'Permission chain integrity',
+    'Decision evidence lineage',
+    'Structural map of the evidence sections below. Empty or unknown records remain explicit; this map does not imply that a decision occurred.',
   ],
   'pt-BR': [
     'Estado das políticas',
@@ -117,6 +121,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Autoridade',
     'Evidências de permissão M04',
     'Integridade da cadeia de permissões',
+    'Linhagem das evidências de decisão',
+    'Mapa estrutural das seções de evidência abaixo. Registros vazios ou desconhecidos continuam explícitos; este mapa não significa que uma decisão ocorreu.',
   ],
   es: [
     'Estado de políticas',
@@ -154,6 +160,8 @@ const translations: Record<Locale, readonly string[]> = {
     'Autoridad',
     'Evidencia de permisos M04',
     'Integridad de la cadena de permisos',
+    'Linaje de evidencia de decisión',
+    'Mapa estructural de las secciones de evidencia siguientes. Los registros vacíos o desconocidos siguen explícitos; este mapa no implica que ocurrió una decisión.',
   ],
 };
 
@@ -167,6 +175,36 @@ const copy = Object.fromEntries(locales.map((locale) => [locale, localizedCopy(l
   Locale,
   Copy
 >;
+
+const lineageStages: Record<Locale, readonly string[]> = {
+  en: [
+    'SOURCE',
+    'RISK EVIDENCE',
+    'POLICY',
+    'TRIGGER',
+    'SIMULATION',
+    'PERMISSION',
+    'DECISION / OUTCOME',
+  ],
+  'pt-BR': [
+    'FONTE',
+    'EVIDÊNCIA DE RISCO',
+    'POLÍTICA',
+    'GATILHO',
+    'SIMULAÇÃO',
+    'PERMISSÃO',
+    'DECISÃO / RESULTADO',
+  ],
+  es: [
+    'FUENTE',
+    'EVIDENCIA DE RIESGO',
+    'POLÍTICA',
+    'ACTIVADOR',
+    'SIMULACIÓN',
+    'PERMISO',
+    'DECISIÓN / RESULTADO',
+  ],
+};
 
 function field(record: Record<string, unknown>, key: string): string {
   const value = record[key];
@@ -308,6 +346,27 @@ export function M03ReadOnlyView({
         </section>
       ) : (
         <>
+          <section className="dashboard-card flight-lineage-card" aria-labelledby="lineage-title">
+            <div className="flight-lineage-heading">
+              <div>
+                <p className="eyebrow">NERVA · EVIDENCE PATH</p>
+                <h2 id="lineage-title">{labels.lineageMap}</h2>
+              </div>
+              <span className="readonly-badge">{labels.readOnly}</span>
+            </div>
+            <p className="flight-lineage-note">{labels.lineageNote}</p>
+            <ol className="flight-lineage-map" aria-label={labels.lineageMap}>
+              {lineageStages[locale].map((stage, index) => (
+                <li key={stage} data-testid="flight-lineage-stage">
+                  <span className="flight-lineage-index">0{index + 1}</span>
+                  <span>{stage}</span>
+                  {index < lineageStages[locale].length - 1 ? (
+                    <span className="flight-lineage-connector" aria-hidden="true" />
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </section>
           <section className="dashboard-card market-card" data-testid="m03-evaluations">
             <h2>{labels.evaluations}</h2>
             <EvaluationLineageEntries records={evaluations} locale={locale} />
