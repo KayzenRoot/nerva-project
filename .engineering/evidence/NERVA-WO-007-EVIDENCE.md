@@ -51,3 +51,11 @@ Status: BLOCKED_RULESET_ADMIN
 - Target policy remains exactly `NERVA main / GEF protected flow` from NERVA-WO-007. It has not been weakened and must not be represented as active.
 - M06 heavy implementation is paused at the first execution task. No release/submission completion claim is permitted while this blocker remains.
 - Resolution requires an admin-capable GitHub UI/API/CLI session outside the current connector surface, followed by GET-after-write proof that the ruleset is active.
+
+
+## Ruleset application package
+
+- Exact ruleset payload artifact: `.engineering/repository-rulesets/nerva-main-gef-protected-flow.json`.
+- Admin application/verification guide: `docs/NERVA-M06-RULESET-ADMIN.md`.
+- Required policy is frozen to the Work Order target and current required check names.
+- These artifacts prepare blocker resolution only; they do not constitute proof that the ruleset is active.
