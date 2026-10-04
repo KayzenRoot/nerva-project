@@ -70,7 +70,7 @@ jobs:
         run: npm run m05:demo:verify
       - name: Guided demo, refusal, policy and accessibility browser journeys
         run: |
-          npx playwright install --with-deps chromium
+          ./node_modules/.bin/playwright install --with-deps chromium
           npm run test:e2e
       - name: Deterministic risk p95 benchmark
         run: npm run risk:benchmark

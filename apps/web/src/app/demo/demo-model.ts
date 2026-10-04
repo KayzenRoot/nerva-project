@@ -30,51 +30,63 @@ export interface DemoState {
   readonly outcome: DemoOutcome;
 }
 
+function defineScenario(
+  id: DemoScenarioId,
+  source: DemoScenario['source'],
+  grant: DemoScenario['grant'],
+  delegation: DemoScenario['delegation'],
+  provider: DemoScenario['provider'],
+  outcome: DemoScenario['outcome'],
+  refusalReason?: DemoScenario['refusalReason'],
+): DemoScenario {
+  return Object.freeze({ id, source, grant, delegation, provider, outcome, refusalReason });
+}
+
 export const DEMO_SCENARIOS: readonly DemoScenario[] = Object.freeze([
-  Object.freeze({
-    id: 'protection-story',
-    source: 'FRESH_SYNTHETIC',
-    grant: 'ACTIVE_SYNTHETIC',
-    delegation: 'MATCHED_SYNTHETIC',
-    provider: 'HEALTHY_SYNTHETIC',
-    outcome: 'SIMULATED_OUTCOME',
-  }),
-  Object.freeze({
-    id: 'stale-source',
-    source: 'STALE_SYNTHETIC',
-    grant: 'ACTIVE_SYNTHETIC',
-    delegation: 'MATCHED_SYNTHETIC',
-    provider: 'HEALTHY_SYNTHETIC',
-    outcome: 'REFUSED',
-    refusalReason: 'STALE',
-  }),
-  Object.freeze({
-    id: 'permission-revoked',
-    source: 'FRESH_SYNTHETIC',
-    grant: 'REVOKED_SYNTHETIC',
-    delegation: 'MATCHED_SYNTHETIC',
-    provider: 'HEALTHY_SYNTHETIC',
-    outcome: 'REFUSED',
-    refusalReason: 'GRANT_REVOKED',
-  }),
-  Object.freeze({
-    id: 'delegate-changed',
-    source: 'FRESH_SYNTHETIC',
-    grant: 'ACTIVE_SYNTHETIC',
-    delegation: 'CHANGED_SYNTHETIC',
-    provider: 'HEALTHY_SYNTHETIC',
-    outcome: 'REFUSED',
-    refusalReason: 'DELEGATE_CHANGED',
-  }),
-  Object.freeze({
-    id: 'provider-degraded',
-    source: 'FRESH_SYNTHETIC',
-    grant: 'ACTIVE_SYNTHETIC',
-    delegation: 'MATCHED_SYNTHETIC',
-    provider: 'DEGRADED_SYNTHETIC',
-    outcome: 'REFUSED',
-    refusalReason: 'PROVIDER_DEGRADED',
-  }),
+  defineScenario(
+    'protection-story',
+    'FRESH_SYNTHETIC',
+    'ACTIVE_SYNTHETIC',
+    'MATCHED_SYNTHETIC',
+    'HEALTHY_SYNTHETIC',
+    'SIMULATED_OUTCOME',
+  ),
+  defineScenario(
+    'stale-source',
+    'STALE_SYNTHETIC',
+    'ACTIVE_SYNTHETIC',
+    'MATCHED_SYNTHETIC',
+    'HEALTHY_SYNTHETIC',
+    'REFUSED',
+    'STALE',
+  ),
+  defineScenario(
+    'permission-revoked',
+    'FRESH_SYNTHETIC',
+    'REVOKED_SYNTHETIC',
+    'MATCHED_SYNTHETIC',
+    'HEALTHY_SYNTHETIC',
+    'REFUSED',
+    'GRANT_REVOKED',
+  ),
+  defineScenario(
+    'delegate-changed',
+    'FRESH_SYNTHETIC',
+    'ACTIVE_SYNTHETIC',
+    'CHANGED_SYNTHETIC',
+    'HEALTHY_SYNTHETIC',
+    'REFUSED',
+    'DELEGATE_CHANGED',
+  ),
+  defineScenario(
+    'provider-degraded',
+    'FRESH_SYNTHETIC',
+    'ACTIVE_SYNTHETIC',
+    'MATCHED_SYNTHETIC',
+    'DEGRADED_SYNTHETIC',
+    'REFUSED',
+    'PROVIDER_DEGRADED',
+  ),
 ]);
 
 export const GUIDED_PHASES = Object.freeze([
@@ -153,7 +165,16 @@ export type DemoAnalyticsEvent =
   | 'refusal_category';
 
 /** Deliberately local/no-op: event names are allowlisted and no payload is accepted. */
-export function recordDemoAnalytics(_event: DemoAnalyticsEvent): void {
-  void _event;
-  // No network request, persistent storage, identifiers, metrics, or free-form values.
+export function recordDemoAnalytics(event: DemoAnalyticsEvent): void {
+  switch (event) {
+    case 'screen_viewed':
+    case 'guided_demo_started':
+    case 'guided_demo_phase':
+    case 'demo_reset':
+    case 'scenario_selected':
+    case 'refusal_category':
+      return;
+    default:
+      throw new Error('DEMO_ANALYTICS_EVENT_NOT_ALLOWLISTED');
+  }
 }

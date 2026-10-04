@@ -56,6 +56,13 @@ export function ExperienceHeader({
   readonly active: 'home' | 'dashboard' | 'policies' | 'permissions' | 'recorder';
 }) {
   const text = labels[locale];
+  const activePath: Record<typeof active, string> = {
+    home: '',
+    dashboard: 'dashboard',
+    policies: 'policies',
+    permissions: 'permissions',
+    recorder: 'flight-recorder',
+  };
   const links = [
     [`/dashboard?lang=${locale}`, text.dashboard, 'dashboard'],
     [`/policies?lang=${locale}`, text.policies, 'policies'],
@@ -89,7 +96,7 @@ export function ExperienceHeader({
           {locales.map((option) => (
             <Link
               key={option}
-              href={`${active === 'home' ? '/' : `/${active === 'recorder' ? 'flight-recorder' : active}`}?lang=${option}`}
+              href={`/${activePath[active]}?lang=${option}`}
               aria-current={locale === option ? 'page' : undefined}
             >
               {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}

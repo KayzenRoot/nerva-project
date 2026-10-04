@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 const paths = [
   'apps/web/src/app/demo/page.tsx',
+  'apps/web/src/app/demo/demo-copy.ts',
   'apps/web/src/app/demo/demo-view.tsx',
   'apps/web/src/app/demo/demo-model.ts',
 ];
@@ -13,8 +14,9 @@ const forbidden = [
   /(?:private key|seed phrase|mnemonic)/i,
 ];
 
-for (const path of paths) {
-  const source = await readFile(path, 'utf8');
+const sources = await Promise.all(paths.map((path) => readFile(path, 'utf8')));
+for (const [index, source] of sources.entries()) {
+  const path = paths[index];
   for (const pattern of forbidden) {
     if (pattern.test(source)) throw new Error(`DEMO_BOUNDARY_VIOLATION:${path}:${pattern}`);
   }

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = Number(process.env.NERVA_PLAYWRIGHT_PORT ?? '3100');
+
 export default defineConfig({
   testDir: './apps/web/e2e',
   testMatch: '**/*.pw.ts',
@@ -11,14 +13,14 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL: `http://127.0.0.1:${port}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     ...devices['Desktop Chrome'],
   },
   webServer: {
-    command: 'npm --workspace=@nerva/web run dev -- --hostname 127.0.0.1 --port 3100',
-    url: 'http://127.0.0.1:3100/api/health/live',
+    command: `npm --workspace=@nerva/web run dev -- --hostname 127.0.0.1 --port ${port}`,
+    url: `http://127.0.0.1:${port}/api/health/live`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {

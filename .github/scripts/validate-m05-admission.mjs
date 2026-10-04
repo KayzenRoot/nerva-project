@@ -6,7 +6,7 @@ const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
 
 const gitExecutable =
-  process.platform === 'win32' ? 'C:\\Program Files\\Git\\cmd\\git.exe' : '/usr/bin/git';
+  process.platform === 'win32' ? String.raw`C:\Program Files\Git\cmd\git.exe` : '/usr/bin/git';
 
 if (!fs.existsSync(gitExecutable)) {
   throw new Error('M05 admission validation requires Git at the trusted system path');
@@ -95,6 +95,9 @@ const allowed = new Set([
   'apps/web/src/app/m05.css',
   'apps/web/src/app/dashboard/page.tsx',
   'apps/web/src/app/dashboard-copy.ts',
+  'apps/web/src/app/home-copy.ts',
+  'apps/web/src/app/localized-rows.ts',
+  'apps/web/src/app/localized-rows.test.ts',
   'apps/web/src/app/m03-readonly-view.tsx',
   'apps/web/src/app/permissions/permissions-read-view.tsx',
   'apps/web/src/app/policies/page.tsx',
@@ -103,6 +106,7 @@ const allowed = new Set([
   'apps/web/src/app/policies/policy-templates.ts',
   'apps/web/src/app/demo/page.tsx',
   'apps/web/src/app/demo/demo-view.tsx',
+  'apps/web/src/app/demo/demo-copy.ts',
   'apps/web/src/app/demo/demo-model.ts',
   'apps/web/src/app/demo/demo-model.test.ts',
   'apps/web/src/app/demo/analytics-privacy.test.ts',
@@ -162,6 +166,12 @@ if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
   throw new Error('M05 implementation changed but the Evidence Bundle is still marked not started');
 }
 
+let state = 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION';
+if (implementationChanged) state = 'NERVA_WO_006_EXECUTION_IN_PROGRESS';
+if (evidence.includes('Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  state = 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT';
+}
+
 console.log(
   JSON.stringify({
     ok: true,
@@ -171,10 +181,6 @@ console.log(
     issue: lock.issueNumber,
     fingerprints: fingerprints.length,
     changedFiles: changed.length,
-    state: evidence.includes('Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')
-      ? 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT'
-      : implementationChanged
-        ? 'NERVA_WO_006_EXECUTION_IN_PROGRESS'
-        : 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION',
+    state,
   }),
 );

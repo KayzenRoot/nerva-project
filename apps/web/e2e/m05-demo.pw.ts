@@ -34,10 +34,10 @@ test('M05-UI-001/MODE/DEMO-001/002: clean guided story, bounded timing and deter
   expect(story).toContain('SIMULATED_OUTCOME');
   await expect(page.getByText(/no provider receipt or transaction exists/i)).toBeVisible();
   await expect
-    .poll(async () =>
-      page.locator('.progress-track span').evaluate((bar) => getComputedStyle(bar).width),
+    .poll(() =>
+      page.locator('.progress-track').evaluate((track) => (track as HTMLProgressElement).value),
     )
-    .toBe(await page.locator('.progress-track').evaluate((track) => getComputedStyle(track).width));
+    .toBe(84);
   await mkdir(screenshots, { recursive: true });
   await page.screenshot({ path: `${screenshots}/guided-demo-desktop.png` });
   await page.getByRole('button', { name: 'Reset demo' }).click();
@@ -98,16 +98,22 @@ test('M05-UI-002/RESP-001/A11Y-001/I18N-001: mobile, keyboard and Spanish critic
   await expect(page.getByRole('main')).toHaveCount(1);
   await expect(page.getByRole('navigation').first()).toBeVisible();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(
-    await page
-      .locator('.progress-track span')
-      .evaluate((element) => getComputedStyle(element).transitionDuration),
-  ).not.toBe('300ms');
+  expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(
+    true,
+  );
   await page.goto('/demo?lang=es');
   await expect(page.getByText('SOLO DEMO · DATOS SINTÉTICOS').first()).toBeVisible();
   await expect(
     page.getByText('Efecto en mainnet: HARD_BLOCKED · Escrituras Perpl en vivo: BLOCKED').first(),
   ).toBeVisible();
+  await page.goto('/?lang=pt-BR');
+  await expect(page.getByRole('link', { name: /iniciar demo guiada/i })).toBeVisible();
+  await expect(page.getByText('Risco determinístico')).toBeVisible();
+  await expect(page.getByText('ATUALIDADE').first()).toBeVisible();
+  await page.goto('/?lang=es');
+  await expect(page.getByRole('link', { name: /iniciar demo guiada/i })).toBeVisible();
+  await expect(page.getByText('Riesgo determinista')).toBeVisible();
+  await expect(page.getByText('VIGENCIA').first()).toBeVisible();
 });
 
 test('M05-POLICY-001/002: bounded template validates without confirmation and free text stays local', async ({

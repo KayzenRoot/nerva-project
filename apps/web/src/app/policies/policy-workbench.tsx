@@ -9,6 +9,7 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     title: 'Policy builder & review',
     intro:
       'Select a bounded template, inspect every constraint, then run structural validation only.',
+    templates: 'Bounded policy templates',
     reduce: 'Bounded reduce · 10% maximum',
     close: 'Close on drawdown · explicit 100% maximum',
     draft: 'Untrusted plain-language proposal',
@@ -19,6 +20,8 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     compiling: 'Validating…',
     status: 'Compiler status',
     noTemplate: 'Choose a template to inspect its exact structured policy.',
+    jsonSummary: 'Structured constraints (JSON)',
+    jsonLabel: 'Structured policy JSON',
     warning: 'Example template · not saved · not confirmed · no permission granted',
     errors: 'Validation unavailable. The draft remains local and unconfirmed.',
     notPersisted: 'Never confirmed or persisted by this screen.',
@@ -28,6 +31,7 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     title: 'Construtor e revisão de políticas',
     intro:
       'Selecione um modelo limitado, inspecione cada restrição e execute apenas validação estrutural.',
+    templates: 'Modelos de política limitados',
     reduce: 'Redução limitada · máximo 10%',
     close: 'Fechar por drawdown · máximo explícito de 100%',
     draft: 'Proposta não confiável em linguagem natural',
@@ -38,6 +42,8 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     compiling: 'Validando…',
     status: 'Estado do compilador',
     noTemplate: 'Escolha um modelo para inspecionar a política estruturada exata.',
+    jsonSummary: 'Restrições estruturadas (JSON)',
+    jsonLabel: 'JSON da política estruturada',
     warning: 'Modelo de exemplo · não salvo · não confirmado · nenhuma permissão concedida',
     errors: 'Validação indisponível. O rascunho permanece local e não confirmado.',
     notPersisted: 'Esta tela nunca confirma nem persiste a política.',
@@ -47,6 +53,7 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     title: 'Constructor y revisión de políticas',
     intro:
       'Elige una plantilla limitada, inspecciona cada restricción y ejecuta solo validación estructural.',
+    templates: 'Plantillas de política acotadas',
     reduce: 'Reducción acotada · máximo 10%',
     close: 'Cerrar por drawdown · máximo explícito de 100%',
     draft: 'Propuesta no confiable en lenguaje natural',
@@ -57,6 +64,8 @@ const labels: Record<Locale, Readonly<Record<string, string>>> = {
     compiling: 'Validando…',
     status: 'Estado del compilador',
     noTemplate: 'Elige una plantilla para inspeccionar la política estructurada exacta.',
+    jsonSummary: 'Restricciones estructuradas (JSON)',
+    jsonLabel: 'JSON de política estructurada',
     warning: 'Plantilla de ejemplo · no guardada · no confirmada · sin permiso concedido',
     errors: 'Validación no disponible. El borrador sigue local y sin confirmar.',
     notPersisted: 'Esta pantalla nunca confirma ni persiste la política.',
@@ -104,7 +113,8 @@ export function PolicyWorkbench({ locale }: { readonly locale: Locale }) {
         <span className="state-tag">NO AUTHORITY</span>
       </div>
       <p>{text.intro}</p>
-      <div className="template-picker" role="group" aria-label={text.title}>
+      <fieldset className="template-picker">
+        <legend>{text.templates}</legend>
         <button
           className="button button-secondary"
           type="button"
@@ -127,30 +137,15 @@ export function PolicyWorkbench({ locale }: { readonly locale: Locale }) {
         >
           {text.close}
         </button>
-      </div>
+      </fieldset>
       <p className="trust-notice compact-notice">
         {text.warning} · {text.blocked}
       </p>
       <details className="policy-details" open>
-        <summary>
-          {locale === 'pt-BR'
-            ? 'Restrições estruturadas (JSON)'
-            : locale === 'es'
-              ? 'Restricciones estructuradas (JSON)'
-              : 'Structured constraints (JSON)'}
-        </summary>
-        <pre
-          tabIndex={0}
-          aria-label={
-            locale === 'pt-BR'
-              ? 'JSON da política estruturada'
-              : locale === 'es'
-                ? 'JSON de política estructurada'
-                : 'Structured policy JSON'
-          }
-        >
-          {JSON.stringify(policy, null, 2)}
-        </pre>
+        <summary>{text.jsonSummary}</summary>
+        <div className="policy-json-region" role="region" aria-label={text.jsonLabel} tabIndex={0}>
+          <pre>{JSON.stringify(policy, null, 2)}</pre>
+        </div>
       </details>
       <div className="button-row">
         <button
@@ -162,12 +157,14 @@ export function PolicyWorkbench({ locale }: { readonly locale: Locale }) {
           {busy ? text.compiling : text.validation}
         </button>
       </div>
-      <p className="fine-print">
+      <output className="fine-print" aria-live="polite">
         {text.status}: {String(result?.status ?? 'NOT_VALIDATED')} ·{' '}
         {String(result?.authority ?? 'NO_AUTHORITY')} · {text.notPersisted}
-      </p>
+      </output>
       {result?.status === 'INVALID' || result?.status === 'UNAVAILABLE' ? (
-        <p role="status">{text.errors}</p>
+        <output className="fine-print" aria-live="assertive">
+          {text.errors}
+        </output>
       ) : null}
       <label className="field-label" htmlFor="untrusted-policy-proposal">
         {text.draft}
