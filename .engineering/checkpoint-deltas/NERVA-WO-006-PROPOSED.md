@@ -15,6 +15,7 @@
 The independent audit approved the exact M05 candidate after CD-001. PR #16 was merged, a bounded post-merge historical-validator defect was corrected in PR #17, and the resulting `main` passed M01–M05, GEF 1.1.2, Source Pack, SonarCloud and Socket validation.
 
 ## Effective promoted state
+
 - M05: `APPROVED`.
 - Latest approved Work Order: `NERVA-WO-006`.
 - Active/next module: M06 — Release Hardening, Deployment & Metropolis Submission.
@@ -27,6 +28,7 @@ The independent audit approved the exact M05 candidate after CD-001. PR #16 was 
 - M06 is not admitted or started by this promotion.
 
 ## Satisfied proof obligations
+
 1. Post-audit promotion changes were governance-only relative to the independently audited M05 head.
 2. Exact promotion-head Linux, Windows bounded, GEF 1.1.2, Source Pack, SonarCloud and Socket checks passed before merge.
 3. PR #16 merged only after its promotion checks were green.
