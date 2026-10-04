@@ -115,3 +115,5 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - Promotion scope after the audited head is governance-only: canonical Checkpoint, Backlog, this Evidence Bundle, the accepted Checkpoint Delta and validators required to recognize the promoted M05 state.
 - M05 promotion preserves `MAINNET EFFECT = HARD_BLOCKED`, `LIVE PERPL WRITES = BLOCKED`, 0 known CRITICAL/HIGH defects and the four existing MODERATE dependency carry-forwards.
 - M06 is only the next module and remains `NOT_ADMITTED`; no M06 implementation is authorized by this promotion.
+
+- Preserved executor STOP CONDITION: `NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT`.
