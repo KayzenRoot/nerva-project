@@ -17,6 +17,7 @@ import {
   resetGuidedDemo,
   selectDemoScenario,
   startGuidedDemo,
+  type DemoScenario,
   type DemoScenarioId,
   type DemoState,
 } from './demo-model.ts';
@@ -24,6 +25,31 @@ import {
 const copy = demoCopy;
 type DemoCopy = (typeof demoCopy)['en'];
 const localeLabels: Record<Locale, string> = { en: 'EN', 'pt-BR': 'PT', es: 'ES' };
+
+function decisionNotice(
+  refusalReason: string | undefined,
+  outcome: DemoState['outcome'],
+  text: DemoCopy,
+) {
+  if (refusalReason) {
+    return { tone: 'refused', heading: text.refusal, detail: refusalReason } as const;
+  }
+  if (outcome === 'SIMULATED_OUTCOME') {
+    return { tone: 'simulated', heading: text.simulatedOutcome, detail: text.outcome } as const;
+  }
+  return undefined;
+}
+
+function evidenceStatus(
+  index: number,
+  phaseIndex: number,
+  outcome: DemoScenario['outcome'],
+  text: DemoCopy,
+): string {
+  if (index === 7) return outcome;
+  if (index <= phaseIndex) return text.observedSynthetic;
+  return text.pending;
+}
 
 function links(locale: Locale, text: DemoCopy) {
   return [
@@ -55,6 +81,7 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
   const refusalReason = scenario.refusalReason
     ? scenarioReasons[locale][scenario.refusalReason]
     : undefined;
+  const notice = decisionNotice(refusalReason, state.outcome, text);
   function chooseScenario(id: DemoScenarioId) {
     setState(selectDemoScenario(id));
     recordDemoAnalytics('scenario_selected');
@@ -171,16 +198,11 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
                   <p>{text[phase]}</p>
                 </div>
               </div>
-              {refusalReason ? (
-                <p className="decision-banner decision-refused" role="status">
-                  <strong>{text.refusal}</strong>
-                  <span>{refusalReason}</span>
-                </p>
-              ) : state.outcome === 'SIMULATED_OUTCOME' ? (
-                <p className="decision-banner decision-simulated" role="status">
-                  <strong>{text.simulatedOutcome}</strong>
-                  <span>{text.outcome}</span>
-                </p>
+              {notice ? (
+                <output className={`decision-banner decision-${notice.tone}`} aria-live="polite">
+                  <strong>{notice.heading}</strong>
+                  <span>{notice.detail}</span>
+                </output>
               ) : null}
               <div className="button-row">
                 <button
@@ -336,13 +358,7 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
                       {index + 1}
                     </span>
                     <span>{item}</span>
-                    <small>
-                      {index === 7
-                        ? scenario.outcome
-                        : index <= phaseIndex
-                          ? text.observedSynthetic
-                          : text.pending}
-                    </small>
+                    <small>{evidenceStatus(index, phaseIndex, scenario.outcome, text)}</small>
                   </li>
                 ))}
               </ol>

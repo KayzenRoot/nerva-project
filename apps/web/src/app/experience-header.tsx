@@ -48,6 +48,13 @@ const mode: Record<Locale, Readonly<{ label: string; description: string }>> = {
   },
 };
 
+const primaryNavLabels: Record<Locale, string> = {
+  en: 'Primary navigation',
+  'pt-BR': 'Navegação principal',
+  es: 'Navegación principal',
+};
+const localeLabels: Record<Locale, string> = { en: 'EN', 'pt-BR': 'PT', es: 'ES' };
+
 export function ExperienceHeader({
   locale,
   active,
@@ -76,16 +83,7 @@ export function ExperienceHeader({
         <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
           NERVA<span className="brand-mark">●</span>
         </Link>
-        <nav
-          className="experience-nav"
-          aria-label={
-            locale === 'pt-BR'
-              ? 'Navegação principal'
-              : locale === 'es'
-                ? 'Navegación principal'
-                : 'Primary navigation'
-          }
-        >
+        <nav className="experience-nav" aria-label={primaryNavLabels[locale]}>
           {links.map(([href, label, key]) => (
             <Link key={key} href={href} aria-current={active === key ? 'page' : undefined}>
               {label}
@@ -99,7 +97,7 @@ export function ExperienceHeader({
               href={`/${activePath[active]}?lang=${option}`}
               aria-current={locale === option ? 'page' : undefined}
             >
-              {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
+              {localeLabels[option]}
             </Link>
           ))}
         </nav>

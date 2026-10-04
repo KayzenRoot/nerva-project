@@ -143,9 +143,13 @@ export function PolicyWorkbench({ locale }: { readonly locale: Locale }) {
       </p>
       <details className="policy-details" open>
         <summary>{text.jsonSummary}</summary>
-        <div className="policy-json-region" role="region" aria-label={text.jsonLabel} tabIndex={0}>
-          <pre>{JSON.stringify(policy, null, 2)}</pre>
-        </div>
+        <textarea
+          className="policy-json-region"
+          aria-label={text.jsonLabel}
+          value={JSON.stringify(policy, null, 2)}
+          rows={11}
+          readOnly
+        />
       </details>
       <div className="button-row">
         <button

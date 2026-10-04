@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 const paths = [
   'apps/web/src/app/demo/page.tsx',
+  'apps/web/src/app/product-copy.json',
   'apps/web/src/app/demo/demo-copy.ts',
   'apps/web/src/app/demo/demo-view.tsx',
   'apps/web/src/app/demo/demo-model.ts',

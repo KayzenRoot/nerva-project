@@ -1,8 +1,30 @@
 import { mkdir } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const screenshots = '.engineering/evidence/NERVA-WO-006-artifacts';
+
+async function assertRefusedScenario(page: Page, scenario: string, reason: string) {
+  await page.getByRole('button', { name: new RegExp(scenario, 'i') }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'REFUSED' }).first()).toContainText(
+    reason,
+  );
+  await expect(page.getByText('NO ACTION', { exact: false }).first()).toBeVisible();
+}
+
+async function assertAccessibleRoute(page: Page, route: string) {
+  await page.goto(route);
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  const critical = results.violations.filter((violation) =>
+    ['critical', 'serious'].includes(violation.impact ?? ''),
+  );
+  expect(
+    critical,
+    `${route}: ${JSON.stringify(critical.map(({ id, nodes }) => ({ id, count: nodes.length })))}`,
+  ).toEqual([]);
+}
 
 test('M05-UI-001/MODE/DEMO-001/002: clean guided story, bounded timing and deterministic reset', async ({
   page,
@@ -54,22 +76,26 @@ test('M05-REFUSE-001..004: stale, revoked, changed delegate and degraded provide
   page,
 }) => {
   await page.goto('/demo?lang=en');
-  const cases = [
-    ['Stale source', 'Source is stale. Current data cannot authorize a decision.'],
-    ['Permission revoked', 'The parent permission is revoked. Derived authority is invalid.'],
-    [
-      'Delegate changed',
-      'Delegation changed. Authority bound to the prior observation is invalid.',
-    ],
-    ['Provider degraded', 'Provider health is degraded. The path is non-actionable.'],
-  ] as const;
-  for (const [scenario, reason] of cases) {
-    await page.getByRole('button', { name: new RegExp(scenario, 'i') }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'REFUSED' }).first()).toContainText(
-      reason,
-    );
-    await expect(page.getByText('NO ACTION', { exact: false }).first()).toBeVisible();
-  }
+  await assertRefusedScenario(
+    page,
+    'Stale source',
+    'Source is stale. Current data cannot authorize a decision.',
+  );
+  await assertRefusedScenario(
+    page,
+    'Permission revoked',
+    'The parent permission is revoked. Derived authority is invalid.',
+  );
+  await assertRefusedScenario(
+    page,
+    'Delegate changed',
+    'Delegation changed. Authority bound to the prior observation is invalid.',
+  );
+  await assertRefusedScenario(
+    page,
+    'Provider degraded',
+    'Provider health is degraded. The path is non-actionable.',
+  );
 });
 
 test('M05-UI-002/RESP-001/A11Y-001/I18N-001: mobile, keyboard and Spanish critical copy', async ({
@@ -137,25 +163,11 @@ test('M05-A11Y-001: axe WCAG A/AA scan reports no critical or serious violations
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
-  for (const route of [
-    '/?lang=en',
-    '/demo?lang=en',
-    '/dashboard?lang=en',
-    '/policies?lang=en',
-    '/permissions?lang=en',
-    '/flight-recorder?lang=en',
-  ]) {
-    await page.goto(route);
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    const critical = results.violations.filter((violation) =>
-      ['critical', 'serious'].includes(violation.impact ?? ''),
-    );
-    expect(
-      critical,
-      `${route}: ${JSON.stringify(critical.map(({ id, nodes }) => ({ id, count: nodes.length })))}`,
-    ).toEqual([]);
-  }
+  await assertAccessibleRoute(page, '/?lang=en');
+  await assertAccessibleRoute(page, '/demo?lang=en');
+  await assertAccessibleRoute(page, '/dashboard?lang=en');
+  await assertAccessibleRoute(page, '/policies?lang=en');
+  await assertAccessibleRoute(page, '/permissions?lang=en');
+  await assertAccessibleRoute(page, '/flight-recorder?lang=en');
   expect(consoleErrors).toEqual([]);
 });
