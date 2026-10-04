@@ -125,7 +125,6 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 
 `BLOCKED_PUBLIC_DEPLOYMENT_AND_METROPOLIS_OAUTH_OWNER_APPROVAL`
 
-
 ## Public deployment target provisioning
 
 - Vercel team: `team_OE3MNboVFDX58OGsMNGPLAnf`.
@@ -135,7 +134,6 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - The initial Vercel bootstrap deployment tracks `main@b778b470eff4ff997def001899530512065e5676` and is **not** accepted as M06 deployment evidence.
 - This evidence commit is intentionally pushed on `feat/nerva-wo-007-m06-release-hardening` after Git linkage to trigger a branch preview deployment of the actual M06 candidate. Acceptance requires the resulting deployment metadata to prove the branch/SHA and public health behavior.
 
-
 ## Vercel deployment correction history
 
 - First Vercel branch preview attempt: deployment `dpl_9r1vQG9pv1Dgn1y9UbuYk3GY8EBg`, branch `feat/nerva-wo-007-m06-release-hardening`, commit `c005d39b6231a71d1e387394033e1a99daa217b6`.
@@ -143,7 +141,6 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - Vercel project `prj_jz7MxL3aphaRgB7kvhQCktiACgct` was corrected to Node `22.x`, framework `nextjs`, root-workspace install command `cd ../.. && npm ci --ignore-scripts --no-audit --no-fund`, and `sourceFilesOutsideRootDirectory=true`.
 - The failed deployment is retained as correction evidence and is not accepted as release proof.
 - This commit triggers a new branch preview using the corrected project configuration.
-
 
 ## Public Vercel preview proof — deployment target now exists
 
@@ -156,7 +153,6 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - Vercel project protection was disabled for the demo project so the preview is publicly reachable over HTTPS; no secret or financial authority was added.
 - Vercel project environment now explicitly sets `NERVA_ENVIRONMENT=TESTNET_DEMO`, `NERVA_EXECUTION_ENABLED=false`, `NERVA_KILL_SWITCH_ENABLED=true`, `NERVA_DEMO_SIMULATION_ENABLED=true`, `PERPL_OBSERVATION_ENABLED=false`, and telemetry disabled for subsequent deployments.
 - This evidence commit triggers a new preview with the explicit safety environment. Final Gate 6 acceptance still requires database-backed readiness HTTP 200.
-
 
 ## Supabase deployment database provisioned
 
@@ -176,7 +172,6 @@ The security advisor also reports six WARN findings for mutable function `search
 
 No final deployment/database readiness or M06 approval may be claimed until the RLS exposure is explicitly dispositioned and the Vercel runtime database connection is established without weakening the fail-closed execution posture.
 
-
 ## Owner-approved deny-by-default RLS
 
 - Owner approval received: `APPROVE_DENY_BY_DEFAULT_RLS`.
@@ -187,7 +182,6 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - Post-change Supabase Security Advisor reports only INFO `rls_enabled_no_policy` findings. This is the intended deny-by-default state for M06 and no WARN/ERROR remains for RLS or function `search_path`.
 - Hosted state is versioned in `packages/db/migrations/0010_nerva_release_security_hardening.sql` and registered in the Drizzle migration journal.
 
-
 ## Current external gate state
 
 - Supabase RLS/security owner decision is CLOSED.
@@ -197,7 +191,6 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - Owner authorization for Metropolis GitHub OAuth was received, but this non-browser connector session cannot complete the interactive OAuth/account step. Public official portal confirms the event window as `1 Sep to 13 Oct`; authenticated deadline time zone, submission fields, track and bounty eligibility remain portal-gated.
 - M06 therefore remains draft/unmerged and the Checkpoint remains unpromoted.
 
-
 ## Vercel/Supabase credential-bridge compatibility
 
 - NERVA server configuration now accepts `DATABASE_URL` first and Vercel-native `POSTGRES_URL` as a fallback.
@@ -206,7 +199,6 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - `publicConfig` does not expose the database URL.
 - This change permits the official Vercel/Supabase integration to provide the server-side connection through its native environment-variable contract without copying a database credential into Git or chat.
 - The secure integration/install step itself remains external and must still be objectively verified before `/api/health/ready` can be accepted as healthy.
-
 
 ## Vercel Supabase integration observed
 
@@ -218,7 +210,6 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - NERVA consumes only `DATABASE_URL` or the `POSTGRES_URL` fallback for database connectivity; no Supabase service-role key is exposed through `publicConfig`.
 - The integration was observed after the previous preview deployment had already been built, so this evidence-only commit intentionally triggers a fresh exact-head deployment before readiness is evaluated.
 
-
 ## Vercel/Supabase TLS compatibility correction
 
 - First exact-head deployment after the official Supabase integration exposed `POSTGRES_URL` reached the database health probe but returned `UNKNOWN`.
@@ -227,7 +218,6 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - The integration-provided URL requests `sslmode=require`. Current node-postgres compatibility behavior can interpret that as certificate-verifying `verify-full`, which is incompatible with this Supabase pooler chain.
 - NERVA now adds `uselibpqcompat=true` only for the Vercel `POSTGRES_URL` fallback when it already requests `sslmode=require`. This keeps TLS required while honoring standard libpq `require` semantics. Explicit `DATABASE_URL` values remain untouched.
 - Final public readiness must still be reverified on the deployment produced from this corrected exact HEAD before Gate 6 can pass.
-
 
 ## Gate 6 public deployment closed
 
@@ -245,3 +235,46 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - `MAINNET EFFECT = HARD_BLOCKED`, `LIVE PERPL WRITES = BLOCKED`, `NERVA_EXECUTION_ENABLED=false`, and the global kill switch remain intact.
 
 Gate 6 is therefore CLOSED. The remaining M06 release blocker is authenticated Metropolis portal evidence and the final submission package decision. The owner completed the interactive GitHub OAuth step, but this connector session cannot read the browser-authenticated portal state. Do not infer track/bounty eligibility or exact authenticated form requirements from the OAuth action alone.
+
+## Visual & Demo Polish Pass — public preview evidence
+
+- Work Order: `NERVA-WO-007`; branch: `feat/nerva-wo-007-m06-release-hardening`; PR #20 remains `OPEN`, `DRAFT`, and unmerged.
+- Product redesign commit: `2d7201fc0bc688a9a42b3f045f3a37562399b717`.
+- Validation/test correction HEAD: `c5ac6a1428ef8fc569289ed5523693334e83e93b`.
+- Base remains `main@b778b470eff4ff997def001899530512065e5676`; Context Lock validation reports 98 fingerprints.
+- Exact Vercel Preview deployment `7rYX8Tujqj9UUsKys9Bp8krbMGSb` is `READY` for `c5ac6a1428ef8fc569289ed5523693334e83e93b` at [https://nerva-project-q7nmt5mko-claytons-projects-5922d27c.vercel.app](https://nerva-project-q7nmt5mko-claytons-projects-5922d27c.vercel.app).
+- Direct HTTPS checks on that deployment returned `/metropolis/technical-demo` = HTTP 200 and `/metropolis/pitch-video` = HTTP 200. Both contain the exact page title and requested summary, `Temporary submission placeholder`, the video-production notice, demo CTA, `TESTNET_DEMO`, `MAINNET EFFECT = HARD_BLOCKED`, and `LIVE PERPL WRITES = BLOCKED`; neither embeds or claims to be a video.
+- `/api/health/live` returned HTTP 200 with `environment=TESTNET_DEMO` and `executionEnabled=false`.
+- `/api/health/ready` returned HTTP 200 with database `HEALTHY` and `globalExecutionDisabled=true`. The separate `/api/flight-recorder` read model returned HTTP 503 / `UNAVAILABLE` with empty event collections; the page presents this unavailable state rather than inventing live evidence. The Guided Demo's synthetic lineage remains explicitly local and `DEMO_ONLY`.
+- Full Playwright suite against the exact deployment: 10/10 passed, including M05 fail-closed guided flow, M06 security headers, placeholder content/safety, 1440×900 and 390×844 layouts, axe critical/serious checks, and Flight Recorder narration. The Playwright Vercel-preview-only `x-vercel-skip-toolbar: 1` request header prevents Vercel Toolbar console noise, as described by [Vercel's Toolbar automation documentation](https://vercel.com/docs/vercel-toolbar/managing-toolbar#disable-toolbar-for-automation); the application's strict CSP was not changed.
+
+### Validation on the visual candidate
+
+- `npm run lint`, `npm run typecheck`, `npm run build`, targeted Prettier check, and `git diff --check`: PASS.
+- `npm test`: 31 files / 140 tests PASS.
+- `npm run smoke:boot`: PASS with database variables omitted; web health is live, readiness fails closed as not configured, worker starts in observation mode, execution disabled; English, Brazilian Portuguese, and Spanish home copy verified.
+- `npm run context:validate`: PASS; M06 Context Lock 98/98 and historical M05/M04 locks validate.
+- `npm run sourcepack:validate`: PASS; 56 required files / 7 modules; M06 implementation remains on the admitted branch.
+- `npm run m03:safety:verify`, `npm run m05:demo:verify`, `npm run deps:boundary`, and `npm run security:client-bundle`: PASS. Mainnet effect remains hard-blocked, live Perpl writes remain blocked, unproven metrics remain non-authoritative, DEMO_ONLY remains isolated, and no client secret material is present.
+- `npm run security:audit`: PASS at the configured HIGH threshold; zero HIGH/CRITICAL findings. Four pre-existing MODERATE transitive advisories remain carried forward; no forced dependency downgrade was applied.
+- Exact-HEAD hosted checks on `c5ac6a1`: Linux, Windows bounded, GEF 1.1.2, Source Pack, SonarCloud, Socket Pull Request Alerts, Socket Project Report, and Vercel all succeeded. See [Linux and Windows run](https://github.com/KayzenRoot/nerva-project/actions/runs/37233984409), [GEF](https://github.com/KayzenRoot/nerva-project/actions/runs/37233984347), [Source Pack](https://github.com/KayzenRoot/nerva-project/actions/runs/37233984345), [SonarCloud](https://sonarcloud.io/dashboard?id=KayzenRoot_nerva-project&pullRequest=20), [Socket Alerts](https://socket.dev), [Socket Project Report](https://socket.dev/dashboard/org/nexlabs/sbom/51fefa67-8365-4bb6-a3f3-c4286f206460), and [Vercel deployment](https://vercel.com/claytons-projects-5922d27c/nerva-project/7rYX8Tujqj9UUsKys9Bp8krbMGSb).
+
+### Responsive screenshots and performance/privacy evidence
+
+The exact-preview screenshots are stored in `.engineering/evidence/NERVA-WO-007-artifacts-visual-polish/`:
+
+- `home-desktop.png`, `home-mobile.png`;
+- `risk-dashboard-desktop.png`, `policy-builder-desktop.png`, `flight-recorder-desktop.png`;
+- `guided-demo-desktop.png`, `guided-demo-mobile.png`;
+- `technical-demo-desktop.png`, `technical-demo-mobile.png`;
+- `pitch-video-desktop.png`, `pitch-video-mobile.png`.
+
+Screenshots use 1440×900 desktop and 390×844 mobile viewports. A single unthrottled Chromium navigation sample on the public preview measured DOMContentLoaded at 568–902 ms and load at 722–977 ms for the dashboard, policy builder, and Flight Recorder; transferSize for the HTML document was 4.6–5.7 KB. This is an observational sample, not a Lighthouse score or a throttled performance benchmark. The Next production output contained 11 JavaScript chunks totaling 661,272 bytes and one CSS chunk of 55,478 bytes; `visual-polish.css` source is 41,610 bytes. The polish introduced no package dependency, analytics integration, external font, or secret. Client-bundle inspection found no server secret material.
+
+### Remaining release status and known limitation
+
+- `MAINNET EFFECT = HARD_BLOCKED`; `LIVE PERPL WRITES = BLOCKED`; no new financial authority, transaction, real provider outcome, or synthetic-to-live path was added.
+- M06 is not approved and V0.1 is not declared release-ready. The latest owner-provided authenticated Metropolis evidence says project `NERVA` exists but the full description, repository, tracks/bounties, progress update, and final submission remain incomplete; no submission or bounty claim was made. Keep the proposed Checkpoint Delta unpromoted.
+- Flight Recorder live records remain unavailable in this preview as captured above; this is an explicit availability limitation, not a financial-safety bypass.
+- No approved logo asset was present in the repository or the supplied text. The UI uses the new inline violet NERVA SVG mark, but its identity as the separately approved official logo is unverified; replace the mark when that approved source asset is available.
+- Global `npm run format:check` is not claimed as passing: the earlier global check reported five unrelated historical formatting files outside this visual-polish diff. The changed files pass targeted formatting and are not broadened to reformat those files.
