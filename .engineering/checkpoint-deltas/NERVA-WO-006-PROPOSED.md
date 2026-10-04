@@ -1,18 +1,20 @@
 # Checkpoint Delta — NERVA-WO-006 / M05
 
-- **State:** ACCEPTED AND PROMOTED AS PR #16 GOVERNANCE CANDIDATE
+- **State:** ACCEPTED · EFFECTIVE · POST-MERGE VALIDATED
 - **Work Order:** NERVA-WO-006
 - **Issue:** #15
-- **PR:** #16
+- **Primary PR:** #16
+- **Post-merge correction PR:** #17
 - **Execution base:** `5243c2808f258996c11e5e2fa9dffa5af96041cd`
 - **Independently audited head:** `bd0190a744befa413fac15f4f276d28b846a348e`
 - **Audit verdict:** APPROVED
 - **Audit review ID:** `5405457556`
+- **Accepted M05 squash merge:** `d4c34f5f57d730f42570f6a9db19dc54d72e93cb`
+- **Accepted post-merge validator correction:** `2f314582f54f3a4f1425b10b923fb77695f9cc52`
 
-The independent audit approved the exact M05 candidate after CD-001 and authorized Checkpoint promotion. This delta is now applied to the PR #16 governance candidate. It becomes effective canonical history when PR #16 is merged and `main` passes post-merge validation.
+The independent audit approved the exact M05 candidate after CD-001. PR #16 was merged, a bounded post-merge historical-validator defect was corrected in PR #17, and the resulting `main` passed M01–M05, GEF 1.1.2, Source Pack, SonarCloud and Socket validation.
 
-## Promoted state
-
+## Effective promoted state
 - M05: `APPROVED`.
 - Latest approved Work Order: `NERVA-WO-006`.
 - Active/next module: M06 — Release Hardening, Deployment & Metropolis Submission.
@@ -24,9 +26,10 @@ The independent audit approved the exact M05 candidate after CD-001 and authoriz
 - Stale/unknown/inconsistent inputs and `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN`, and `FUNDING_DIRECTION` remain non-authoritative.
 - M06 is not admitted or started by this promotion.
 
-## Promotion proof obligations
-
-1. Promotion changes remain governance-only relative to the independently audited head.
-2. Exact promotion-head Linux, Windows bounded, GEF 1.1.2, Source Pack, Context Lock, SonarCloud and Socket checks must pass before merge.
-3. PR #16 remains unmerged until those checks are green.
-4. After merge, validate `main` before compiling/admitting NERVA-WO-007 / M06.
+## Satisfied proof obligations
+1. Post-audit promotion changes were governance-only relative to the independently audited M05 head.
+2. Exact promotion-head Linux, Windows bounded, GEF 1.1.2, Source Pack, SonarCloud and Socket checks passed before merge.
+3. PR #16 merged only after its promotion checks were green.
+4. The bounded post-merge validator correction was independently reviewed and merged in PR #17.
+5. The resulting `main` passed post-merge M01–M05, GEF 1.1.2 and Source Pack validation.
+6. The next legal step is NERVA-WO-007 / M06 compilation and admission; M06 implementation remains blocked until admitted.
