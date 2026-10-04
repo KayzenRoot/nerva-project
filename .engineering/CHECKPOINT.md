@@ -1,6 +1,6 @@
 # NERVA Checkpoint
 
-Status: CANONICAL CANDIDATE — NERVA-WO-006 / M05 APPROVED; effective on PR #16 merge
+Status: CANONICAL — NERVA-WO-006 / M05 APPROVED; effective on PR #16 merge
 
 Repository: `KayzenRoot/nerva-project`  
 GEF: `@gef-bootstrap/cli@1.1.2`
