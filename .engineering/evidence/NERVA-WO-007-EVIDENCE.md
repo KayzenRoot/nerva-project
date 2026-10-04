@@ -206,3 +206,14 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - `publicConfig` does not expose the database URL.
 - This change permits the official Vercel/Supabase integration to provide the server-side connection through its native environment-variable contract without copying a database credential into Git or chat.
 - The secure integration/install step itself remains external and must still be objectively verified before `/api/health/ready` can be accepted as healthy.
+
+
+## Vercel Supabase integration observed
+
+- Owner completed the interactive Vercel/Supabase connection.
+- Verification was performed without decrypting or printing any secret value.
+- Vercel project `prj_jz7MxL3aphaRgB7kvhQCktiACgct` now exposes the official Supabase integration environment contract to both Preview and Production.
+- Required server-side connection key `POSTGRES_URL` is present as a sensitive environment variable.
+- Related integration keys are also present, including `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, `POSTGRES_HOST`, `POSTGRES_DATABASE`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `SUPABASE_URL`, and Supabase key material.
+- NERVA consumes only `DATABASE_URL` or the `POSTGRES_URL` fallback for database connectivity; no Supabase service-role key is exposed through `publicConfig`.
+- The integration was observed after the previous preview deployment had already been built, so this evidence-only commit intentionally triggers a fresh exact-head deployment before readiness is evaluated.
