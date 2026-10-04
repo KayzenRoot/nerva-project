@@ -1,6 +1,6 @@
 # NERVA-WO-007 Evidence Bundle
 
-Status: ADMITTED_READY_FOR_EXECUTION
+Status: BLOCKED_RULESET_ADMIN
 
 - Work Order: NERVA-WO-007
 - Issue: #19
@@ -40,3 +40,14 @@ Status: ADMITTED_READY_FOR_EXECUTION
 - submission package;
 - final DoD matrix;
 - limitations and blockers.
+
+
+## Ruleset administration blocker
+
+- Repository rulesets read on 2026-10-04: `GET /repos/KayzenRoot/nerva-project/rulesets` returned `[]`.
+- Legacy branch-protection read through the connected GitHub App: `GET /repos/KayzenRoot/nerva-project/branches/main/protection` returned HTTP `403 Resource not accessible by integration`.
+- Repository metadata reports the authenticated user as repository admin, but the connected GitHub App surface exposed to this execution environment does not provide repository-ruleset/branch-protection administration writes.
+- GitHub's ruleset API requires repository Administration write permission for creation/update. No such write action is exposed by the connected GitHub tool in this execution environment.
+- Target policy remains exactly `NERVA main / GEF protected flow` from NERVA-WO-007. It has not been weakened and must not be represented as active.
+- M06 heavy implementation is paused at the first execution task. No release/submission completion claim is permitted while this blocker remains.
+- Resolution requires an admin-capable GitHub UI/API/CLI session outside the current connector surface, followed by GET-after-write proof that the ruleset is active.
