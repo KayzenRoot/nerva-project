@@ -8,7 +8,7 @@ const expectedBranch = 'feat/nerva-wo-007-m06-release-hardening';
 
 const gitCandidates =
   process.platform === 'win32'
-    ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
+    ? [String.raw`C:\Program Files\Git\cmd\git.exe`, String.raw`C:\Program Files\Git\bin\git.exe`]
     : [
         '/usr/bin/git',
         '/bin/git',

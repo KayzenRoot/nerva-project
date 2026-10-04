@@ -5,8 +5,8 @@ const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   devIndicators: false,
-  async headers() {
-    return [
+  headers: () =>
+    Promise.resolve([
       {
         source: '/:path*',
         headers: [
@@ -20,8 +20,7 @@ const config: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
         ],
       },
-    ];
-  },
+    ]),
 };
 
 export default config;
