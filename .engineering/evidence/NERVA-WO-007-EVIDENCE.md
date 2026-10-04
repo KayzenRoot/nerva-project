@@ -124,3 +124,13 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 ## Stop marker
 
 `BLOCKED_PUBLIC_DEPLOYMENT_AND_METROPOLIS_OAUTH_OWNER_APPROVAL`
+
+
+## Public deployment target provisioning
+
+- Vercel team: `team_OE3MNboVFDX58OGsMNGPLAnf`.
+- Vercel project: `nerva-project` / `prj_jz7MxL3aphaRgB7kvhQCktiACgct`.
+- Git repository linked: `KayzenRoot/nerva-project`.
+- Root directory: `apps/web`.
+- The initial Vercel bootstrap deployment tracks `main@b778b470eff4ff997def001899530512065e5676` and is **not** accepted as M06 deployment evidence.
+- This evidence commit is intentionally pushed on `feat/nerva-wo-007-m06-release-hardening` after Git linkage to trigger a branch preview deployment of the actual M06 candidate. Acceptance requires the resulting deployment metadata to prove the branch/SHA and public health behavior.
