@@ -1,0 +1,80 @@
+{
+  "kind": "nerva.m06.local-deployment-rehearsal",
+  "schemaVersion": "1",
+  "workOrder": "NERVA-WO-007",
+  "recordedAt": "2026-10-04T15:49:52Z",
+  "deploymentScope": "LOCAL_LOOPBACK_ONLY_NOT_PUBLIC",
+  "executionBase": "b778b470eff4ff997def001899530512065e5676",
+  "candidateGitSha": "fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef",
+  "branch": "feat/nerva-wo-007-m06-release-hardening",
+  "environment": "TESTNET_DEMO",
+  "runtimeConfiguration": {
+    "schemaPackage": "@nerva/config",
+    "schemaPackageVersion": "0.1.0",
+    "executionEnabled": false,
+    "killSwitchEnabled": true,
+    "demoSimulationEnabled": true,
+    "perplObservation": "DISABLED_BY_LOCAL_RELEASE_PROFILE",
+    "databaseCredential": "RANDOM_RUNTIME_ONLY_NOT_IN_SOURCE_OR_RECEIPT"
+  },
+  "image": {
+    "tag": "nerva-web:fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef",
+    "localImageId": "sha256:c3279c1fbd76b4a857cdbbc41baba8456247052027ceffd8c10421329a47bfc5",
+    "localRepoDigest": "nerva-web@sha256:c3279c1fbd76b4a857cdbbc41baba8456247052027ceffd8c10421329a47bfc5",
+    "registryPush": "NOT_PERFORMED",
+    "platform": "linux/amd64",
+    "sizeBytes": 400457916,
+    "baseImageDigest": "sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c",
+    "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+    "revisionLabel": "fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef",
+    "environmentLabel": "TESTNET_DEMO",
+    "mainnetEffectLabel": "HARD_BLOCKED",
+    "livePerplEffectsLabel": "BLOCKED"
+  },
+  "loopbackPorts": {
+    "web": "127.0.0.1:3138",
+    "database": "127.0.0.1:5438"
+  },
+  "health": {
+    "live": {
+      "status": "live",
+      "environment": "TESTNET_DEMO",
+      "executionEnabled": false,
+      "observedAt": "2026-10-04T15:49:52.251Z"
+    },
+    "ready": {
+      "status": "ready",
+      "database": "HEALTHY",
+      "globalExecutionDisabled": true,
+      "observedAt": "2026-10-04T15:49:52.445Z"
+    }
+  },
+  "productionBrowserE2E": {
+    "passed": 6,
+    "total": 6,
+    "screenshots": ".engineering/evidence/NERVA-WO-007-artifacts-production-final/"
+  },
+  "recoveryDrill": {
+    "snapshot": "PostgreSQL custom-format pg_dump",
+    "restoreTarget": "new isolated database",
+    "syntheticPolicyVersionMarkerRowsAfterRestore": 1,
+    "forwardMigration": "PASSED",
+    "schemaIntegrity": "PASSED",
+    "sameCandidateImageReadiness": "ready",
+    "executionEnabled": false,
+    "globalExecutionDisabled": true,
+    "temporaryRestoreDatabaseAndDumpRemoved": true
+  },
+  "publicDeployment": {
+    "status": "BLOCKED_PUBLIC_DEPLOYMENT_CREDENTIALS",
+    "publicUrl": null,
+    "publicHttpsHealth": null,
+    "reason": "No configured GitHub deployment environment/secret or deployment-provider credential/CLI was available."
+  },
+  "safety": {
+    "mainnetEffect": "HARD_BLOCKED",
+    "livePerplWrites": "BLOCKED",
+    "financialExecution": "DISABLED",
+    "syntheticDemo": "DEMO_ONLY"
+  }
+}
