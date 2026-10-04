@@ -150,23 +150,15 @@ export async function withTransaction<T>(
 
 export async function databaseHealth(
   pool: Pool,
-): Promise<{ status: 'HEALTHY' | 'UNKNOWN'; checkedAt: string; failureCode?: string }> {
+): Promise<{ status: 'HEALTHY' | 'UNKNOWN'; checkedAt: string }> {
   try {
     const result: QueryResult = await pool.query('SELECT 1 AS healthy');
     return {
       status: result.rows[0]?.healthy === 1 ? 'HEALTHY' : 'UNKNOWN',
       checkedAt: new Date().toISOString(),
     };
-  } catch (error) {
-    const candidate =
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      typeof (error as { code?: unknown }).code === 'string'
-        ? (error as { code: string }).code
-        : 'UNKNOWN';
-    const failureCode = /^[A-Z0-9_]{2,40}$/.test(candidate) ? candidate : 'UNKNOWN';
-    return { status: 'UNKNOWN', checkedAt: new Date().toISOString(), failureCode };
+  } catch {
+    return { status: 'UNKNOWN', checkedAt: new Date().toISOString() };
   }
 }
 

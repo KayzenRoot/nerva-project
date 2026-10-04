@@ -13,24 +13,7 @@ export async function GET() {
   if (config.databaseUrl) {
     const { pool, db } = createDatabase(config);
     try {
-      const health = await databaseHealth(pool);
-      database = health.status;
-      if (database === 'UNKNOWN' && health.failureCode) {
-        return NextResponse.json(
-          {
-            ...HealthResponseSchema.parse({
-              status: 'not_ready',
-              module: 'M01',
-              environment: config.environment,
-              executionEnabled: false,
-              timestamp: new Date().toISOString(),
-            }),
-            dependencies: { database, failureCode: health.failureCode },
-            safety: { globalExecutionDisabled: true },
-          },
-          { status: 503, headers: { 'Cache-Control': 'no-store' } },
-        );
-      }
+      database = (await databaseHealth(pool)).status;
       if (database === 'HEALTHY') {
         try {
           globalExecutionDisabled =

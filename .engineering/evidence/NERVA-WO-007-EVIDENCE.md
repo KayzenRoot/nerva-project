@@ -217,3 +217,13 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - Related integration keys are also present, including `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, `POSTGRES_HOST`, `POSTGRES_DATABASE`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `SUPABASE_URL`, and Supabase key material.
 - NERVA consumes only `DATABASE_URL` or the `POSTGRES_URL` fallback for database connectivity; no Supabase service-role key is exposed through `publicConfig`.
 - The integration was observed after the previous preview deployment had already been built, so this evidence-only commit intentionally triggers a fresh exact-head deployment before readiness is evaluated.
+
+
+## Vercel/Supabase TLS compatibility correction
+
+- First exact-head deployment after the official Supabase integration exposed `POSTGRES_URL` reached the database health probe but returned `UNKNOWN`.
+- A bounded temporary diagnostic reported only the driver code `SELF_SIGNED_CERT_IN_CHAIN`; no hostname, username, password, certificate, or connection string was exposed.
+- The temporary diagnostic surface was removed in the same correction increment.
+- The integration-provided URL requests `sslmode=require`. Current node-postgres compatibility behavior can interpret that as certificate-verifying `verify-full`, which is incompatible with this Supabase pooler chain.
+- NERVA now adds `uselibpqcompat=true` only for the Vercel `POSTGRES_URL` fallback when it already requests `sslmode=require`. This keeps TLS required while honoring standard libpq `require` semantics. Explicit `DATABASE_URL` values remain untouched.
+- Final public readiness must still be reverified on the deployment produced from this corrected exact HEAD before Gate 6 can pass.
