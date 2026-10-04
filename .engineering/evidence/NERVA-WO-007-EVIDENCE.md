@@ -134,3 +134,12 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - Root directory: `apps/web`.
 - The initial Vercel bootstrap deployment tracks `main@b778b470eff4ff997def001899530512065e5676` and is **not** accepted as M06 deployment evidence.
 - This evidence commit is intentionally pushed on `feat/nerva-wo-007-m06-release-hardening` after Git linkage to trigger a branch preview deployment of the actual M06 candidate. Acceptance requires the resulting deployment metadata to prove the branch/SHA and public health behavior.
+
+
+## Vercel deployment correction history
+
+- First Vercel branch preview attempt: deployment `dpl_9r1vQG9pv1Dgn1y9UbuYk3GY8EBg`, branch `feat/nerva-wo-007-m06-release-hardening`, commit `c005d39b6231a71d1e387394033e1a99daa217b6`.
+- That attempt failed during Next TypeScript validation because Vercel installed only the workspace-local dependency graph from `apps/web`, leaving the root-pinned `@types/react` development dependency unavailable.
+- Vercel project `prj_jz7MxL3aphaRgB7kvhQCktiACgct` was corrected to Node `22.x`, framework `nextjs`, root-workspace install command `cd ../.. && npm ci --ignore-scripts --no-audit --no-fund`, and `sourceFilesOutsideRootDirectory=true`.
+- The failed deployment is retained as correction evidence and is not accepted as release proof.
+- This commit triggers a new branch preview using the corrected project configuration.
