@@ -1,6 +1,6 @@
 # NERVA-WO-006 Evidence Bundle
 
-Status: APPROVED · CHECKPOINT_PROMOTED_AS_PR_16_GOVERNANCE_CANDIDATE
+Status: APPROVED · MERGED · POST_MERGE_VALIDATION_CORRECTION
 
 - Work Order: NERVA-WO-006
 - Issue: #15 · PR: #16
@@ -13,10 +13,11 @@ Status: APPROVED · CHECKPOINT_PROMOTED_AS_PR_16_GOVERNANCE_CANDIDATE
 - Context Lock: `LOCKED` · 89/89 fingerprints matched at exact base before implementation; the validator rechecks all base blobs on candidate HEAD.
 - Independently audited final head: `bd0190a744befa413fac15f4f276d28b846a348e`
 - Audit verdict: `APPROVED` · review ID `5405457556`.
+- Accepted PR #16 squash merge: `d4c34f5f57d730f42570f6a9db19dc54d72e93cb`.
 
 ## M05 implementation record
 
-M05 is independently APPROVED. The audited Checkpoint Delta has been promoted as the PR #16 governance candidate; it becomes effective canonical history on merge after promotion-head checks pass. The Context Lock remains immutable. M06 is NOT_ADMITTED and has not started. No database schema or provider/effect adapter has been added.
+M05 is independently APPROVED and merged. The audited Checkpoint Delta is effective canonical history on `main`. The Context Lock remains immutable. M06 is `NOT_ADMITTED` and has not started. No database schema or provider/effect adapter has been added.
 
 - Visual product shell, live read-only state header and isolated `/demo` view are implemented.
 - DEMO_ONLY fixtures are immutable, versioned `nerva-m05-demo-v1` values held only in page memory.
@@ -25,7 +26,7 @@ M05 is independently APPROVED. The audited Checkpoint Delta has been promoted as
 - Synthetic outcome and local trace are labeled and cannot call APIs, providers, wallets or persistence.
 - M03 policy templates use the existing compile endpoint, which reports `COMPILED_UNCONFIRMED` / `VALIDATION_ONLY`; there is no confirmation or persistence path in the M05 UI.
 - The M05 admission validator keeps checking all 89 blobs against the immutable execution base and permits only a reviewed M05 file list.
-- Checkpoint Delta: `.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md` is `ACCEPTED AND PROMOTED AS PR #16 GOVERNANCE CANDIDATE`; effective on merge after promotion-head validation.
+- Checkpoint Delta: `.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md` was independently accepted and became effective on PR #16 merge.
 
 ## SonarCloud and accessibility correction delta
 
@@ -88,7 +89,7 @@ The in-memory deterministic benchmark checks also passed: risk 1,000 iterations 
 
 No M05 migration was added: DEMO_ONLY state is in-memory only, and policy compilation remains validation-only. Clean database migration smoke and M03→M04 upgrade smoke both passed against a temporary PostgreSQL container with no persistent volume. M03/M04 safety validators, database integrity checks, dependency boundaries, application boot smoke, format, lint, typecheck, all 136 unit tests, all 5 browser journeys, production build, client-bundle scan, and browser/performance gates passed locally. Exact hosted checks for correction code and evidence closeout HEADs are recorded below.
 
-The four MODERATE dependency carry-forwards remain recorded for release review; this work introduced no accepted HIGH or CRITICAL dependency finding. The candidate must remain unmerged and in draft for audit. Canonical Checkpoint remains unchanged, and M06 is not admitted or started.
+The four MODERATE dependency carry-forwards remain recorded for release review; this work introduced no accepted HIGH or CRITICAL dependency finding. PR #16 is merged and the promoted M05 Checkpoint is canonical. M06 remains `NOT_ADMITTED` and unstarted.
 
 ## Correction Delta CD-001
 
@@ -100,10 +101,10 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - Finding 2 closed: the story follows explicit windows 0–10, 10–25, 25–40, 40–55, 55–70, 70–82 and 82–90 seconds. Browser tests assert boundary transitions, synthetic account/position, bounded policy constraints, explicit non-authoritative confirmation representation, blocked simulated outcome, Flight Recorder lineage and closing sentence. Reset/replay remains deterministic.
 - Finding 3 closed: the Flight Recorder read view presents policy-version ID/hash and available trigger/evaluation ID, snapshot, result/reason, correlation and time lineage. Two focused read-model tests cover the lineage fields and UNKNOWN state.
 - Local exact-code validation: format, lint, strict typecheck, build, full Vitest 30 files/136 tests, Playwright 5/5, Windows bounded 11 files/94 tests, demo-isolation and M03/M04 safety validators, workspace/dependency-boundary checks, database integrity + clean migration + M02→M04 upgrade/revocation-concurrency smoke, safe-mode boot, client-bundle scan and `npm audit --audit-level=high` passed. Dependency audit reports no HIGH/CRITICAL and four existing MODERATE carry-forwards.
-- Context/governance: Context Lock remains locked at the canonical base with 89/89 fingerprints. Context validation, Source Pack (45 required files), GEF 1.1.2 package/state passed on correction code HEAD. No migration or dependency was added. The Checkpoint proposal remains `PROPOSED_FOR_POST_AUDIT_REVIEW · NOT_APPLIED`.
+- Context/governance: Context Lock remains locked at the canonical base with 89/89 fingerprints. Context validation, Source Pack and GEF 1.1.2 package/state passed on the audited/promotion heads. No migration or dependency was added. The Checkpoint Delta was promoted only after independent APPROVED audit.
 - Hosted checks on correction code HEAD `15025740199d2acd2145ff9af4d668164f678578`: Linux and Windows bounded PASS ([workflow run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782355)); Source Pack PASS ([run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782366)); GEF 1.1.2 PASS ([run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782359)); SonarCloud PASS ([analysis](https://sonarcloud.io/dashboard?id=KayzenRoot_nerva-project&pullRequest=16)); Socket PR Alerts and Project Report PASS ([PR alerts](https://socket.dev), [project report](https://socket.dev/dashboard/org/nexlabs/sbom/6289a6bf-96c9-49cd-ae77-c78c207936d7)). CodeRabbit reports review skipped because the PR remains draft; it is not an approval.
 - This Evidence Bundle closeout is a documentation-only commit; all CI and hosted security checks are rerun against its exact pushed HEAD before stopping.
-- Remaining risk: four existing MODERATE dependency advisories remain for release review; performance is a local Windows sample, not a hosted latency guarantee. No actual wallet/provider effect is exercised. PR #16 remains draft/open and unmerged; no Checkpoint promotion or M06 work occurred.
+- Remaining risk: four existing MODERATE dependency advisories remain for release review; performance is a local Windows sample, not a hosted latency guarantee. No actual wallet/provider effect is exercised. M06 remains `NOT_ADMITTED`; no M06 work has started.
 
 
 ## Independent audit approval and Checkpoint promotion
@@ -117,3 +118,16 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - M06 is only the next module and remains `NOT_ADMITTED`; no M06 implementation is authorized by this promotion.
 
 - Preserved executor STOP CONDITION: `NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT`.
+
+
+## Post-merge Correction Delta CD-002
+
+- Accepted M05 squash merge: `d4c34f5f57d730f42570f6a9db19dc54d72e93cb`.
+- Post-merge Source Pack run `37195493665`: PASS.
+- Post-merge GEF 1.1.2 run `37195493706`: PASS.
+- Initial post-merge M01–M05 run `37195493764`: Linux failed during context validation only; the M05 validator had already reported `NERVA_M05_POST_MERGE_CONTEXT_LOCK_HISTORICAL`.
+- Root cause: the historical M04 validator treated every later push to `main` as though it were the original M04 squash-merge event, then incorrectly required the current HEAD parent to equal the old M03 baseline.
+- Correction: restrict the special M04 promotion-push path to the direct M04 promotion shape; later descendants fall through to the already-defined historical Context Lock path.
+- Scope is governance-validator + evidence only. No product/runtime code, database schema, dependency, provider adapter or authority is changed.
+- `MAINNET EFFECT = HARD_BLOCKED` and `LIVE PERPL WRITES = BLOCKED` remain unchanged.
+- M06 remains `NOT_ADMITTED` and unstarted.

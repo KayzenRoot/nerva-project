@@ -145,9 +145,7 @@ const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .filter(Boolean);
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
-  throw new Error(
-    `M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`,
-  );
+  throw new Error(`M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`);
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
@@ -257,9 +255,7 @@ if (promotedCheckpoint) {
 
 const implementationChanged = changed.some((path) => path.startsWith('apps/web/src/app/'));
 if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
-  throw new Error(
-    'M05 implementation changed but Evidence Bundle is still marked not started',
-  );
+  throw new Error('M05 implementation changed but Evidence Bundle is still marked not started');
 }
 
 let state = 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION';
