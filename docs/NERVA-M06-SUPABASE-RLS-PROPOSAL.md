@@ -1,6 +1,6 @@
 # NERVA M06 Supabase RLS Proposal
 
-Status: PROPOSED_FOR_OWNER_DECISION · NOT_APPLIED
+Status: OWNER_APPROVED · APPLIED · VERSIONED
 
 Supabase security preflight reports that all 34 NERVA tables in the exposed `public` schema have Row Level Security disabled. This proposal is intentionally **not applied** until the owner approves the access model.
 
@@ -83,4 +83,14 @@ Approve one of:
 - **APPROVE_DENY_BY_DEFAULT_RLS** — apply the RLS/revoke set above and keep browser/Data API access closed.
 - **REJECT_RLS_CHANGE** — leave schema unchanged and record why this external security finding is accepted.
 
-Until a decision is recorded, M06 remains blocked from final release approval.
+Owner decision recorded: `APPROVE_DENY_BY_DEFAULT_RLS` on 2026-10-04. The deny-by-default posture was applied to Supabase and versioned as `packages/db/migrations/0010_nerva_release_security_hardening.sql`. Supabase security revalidation now reports only INFO `rls_enabled_no_policy` findings, which are intentional because no public/browser policies are allowed for M06.
+
+
+## Applied verification
+
+- Supabase project: `gnujsdlpaznoaeijvmez`.
+- RLS: enabled on all 34 NERVA tables.
+- Public policies: none.
+- `anon` and `authenticated`: no table grants and no sequence usage grants in `public`.
+- Mutable function `search_path` WARN findings: 0 after pinning the six NERVA trigger/helper functions to `public, pg_temp`.
+- Remaining advisor output: 34 INFO findings `rls_enabled_no_policy`, intentional deny-by-default posture.
