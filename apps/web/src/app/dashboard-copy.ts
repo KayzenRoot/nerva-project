@@ -20,6 +20,11 @@ export const dashboardCopy: Record<
     readonly adverseMove: string;
     readonly portfolioDrawdown: string;
     readonly liquidationDistance: string;
+    readonly maintenanceMargin: string;
+    readonly fundingDirection: string;
+    readonly unavailableUnproven: string;
+    readonly sourceQuality: string;
+    readonly inspectSource: string;
     readonly readOnly: string;
     readonly noObservation: string;
     readonly noPositions: string;
@@ -59,6 +64,11 @@ export const dashboardCopy: Record<
     adverseMove: 'Adverse move',
     portfolioDrawdown: 'Day portfolio drawdown',
     liquidationDistance: 'Liquidation distance',
+    maintenanceMargin: 'Maintenance margin',
+    fundingDirection: 'Funding direction',
+    unavailableUnproven: 'UNAVAILABLE_UNPROVEN',
+    sourceQuality: 'Source quality',
+    inspectSource: 'Inspect source',
     readOnly: 'READ ONLY · EXECUTION DISABLED',
     noObservation: 'No provider observations have been stored yet.',
     noPositions: 'No open positions in the latest available account snapshot.',
@@ -94,6 +104,11 @@ export const dashboardCopy: Record<
     adverseMove: 'Movimento adverso',
     portfolioDrawdown: 'Drawdown diário da carteira',
     liquidationDistance: 'Distância de liquidação',
+    maintenanceMargin: 'Margem de manutenção',
+    fundingDirection: 'Direção do funding',
+    unavailableUnproven: 'UNAVAILABLE_UNPROVEN',
+    sourceQuality: 'Qualidade da fonte',
+    inspectSource: 'Inspecionar fonte',
     readOnly: 'SOMENTE LEITURA · EXECUÇÃO DESABILITADA',
     noObservation: 'Ainda não há observações de provedores armazenadas.',
     noPositions: 'Nenhuma posição aberta no snapshot de conta disponível mais recente.',
@@ -129,6 +144,11 @@ export const dashboardCopy: Record<
     adverseMove: 'Movimiento adverso',
     portfolioDrawdown: 'Drawdown diario de cartera',
     liquidationDistance: 'Distancia de liquidación',
+    maintenanceMargin: 'Margen de mantenimiento',
+    fundingDirection: 'Dirección del funding',
+    unavailableUnproven: 'UNAVAILABLE_UNPROVEN',
+    sourceQuality: 'Calidad de la fuente',
+    inspectSource: 'Inspeccionar fuente',
     readOnly: 'SOLO LECTURA · EJECUCIÓN DESHABILITADA',
     noObservation: 'Todavía no hay observaciones de proveedores almacenadas.',
     noPositions: 'No hay posiciones abiertas en el snapshot de cuenta disponible más reciente.',

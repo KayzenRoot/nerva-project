@@ -14,7 +14,8 @@ import {
 } from '@nerva/db';
 import { loadPerplConfig, loadServerConfig } from '@nerva/config';
 import { dashboardCopy } from '../dashboard-copy.ts';
-import { locales, resolveLocale } from '../i18n.ts';
+import { resolveLocale } from '../i18n.ts';
+import { ExperienceHeader } from '../experience-header.tsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,25 +111,7 @@ export default async function DashboardPage({
 
   return (
     <main className="dashboard-shell" lang={locale}>
-      <header className="dashboard-topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <nav className="language-switcher" aria-label={copy.languageLabel}>
-          {locales.map((option) => (
-            <Link
-              key={option}
-              href={`/dashboard?lang=${option}`}
-              aria-current={locale === option ? 'page' : undefined}
-            >
-              {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-            </Link>
-          ))}
-        </nav>
-      </header>
-      {process.env.NERVA_DEMO_SIMULATION_ENABLED === 'true' ? (
-        <p className="demo-banner">{copy.fixtureNotice}</p>
-      ) : null}
+      <ExperienceHeader locale={locale} active="dashboard" />
       <section className="dashboard-heading">
         <p className="eyebrow">NERVA · M02</p>
         <h1>{copy.title}</h1>
@@ -150,14 +133,30 @@ export default async function DashboardPage({
                 <div>
                   <dt>{copy.portfolioDrawdown}</dt>
                   <dd>
-                    {metric('PORTFOLIO_DRAWDOWN_BPS')?.valueBps === undefined
-                      ? statusLabel('UNKNOWN')
-                      : `${metric('PORTFOLIO_DRAWDOWN_BPS')?.valueBps} bps`}
+                    {model.riskStatus === 'AVAILABLE' &&
+                    metric('PORTFOLIO_DRAWDOWN_BPS')?.quality === 'FRESH' &&
+                    metric('PORTFOLIO_DRAWDOWN_BPS')?.valueBps !== undefined
+                      ? `${metric('PORTFOLIO_DRAWDOWN_BPS')?.valueBps} bps`
+                      : statusLabel(model.riskStatus === 'STALE' ? 'STALE' : 'UNKNOWN')}
                   </dd>
                 </div>
                 <div>
                   <dt>{copy.liquidationDistance}</dt>
-                  <dd>{statusLabel('UNAVAILABLE')} · UNAVAILABLE_UNPROVEN</dd>
+                  <dd>
+                    {statusLabel('UNAVAILABLE')} · {copy.unavailableUnproven}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.maintenanceMargin}</dt>
+                  <dd>
+                    {statusLabel('UNAVAILABLE')} · {copy.unavailableUnproven}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.fundingDirection}</dt>
+                  <dd>
+                    {statusLabel('UNAVAILABLE')} · {copy.unavailableUnproven}
+                  </dd>
                 </div>
               </dl>
             </>
@@ -183,6 +182,48 @@ export default async function DashboardPage({
           )}
         </article>
       </section>
+      {model.risk ? (
+        <section className="dashboard-card market-card" aria-labelledby="risk-provenance-title">
+          <h2 id="risk-provenance-title">
+            {locale === 'pt-BR'
+              ? 'Origem e atualidade do risco'
+              : locale === 'es'
+                ? 'Origen y vigencia del riesgo'
+                : 'Risk provenance and freshness'}
+          </h2>
+          <p>
+            {locale === 'pt-BR' ? 'Snapshot' : locale === 'es' ? 'Snapshot' : 'Snapshot'}:{' '}
+            <code>{model.risk.snapshotId}</code> · {model.risk.quality} ·{' '}
+            {locale === 'pt-BR' ? 'observado' : locale === 'es' ? 'observado' : 'observed'}{' '}
+            <time dateTime={model.risk.observedAt}>{model.risk.observedAt}</time>
+          </p>
+          <p>
+            {locale === 'pt-BR'
+              ? 'Hashes dos snapshots de origem'
+              : locale === 'es'
+                ? 'Hashes de snapshots de origen'
+                : 'Source snapshot hashes'}
+          </p>
+          {model.risk.sourceSnapshotHashes?.length ? (
+            <ul className="source-hash-list">
+              {model.risk.sourceSnapshotHashes.map((hash) => (
+                <li key={hash}>
+                  <code>{hash}</code>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>
+              UNKNOWN ·{' '}
+              {locale === 'pt-BR'
+                ? 'sem hash de origem verificável'
+                : locale === 'es'
+                  ? 'sin hash de origen verificable'
+                  : 'no verifiable source hash'}
+            </p>
+          )}
+        </section>
+      ) : null}
       <section className="dashboard-card market-card">
         <h2>
           {copy.markets} · {model.network}
@@ -233,6 +274,8 @@ export default async function DashboardPage({
                   <th>{copy.mark}</th>
                   <th>{copy.notional}</th>
                   <th>{copy.adverseMove}</th>
+                  <th>{copy.sourceQuality}</th>
+                  <th>{copy.inspectSource}</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,6 +289,9 @@ export default async function DashboardPage({
                   )?.value;
                   const adverse = metrics.find((item) => item.name === 'POSITION_ADVERSE_MOVE_BPS');
                   const adverseValue = adverse?.valueBps ?? adverse?.value;
+                  const notionalMetric = metrics.find(
+                    (item) => item.name === 'POSITION_NOTIONAL_MICROS',
+                  );
                   return (
                     <tr key={position.snapshotId}>
                       <td>{position.symbol}</td>
@@ -255,18 +301,56 @@ export default async function DashboardPage({
                         {formatScaled(position.entryPriceScaled, position.entryPriceDecimals)}
                       </td>
                       <td>
-                        {position.markPriceScaled && position.markPriceDecimals !== undefined
+                        {position.source.quality === 'FRESH' &&
+                        position.markPriceScaled &&
+                        position.markPriceDecimals !== undefined
                           ? formatScaled(position.markPriceScaled, position.markPriceDecimals)
-                          : statusLabel('UNKNOWN')}
+                          : statusLabel(position.source.quality === 'STALE' ? 'STALE' : 'UNKNOWN')}
                       </td>
                       <td>
-                        {notional ? formatScaled(notional, 6) : statusLabel('UNKNOWN')}{' '}
+                        {model.riskStatus === 'AVAILABLE' &&
+                        notionalMetric?.quality === 'FRESH' &&
+                        notional
+                          ? formatScaled(notional, 6)
+                          : statusLabel(model.riskStatus === 'STALE' ? 'STALE' : 'UNKNOWN')}{' '}
                         {position.quoteToken}
                       </td>
                       <td>
-                        {adverseValue === undefined
-                          ? statusLabel('UNKNOWN')
+                        {model.riskStatus !== 'AVAILABLE' ||
+                        adverse?.quality !== 'FRESH' ||
+                        adverseValue === undefined
+                          ? statusLabel(
+                              model.riskStatus === 'STALE' || adverse?.quality === 'STALE'
+                                ? 'STALE'
+                                : 'UNKNOWN',
+                            )
                           : `${adverseValue} bps`}
+                      </td>
+                      <td>
+                        <span className={`state state-${position.source.quality.toLowerCase()}`}>
+                          {position.source.quality}
+                        </span>
+                      </td>
+                      <td>
+                        <details className="source-details">
+                          <summary>{copy.inspectSource}</summary>
+                          <dl>
+                            <dt>{copy.network}</dt>
+                            <dd>
+                              {position.source.network} · chain {position.source.chainId}
+                            </dd>
+                            <dt>Observed</dt>
+                            <dd>{position.source.observedAt}</dd>
+                            <dt>Received</dt>
+                            <dd>{position.source.receivedAt}</dd>
+                            <dt>Sequence</dt>
+                            <dd>{position.source.sequence ?? statusLabel('UNKNOWN')}</dd>
+                            <dt>Content hash</dt>
+                            <dd>
+                              <code>{position.source.contentHash}</code>
+                            </dd>
+                          </dl>
+                        </details>
                       </td>
                     </tr>
                   );

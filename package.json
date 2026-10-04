@@ -25,9 +25,10 @@
   "scripts": {
     "test": "vitest run --maxWorkers=4",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --max-warnings=0",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/*.{mjs,ts}\" \".github/workflows/*.yml\" \"docs/*.md\" \"README.md\" \"compose.yaml\" \".engineering/evidence/NERVA-WO-003-EVIDENCE.md\" \".engineering/checkpoint-deltas/NERVA-WO-003-PROPOSED.md\" \".engineering/work-orders/NERVA-WO-004.md\" \".engineering/context-locks/NERVA-WO-004.json\" \".engineering/execution-briefs/NERVA-WO-004-CODEX.md\" \".engineering/evidence/NERVA-WO-004-EVIDENCE.md\" \".engineering/work-orders/NERVA-WO-005.md\" \".engineering/context-locks/NERVA-WO-005.json\" \".engineering/execution-briefs/NERVA-WO-005-CODEX.md\" \".engineering/evidence/NERVA-WO-005-EVIDENCE.md\" \".engineering/context-locks/NERVA-WO-006.json\" \".engineering/execution-briefs/NERVA-WO-006-CODEX.md\" \".engineering/evidence/NERVA-WO-006-EVIDENCE.md\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css,json}\" \"packages/**/*.{ts,tsx,css,json}\" \"*.{json,ts,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \".github/scripts/boot-smoke.mjs\" \".github/scripts/check-client-bundle.mjs\" \".github/scripts/check-no-forbidden-deps.mjs\" \".github/scripts/m03-policy-benchmark.ts\" \".github/scripts/m04-permissions-benchmark.ts\" \".github/scripts/migration-from-m02.mjs\" \".github/scripts/perpl-public-smoke.mjs\" \".github/scripts/risk-benchmark.ts\" \".github/scripts/validate-m05-admission.mjs\" \".github/scripts/validate-source-pack.mjs\" \".github/scripts/validate-workspaces.mjs\" \".github/scripts/verify-db-schema.mjs\" \".github/scripts/verify-gef-bootstrap.mjs\" \".github/scripts/verify-m03-safety.mjs\" \".github/scripts/verify-m05-demo-boundary.mjs\" \".github/workflows/*.yml\" \"docs/*.md\" \"compose.yaml\" \".engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md\"",
     "build": "npm run build --workspace=@nerva/web && npm run build --workspace=@nerva/worker",
     "dev:web": "npm run dev --workspace=@nerva/web",
     "worker:start": "node --experimental-strip-types apps/worker/src/main.ts",
@@ -39,6 +40,7 @@
     "risk:benchmark": "tsx .github/scripts/risk-benchmark.ts",
     "m03:benchmark": "tsx .github/scripts/m03-policy-benchmark.ts",
     "m04:benchmark": "tsx .github/scripts/m04-permissions-benchmark.ts",
+    "m05:demo:verify": "node .github/scripts/verify-m05-demo-boundary.mjs",
     "sourcepack:validate": "node .github/scripts/validate-source-pack.mjs && node .github/scripts/validate-m05-admission.mjs",
     "security:audit": "npm audit --audit-level=high",
     "security:client-bundle": "node .github/scripts/check-client-bundle.mjs",
@@ -53,8 +55,10 @@
     "gef:package:verify": "node .github/scripts/verify-gef-bootstrap.mjs package"
   },
   "devDependencies": {
-    "@gef-bootstrap/cli": "1.1.2",
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
+    "@gef-bootstrap/cli": "1.1.2",
+    "@playwright/test": "1.63.0",
     "@types/node": "22.20.5",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",

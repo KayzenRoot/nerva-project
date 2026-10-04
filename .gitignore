@@ -1,6 +1,8 @@
 node_modules/
 .gef-private/
 .next/
+test-results/
+playwright-report/
 coverage/
 .env
 .env.*

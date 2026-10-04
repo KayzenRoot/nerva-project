@@ -78,8 +78,38 @@ const allowed = new Set([
   '.engineering/context-locks/NERVA-WO-006.json',
   '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
   '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
+  '.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md',
   '.github/scripts/validate-m05-admission.mjs',
+  '.github/scripts/verify-m05-demo-boundary.mjs',
+  '.github/workflows/m01-ci.yml',
+  '.gitignore',
   'package.json',
+  'package-lock.json',
+  'apps/web/next.config.ts',
+  'apps/web/AGENTS.md',
+  'apps/web/CLAUDE.md',
+  'playwright.config.ts',
+  'apps/web/src/app/page.tsx',
+  'apps/web/src/app/layout.tsx',
+  'apps/web/src/app/experience-header.tsx',
+  'apps/web/src/app/m05.css',
+  'apps/web/src/app/dashboard/page.tsx',
+  'apps/web/src/app/dashboard-copy.ts',
+  'apps/web/src/app/m03-readonly-view.tsx',
+  'apps/web/src/app/permissions/permissions-read-view.tsx',
+  'apps/web/src/app/policies/page.tsx',
+  'apps/web/src/app/policies/policy-workbench.tsx',
+  'apps/web/src/app/policies/policy-workbench.test.ts',
+  'apps/web/src/app/policies/policy-templates.ts',
+  'apps/web/src/app/demo/page.tsx',
+  'apps/web/src/app/demo/demo-view.tsx',
+  'apps/web/src/app/demo/demo-model.ts',
+  'apps/web/src/app/demo/demo-model.test.ts',
+  'apps/web/src/app/demo/analytics-privacy.test.ts',
+  'apps/web/e2e/m05-demo.pw.ts',
+  'docs/NERVA-M05-DEMO-RUNBOOK.md',
+  '.engineering/evidence/NERVA-WO-006-artifacts/guided-demo-desktop.png',
+  '.engineering/evidence/NERVA-WO-006-artifacts/guided-demo-mobile.png',
 ]);
 
 const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
@@ -88,7 +118,9 @@ const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
 
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
-  throw new Error(`M05 admission contains product/out-of-scope files: ${foreign.join(', ')}`);
+  throw new Error(
+    `M05 execution changed files outside the admitted UI/demo scope: ${foreign.join(', ')}`,
+  );
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
@@ -125,8 +157,9 @@ if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
   throw new Error('M05 brief stop marker missing');
 }
 
-if (!evidence.includes('EXECUTION_NOT_STARTED')) {
-  throw new Error('M05 evidence must remain scaffold-only at admission');
+const implementationChanged = changed.some((path) => path.startsWith('apps/web/src/app/'));
+if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
+  throw new Error('M05 implementation changed but the Evidence Bundle is still marked not started');
 }
 
 console.log(
@@ -138,6 +171,10 @@ console.log(
     issue: lock.issueNumber,
     fingerprints: fingerprints.length,
     changedFiles: changed.length,
-    state: 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION',
+    state: evidence.includes('Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')
+      ? 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT'
+      : implementationChanged
+        ? 'NERVA_WO_006_EXECUTION_IN_PROGRESS'
+        : 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION',
   }),
 );

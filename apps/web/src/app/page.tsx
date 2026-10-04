@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { loadServerConfig, publicConfig } from '@nerva/config';
-import { locales, messages, resolveLocale } from './i18n.ts';
+import { messages, resolveLocale } from './i18n.ts';
+import { ExperienceHeader } from './experience-header.tsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,56 +14,116 @@ export default async function HomePage({
   const locale = resolveLocale((await searchParams).lang);
   const copy = messages[locale];
   return (
-    <main className="shell" lang={locale}>
-      <header className="topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <div className="topbar-tools">
-          <nav className="language-switcher" aria-label={copy.languageLabel}>
-            {locales.map((option) => (
-              <Link
-                key={option}
-                href={`/?lang=${option}`}
-                aria-current={locale === option ? 'page' : undefined}
-              >
-                {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-              </Link>
-            ))}
-          </nav>
-          <span className="environment" aria-label={copy.environmentLabel(config.environment)}>
-            {config.environment}
-          </span>
+    <main className="landing-shell" lang={locale}>
+      <ExperienceHeader locale={locale} active="home" />
+      <section className="landing-hero" aria-labelledby="title">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            {copy.platform} · {config.environment}
+          </p>
+          <h1 id="title">{copy.headline}</h1>
+          <p className="intro">{copy.intro}</p>
+          <div className="hero-actions">
+            <Link className="button button-primary" href={`/demo?lang=${locale}`}>
+              {locale === 'pt-BR'
+                ? 'Iniciar demo guiada'
+                : locale === 'es'
+                  ? 'Iniciar demo guiada'
+                  : 'Start guided demo'}{' '}
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <Link className="button button-secondary" href={`/dashboard?lang=${locale}`}>
+              {copy.dashboard}
+            </Link>
+          </div>
+          <p className="landing-note">
+            {copy.executionDisabled}. {copy.noIntegrations}
+          </p>
         </div>
-      </header>
-      <section className="hero" aria-labelledby="title">
-        <p className="eyebrow">{copy.platform}</p>
-        <h1 id="title">{copy.headline}</h1>
-        <p className="intro">{copy.intro}</p>
-        <div className="status-card">
-          <span className="status-dot" aria-hidden="true" />
-          <div>
-            <strong>{copy.executionDisabled}</strong>
-            <p>{copy.noIntegrations}</p>
+        <div
+          className="hero-visual"
+          aria-label={
+            locale === 'pt-BR'
+              ? 'Visualização sintética de fluxo de risco'
+              : locale === 'es'
+                ? 'Visualización sintética de flujo de riesgo'
+                : 'Synthetic risk flow visualization'
+          }
+        >
+          <div className="orbit orbit-one" />
+          <div className="orbit orbit-two" />
+          <div className="orbit-core">N</div>
+          <div className="signal-card signal-top">
+            <span className="signal-dot" />
+            {locale === 'pt-BR'
+              ? 'RISCO · OBSERVADO'
+              : locale === 'es'
+                ? 'RIESGO · OBSERVADO'
+                : 'RISK · OBSERVED'}
+            <strong>DATA → POLICY → EVIDENCE</strong>
+          </div>
+          <div className="signal-card signal-bottom">
+            {locale === 'pt-BR' ? 'FRESHNESS' : 'FRESHNESS'}
+            <strong>UNKNOWN BLOCKS</strong>
           </div>
         </div>
       </section>
-      <nav className="future-nav" aria-label={copy.areas}>
-        <Link href={`/dashboard?lang=${locale}`}>
-          {copy.dashboard} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/policies?lang=${locale}`}>
-          {copy.policies} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/flight-recorder?lang=${locale}`}>
-          {copy.flightRecorder} <small>{copy.preparing}</small>
-        </Link>
-        <Link href={`/permissions?lang=${locale}`}>
-          {copy.permissions} <small>{copy.preparing}</small>
-        </Link>
-      </nav>
-      <footer>
+      <section className="landing-proof" aria-label={copy.areas}>
+        <div>
+          <span className="proof-index">01</span>
+          <strong>
+            {locale === 'pt-BR'
+              ? 'Risco determinístico'
+              : locale === 'es'
+                ? 'Riesgo determinista'
+                : 'Deterministic risk'}
+          </strong>
+          <p>
+            {locale === 'pt-BR'
+              ? 'Fonte, atualidade e limites visíveis.'
+              : locale === 'es'
+                ? 'Origen, vigencia y límites visibles.'
+                : 'Source, freshness and limits in view.'}
+          </p>
+        </div>
+        <div>
+          <span className="proof-index">02</span>
+          <strong>
+            {locale === 'pt-BR'
+              ? 'Autoridade limitada'
+              : locale === 'es'
+                ? 'Autoridad acotada'
+                : 'Bounded authority'}
+          </strong>
+          <p>
+            {locale === 'pt-BR'
+              ? 'Permissões verificáveis e revogáveis.'
+              : locale === 'es'
+                ? 'Permisos verificables y revocables.'
+                : 'Verifiable, revocable permissions.'}
+          </p>
+        </div>
+        <div>
+          <span className="proof-index">03</span>
+          <strong>
+            {locale === 'pt-BR'
+              ? 'Trilha verificável'
+              : locale === 'es'
+                ? 'Rastro verificable'
+                : 'Verifiable evidence'}
+          </strong>
+          <p>
+            {locale === 'pt-BR'
+              ? 'Cada decisão tem contexto rastreável.'
+              : locale === 'es'
+                ? 'Cada decisión conserva contexto.'
+                : 'Every decision keeps its context.'}
+          </p>
+        </div>
+      </section>
+      <footer className="landing-footer">
         {copy.systemStatus} · <Link href="/api/health/live">{copy.serviceHealth}</Link>
+        <span>MAINNET HARD-BLOCKED · LIVE PERPL BLOCKED</span>
       </footer>
     </main>
   );

@@ -1,5 +1,6 @@
-import Link from 'next/link';
 import { locales, type Locale } from './i18n.ts';
+import { ExperienceHeader } from './experience-header.tsx';
+import type { ReactNode } from 'react';
 
 const copyKeys = [
   'policies',
@@ -190,6 +191,7 @@ export function M03ReadOnlyView({
   integrations = [],
   permissionEvents = [],
   permissionEvidenceIntegrity = 'UNKNOWN',
+  beforeContent,
   available,
 }: {
   readonly locale: Locale;
@@ -200,6 +202,7 @@ export function M03ReadOnlyView({
   readonly integrations?: readonly Record<string, unknown>[];
   readonly permissionEvents?: readonly Record<string, unknown>[];
   readonly permissionEvidenceIntegrity?: 'VERIFIED' | 'FAILED' | 'UNKNOWN';
+  readonly beforeContent?: ReactNode;
   readonly available: boolean;
 }) {
   const labels = copy[locale];
@@ -213,28 +216,14 @@ export function M03ReadOnlyView({
     0;
   return (
     <main className="dashboard-shell" lang={locale}>
-      <header className="dashboard-topbar">
-        <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA
-        </Link>
-        <nav className="language-switcher" aria-label="Language">
-          {locales.map((option) => (
-            <Link
-              key={option}
-              href={`/${view === 'policies' ? 'policies' : 'flight-recorder'}?lang=${option}`}
-              aria-current={locale === option ? 'page' : undefined}
-            >
-              {option === 'en' ? 'EN' : option === 'pt-BR' ? 'PT' : 'ES'}
-            </Link>
-          ))}
-        </nav>
-      </header>
+      <ExperienceHeader locale={locale} active={view === 'policies' ? 'policies' : 'recorder'} />
       <section className="dashboard-heading">
         <p className="eyebrow">NERVA · M03</p>
         <h1>{title}</h1>
         <p>{labels.summary}</p>
         <div className="readonly-badge">{labels.readOnly}</div>
       </section>
+      {beforeContent}
       {!available ? (
         <section className="dashboard-card">
           <p>{labels.unavailable}</p>

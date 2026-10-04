@@ -1,0 +1,30 @@
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './apps/web/e2e',
+  testMatch: '**/*.pw.ts',
+  fullyParallel: false,
+  forbidOnly: Boolean(process.env.CI),
+  retries: 0,
+  workers: 1,
+  reporter: 'list',
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+  use: {
+    baseURL: 'http://127.0.0.1:3100',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    ...devices['Desktop Chrome'],
+  },
+  webServer: {
+    command: 'npm --workspace=@nerva/web run dev -- --hostname 127.0.0.1 --port 3100',
+    url: 'http://127.0.0.1:3100/api/health/live',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: {
+      NERVA_ENVIRONMENT: 'LOCAL',
+      NERVA_EXECUTION_ENABLED: 'false',
+      NERVA_KILL_SWITCH_ENABLED: 'true',
+    },
+  },
+});
