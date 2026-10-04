@@ -31,7 +31,9 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
       NERVA_ENVIRONMENT: 'TESTNET_DEMO',
       POSTGRES_URL: 'postgresql://nerva:server-only@db.example.internal:5432/nerva',
     });
-    expect(fallback.databaseUrl).toBe('postgresql://nerva:server-only@db.example.internal:5432/nerva');
+    expect(fallback.databaseUrl).toBe(
+      'postgresql://nerva:server-only@db.example.internal:5432/nerva',
+    );
     expect(publicConfig(fallback)).not.toHaveProperty('databaseUrl');
 
     const explicit = loadServerConfig({
