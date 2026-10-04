@@ -1,6 +1,6 @@
 # NERVA-WO-007 Evidence Bundle
 
-Status: BLOCKED_DATABASE_CREDENTIAL_BRIDGE_AND_METROPOLIS_OAUTH
+Status: BLOCKED_METROPOLIS_AUTHENTICATED_PORTAL_EVIDENCE
 
 - Work Order: NERVA-WO-007
 - Issue: #19
@@ -227,3 +227,21 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - The integration-provided URL requests `sslmode=require`. Current node-postgres compatibility behavior can interpret that as certificate-verifying `verify-full`, which is incompatible with this Supabase pooler chain.
 - NERVA now adds `uselibpqcompat=true` only for the Vercel `POSTGRES_URL` fallback when it already requests `sslmode=require`. This keeps TLS required while honoring standard libpq `require` semantics. Explicit `DATABASE_URL` values remain untouched.
 - Final public readiness must still be reverified on the deployment produced from this corrected exact HEAD before Gate 6 can pass.
+
+
+## Gate 6 public deployment closed
+
+- Product/deployment candidate SHA: `56ad064abc6df05ee8f52dc864005b250030ccf8`.
+- Vercel deployment ID: `dpl_E5bUWDVuLdr1heRVdUuUFgBRSHHv`.
+- Exact deployment URL: `https://nerva-project-31wbwncgs-claytons-projects-5922d27c.vercel.app`.
+- Deployment state: `READY`, tied by Vercel Git metadata to exact SHA `56ad064abc6df05ee8f52dc864005b250030ccf8`.
+- External `/`: HTTP 200.
+- External `/demo?lang=en`: HTTP 200.
+- External `/api/health/live`: HTTP 200, `TESTNET_DEMO`, `executionEnabled=false`.
+- External `/api/health/ready`: HTTP 200, database `HEALTHY`, `globalExecutionDisabled=true`.
+- Exact-head ruleset checks on `56ad064...`: `linux`, `windows-bounded`, `gef-validation`, `source-pack`, SonarCloud, Socket PR Alerts, and Socket Project Report all completed successfully.
+- Vercel/Supabase integration secrets remain outside Git and were verified by key presence only. No database password or connection string was printed into evidence.
+- The first integrated preview exposed a bounded TLS compatibility failure `SELF_SIGNED_CERT_IN_CHAIN`; the temporary diagnostic was removed, node-postgres was scoped to libpq `sslmode=require` semantics only for the Vercel `POSTGRES_URL` fallback, and the subsequent exact product candidate reached healthy readiness.
+- `MAINNET EFFECT = HARD_BLOCKED`, `LIVE PERPL WRITES = BLOCKED`, `NERVA_EXECUTION_ENABLED=false`, and the global kill switch remain intact.
+
+Gate 6 is therefore CLOSED. The remaining M06 release blocker is authenticated Metropolis portal evidence and the final submission package decision. The owner completed the interactive GitHub OAuth step, but this connector session cannot read the browser-authenticated portal state. Do not infer track/bounty eligibility or exact authenticated form requirements from the OAuth action alone.

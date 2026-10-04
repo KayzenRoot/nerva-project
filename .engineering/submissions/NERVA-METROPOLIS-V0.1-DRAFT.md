@@ -1,6 +1,6 @@
 # NERVA — Metropolis V0.1 Submission Draft
 
-Status: PREPARED · NOT SUBMITTED · deployment and authenticated-portal gates pending
+Status: PREPARED · NOT SUBMITTED · public deployment healthy · authenticated-portal evidence pending
 
 ## Project profile
 
@@ -8,9 +8,9 @@ Status: PREPARED · NOT SUBMITTED · deployment and authenticated-portal gates p
 - **Tagline:** Read-only risk context and bounded policy simulation for perpetual markets.
 - **Candidate track:** Onchain Finance & Trading. Final track selection must be confirmed in the authenticated Metropolis portal.
 - **Repository:** https://github.com/KayzenRoot/nerva-project
-- **Deployed demo:** BLOCKED — no authorized public deployment target or external deployment credential is configured in this environment.
-- **Portal deadline/timezone and eligibility:** BLOCKED — the public Metropolis portal exposes sign-in/registration but not the authenticated submission form/rules.
-- **Sponsor bounty selections:** NONE claimed. Perpl read-only observation is not a live trading integration, and no sponsor eligibility is asserted.
+- **Deployed demo:** https://nerva-project-31wbwncgs-claytons-projects-5922d27c.vercel.app — exact Vercel deployment of `56ad064abc6df05ee8f52dc864005b250030ccf8`; liveness and readiness are HTTP 200, database is `HEALTHY`, execution remains disabled.
+- **Portal deadline/timezone and eligibility:** owner completed GitHub OAuth. Public Monad material says submissions close October 13 and recent Monad developer announcements state 11:59 PM ET, but authenticated portal readback is still required before freezing deadline/timezone, fields, track, and bounty eligibility.
+- **Sponsor bounty selections:** NONE claimed yet. Public Metropolis material currently advertises Perpl bounties for Best Use of Perpl API and Best Analytics / Risk Tool; both are strong NERVA candidates, but authenticated portal eligibility must be confirmed before either is selected.
 
 ## Problem and solution
 
@@ -45,7 +45,7 @@ The guided scenario and refusal paths are covered by the M05 Playwright journey.
 
 - [x] Project name, tagline, problem/solution, technical highlights, Monad and Perpl relevance, security limitations, and demo script drafted.
 - [x] Public repository URL recorded.
-- [ ] Immutable public deployment URL and health receipt.
+- [x] Immutable public deployment URL and health receipt.
 - [ ] Authenticated portal deadline/timezone, required fields/assets, visibility rules, track confirmation, and sponsor eligibility proof.
 - [ ] Final screenshots captured against the deployed candidate.
 - [ ] Human review and submission through the official portal.
