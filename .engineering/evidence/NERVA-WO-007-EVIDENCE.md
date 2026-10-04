@@ -156,3 +156,22 @@ On exact image/candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, the disposa
 - Vercel project protection was disabled for the demo project so the preview is publicly reachable over HTTPS; no secret or financial authority was added.
 - Vercel project environment now explicitly sets `NERVA_ENVIRONMENT=TESTNET_DEMO`, `NERVA_EXECUTION_ENABLED=false`, `NERVA_KILL_SWITCH_ENABLED=true`, `NERVA_DEMO_SIMULATION_ENABLED=true`, `PERPL_OBSERVATION_ENABLED=false`, and telemetry disabled for subsequent deployments.
 - This evidence commit triggers a new preview with the explicit safety environment. Final Gate 6 acceptance still requires database-backed readiness HTTP 200.
+
+
+## Supabase deployment database provisioned
+
+- Supabase organization: `Goodz Labs` (`buruzdxxxrljzqrfawev`).
+- Project: `nerva` / `gnujsdlpaznoaeijvmez`.
+- Region: `sa-east-1`.
+- Cost accepted by owner before provisioning: `US$0/month`.
+- Project status after creation: `ACTIVE_HEALTHY`.
+- Repository migrations `0000` through `0009` were applied sequentially through the Supabase migration API; all ten returned success.
+- Resulting public schema contains 34 NERVA tables and the seeded `runtime_controls` row.
+
+### Supabase security preflight blocker
+
+The Supabase security advisor reports **RLS disabled on all 34 tables in the exposed `public` schema**. Supabase classifies this as an externally facing ERROR and warns that anon/authenticated Data API roles could access these tables if a publishable/anon key is used. Per the advisor contract, this remediation was **not auto-applied** because enabling RLS without an explicit policy decision changes access semantics.
+
+The security advisor also reports six WARN findings for mutable function `search_path`.
+
+No final deployment/database readiness or M06 approval may be claimed until the RLS exposure is explicitly dispositioned and the Vercel runtime database connection is established without weakening the fail-closed execution posture.
