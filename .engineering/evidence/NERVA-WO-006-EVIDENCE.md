@@ -141,5 +141,6 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - Source Pack run `37195788263`: PASS.
 - SonarCloud and Socket Project Report: PASS.
 - Canonical Checkpoint, Checkpoint JSON, Source Hierarchy and accepted Checkpoint Delta were synchronized after audit found stale pre-merge/current-binding language.
+- The historical M05 validator allowlist was extended only to permit the Source Hierarchy canonical-truth sync; this does not expand runtime or financial authority.
 - This closeout changes governance/documentation truth only. It does not alter product/runtime code, database schema, dependencies, provider adapters, signing authority or M06 admission.
 - M06 remains `NOT_ADMITTED`.
