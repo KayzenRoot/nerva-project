@@ -1,6 +1,6 @@
 # NERVA-WO-007 Evidence Bundle
 
-Status: BLOCKED_PUBLIC_DEPLOYMENT_AND_METROPOLIS_OAUTH_OWNER_APPROVAL
+Status: BLOCKED_DATABASE_CREDENTIAL_BRIDGE_AND_METROPOLIS_OAUTH
 
 - Work Order: NERVA-WO-007
 - Issue: #19
@@ -186,3 +186,13 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - The six previously reported mutable-function-`search_path` WARN findings were removed by pinning each NERVA trigger/helper function to `public, pg_temp` after verifying its current definition.
 - Post-change Supabase Security Advisor reports only INFO `rls_enabled_no_policy` findings. This is the intended deny-by-default state for M06 and no WARN/ERROR remains for RLS or function `search_path`.
 - Hosted state is versioned in `packages/db/migrations/0010_nerva_release_security_hardening.sql` and registered in the Drizzle migration journal.
+
+
+## Current external gate state
+
+- Supabase RLS/security owner decision is CLOSED.
+- Machine-readable Supabase security receipt: `.engineering/evidence/NERVA-WO-007-SUPABASE-SECURITY-RECEIPT.json`.
+- Public Vercel deployment is reachable over HTTPS and `/api/health/live` is HTTP 200 in `TESTNET_DEMO` with execution disabled.
+- `/api/health/ready` remains HTTP 503 only because `DATABASE_URL` cannot yet be transferred from the authenticated Supabase context into the Vercel secret environment through the currently exposed connector surface. No credential has been printed, copied into Git, or exposed to the browser.
+- Owner authorization for Metropolis GitHub OAuth was received, but this non-browser connector session cannot complete the interactive OAuth/account step. Public official portal confirms the event window as `1 Sep to 13 Oct`; authenticated deadline time zone, submission fields, track and bounty eligibility remain portal-gated.
+- M06 therefore remains draft/unmerged and the Checkpoint remains unpromoted.
