@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:18.6-bookworm@sha256:3725f4e2499eef5134592b3b4ab79a543ed7f8e533b05b5b637af926630f6650
+    environment:
+      POSTGRES_DB: nerva
+      POSTGRES_USER: nerva
+      POSTGRES_PASSWORD: ${NERVA_DB_PASSWORD:?NERVA_DB_PASSWORD must be injected outside the repository}
+    ports:
+      - '127.0.0.1:${NERVA_RELEASE_DB_PORT:-5437}:5432'
+    volumes:
+      - m06_release_db:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nerva -d nerva']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    labels:
+      org.opencontainers.image.revision: ${NERVA_RELEASE_SHA:?NERVA_RELEASE_SHA must be the exact Git SHA}
+      org.nerva.environment: TESTNET_DEMO
+
+  web:
+    image: nerva-web:${NERVA_RELEASE_SHA:?NERVA_RELEASE_SHA must be the exact Git SHA}
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VCS_REF: ${NERVA_RELEASE_SHA:?NERVA_RELEASE_SHA must be the exact Git SHA}
+    environment:
+      NERVA_ENVIRONMENT: TESTNET_DEMO
+      NERVA_EXECUTION_ENABLED: 'false'
+      NERVA_KILL_SWITCH_ENABLED: 'true'
+      NERVA_DEMO_SIMULATION_ENABLED: 'true'
+      DATABASE_URL: postgresql://nerva:${NERVA_DB_PASSWORD:?NERVA_DB_PASSWORD must be injected outside the repository}@db:5432/nerva
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${NERVA_RELEASE_WEB_PORT:-3137}:3000'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health/live').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    labels:
+      org.opencontainers.image.source: https://github.com/KayzenRoot/nerva-project
+      org.opencontainers.image.revision: ${NERVA_RELEASE_SHA:?NERVA_RELEASE_SHA must be the exact Git SHA}
+      org.nerva.environment: TESTNET_DEMO
+      org.nerva.mainnet-effect: HARD_BLOCKED
+      org.nerva.live-perpl-effects: BLOCKED
+
+volumes:
+  m06_release_db:
