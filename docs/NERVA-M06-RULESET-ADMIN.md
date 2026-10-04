@@ -1,8 +1,8 @@
 # NERVA M06 Ruleset Administration Gate
 
-Status: BLOCKED_RULESET_ADMIN
+Status: VERIFIED_ACTIVE
 
-The connected ChatGPT GitHub App can verify repository state but does not expose Administration-write ruleset mutations for this repository. This file pins the exact intended ruleset payload so an admin-capable GitHub CLI/API session can apply it without interpretation drift.
+On 2026-10-04, the versioned payload below was applied through the authenticated GitHub CLI. GitHub returned HTTP `201 Created`; a GET-after-write verified the active ruleset `24457588` at `refs/heads/main`. The Evidence Bundle records the full final JSON. The earlier connector limitation is resolved for this gate.
 
 ## Target
 

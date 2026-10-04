@@ -1,6 +1,6 @@
 # NERVA-WO-007 Evidence Bundle
 
-Status: BLOCKED_RULESET_ADMIN
+Status: NERVA_M06_RULESET_VERIFIED
 
 - Work Order: NERVA-WO-007
 - Issue: #19
@@ -21,7 +21,7 @@ Status: BLOCKED_RULESET_ADMIN
 ## Admission source check
 
 - `main` baseline is `b778b470eff4ff997def001899530512065e5676`.
-- Repository rulesets API currently returned no repository rulesets; `main` is currently reported unprotected.
+- Before the first executor task, `GET /repos/KayzenRoot/nerva-project/rulesets` returned `[]`; the ruleset was absent at that time.
 - Therefore repository ruleset hardening is admitted as the first executor task.
 - Public Metropolis material observed 2026-10-04 continues to indicate an October 2026 submission window, but current public sources conflict on the exact cutoff date/time. The authenticated/current official portal is required before submission truth is frozen.
 - MetaMask Agent Wallet current material continues to describe self-custodial agent execution with user-defined constraints; chain-specific Transaction Shield coverage must not be inferred for Monad.
@@ -41,21 +41,26 @@ Status: BLOCKED_RULESET_ADMIN
 - final DoD matrix;
 - limitations and blockers.
 
+## First executor task — repository ruleset verified
 
-## Ruleset administration blocker
+- Pre-write list GET on 2026-10-04 returned `[]`; no existing or unrelated repository ruleset was overwritten.
+- Applied the exact versioned payload `.engineering/repository-rulesets/nerva-main-gef-protected-flow.json` using `gh api --method POST` with API version `2026-03-10`.
+- POST result: HTTP `201 Created`; GitHub assigned ruleset ID `24457588`.
+- GET-after-write: `GET /repos/KayzenRoot/nerva-project/rulesets/24457588`, received 2026-10-04 at 11:21:55 -03:00. Programmatic assertions all passed: `enforcement=active`; target exactly `refs/heads/main`; PR required; approving reviews `0`; review threads resolved; allowed merge method only `squash`; linear history required; force-push blocked by `non_fast_forward`; deletion blocked; strict checks enabled with exactly the seven Work Order contexts; no bypass actors and `current_user_can_bypass=never`.
+- Required status checks verified: `linux`, `windows-bounded`, `gef-validation`, `source-pack`, `SonarCloud Code Analysis`, `Socket Security: Pull Request Alerts`, and `Socket Security: Project Report`.
+- GitHub materialized `require_extra_approval_for_unattributed_changes=true` in the returned PR-rule parameters, although this field is absent from the versioned request. GitHub documents that this option has no effect when the configured approval count is zero ([available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)). The requested zero-approval policy remains effective.
+- GET response JSON (complete final representation):
 
-- Repository rulesets read on 2026-10-04: `GET /repos/KayzenRoot/nerva-project/rulesets` returned `[]`.
-- Legacy branch-protection read through the connected GitHub App: `GET /repos/KayzenRoot/nerva-project/branches/main/protection` returned HTTP `403 Resource not accessible by integration`.
-- Repository metadata reports the authenticated user as repository admin, but the connected GitHub App surface exposed to this execution environment does not provide repository-ruleset/branch-protection administration writes.
-- GitHub's ruleset API requires repository Administration write permission for creation/update. No such write action is exposed by the connected GitHub tool in this execution environment.
-- Target policy remains exactly `NERVA main / GEF protected flow` from NERVA-WO-007. It has not been weakened and must not be represented as active.
-- M06 heavy implementation is paused at the first execution task. No release/submission completion claim is permitted while this blocker remains.
-- Resolution requires an admin-capable GitHub UI/API/CLI session outside the current connector surface, followed by GET-after-write proof that the ruleset is active.
+```json
+{"id":24457588,"name":"NERVA main / GEF protected flow","target":"branch","source_type":"Repository","source":"KayzenRoot/nerva-project","enforcement":"active","conditions":{"ref_name":{"exclude":[],"include":["refs/heads/main"]}},"rules":[{"type":"deletion"},{"type":"non_fast_forward"},{"type":"required_linear_history"},{"type":"pull_request","parameters":{"required_approving_review_count":0,"dismiss_stale_reviews_on_push":false,"required_reviewers":[],"require_code_owner_review":false,"require_last_push_approval":false,"required_review_thread_resolution":true,"require_extra_approval_for_unattributed_changes":true,"allowed_merge_methods":["squash"]}},{"type":"required_status_checks","parameters":{"strict_required_status_checks_policy":true,"do_not_enforce_on_create":false,"required_status_checks":[{"context":"linux"},{"context":"windows-bounded"},{"context":"gef-validation"},{"context":"source-pack"},{"context":"SonarCloud Code Analysis"},{"context":"Socket Security: Pull Request Alerts"},{"context":"Socket Security: Project Report"}]}}],"node_id":"RRS_lACqUmVwb3NpdG9yec5Ti3gtzgF1MXQ","created_at":"2026-10-04T11:21:55.524-03:00","updated_at":"2026-10-04T11:21:55.601-03:00","bypass_actors":[],"current_user_can_bypass":"never","_links":{"self":{"href":"https://api.github.com/repos/KayzenRoot/nerva-project/rulesets/24457588"},"html":{"href":"https://github.com/KayzenRoot/nerva-project/rules/24457588"}}
+```
 
+- First-gate implementation HEAD before this evidence closeout: `01d26b9f0039d46b177fd2a682d2e56de3aab174`; only this Evidence Bundle and the admin runbook are being updated for the gate receipt.
+- This completes the first executor gate only. M06 heavy implementation and later release/submission tasks remain NOT_STARTED; do not claim release readiness.
 
 ## Ruleset application package
 
 - Exact ruleset payload artifact: `.engineering/repository-rulesets/nerva-main-gef-protected-flow.json`.
 - Admin application/verification guide: `docs/NERVA-M06-RULESET-ADMIN.md`.
 - Required policy is frozen to the Work Order target and current required check names.
-- These artifacts prepare blocker resolution only; they do not constitute proof that the ruleset is active.
+- Ruleset `24457588` is verified active by the GET-after-write evidence above.
