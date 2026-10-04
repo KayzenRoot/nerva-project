@@ -2,7 +2,7 @@
 
 Status: OWNER_APPROVED · APPLIED · VERSIONED
 
-Supabase security preflight reports that all 34 NERVA tables in the exposed `public` schema have Row Level Security disabled. This proposal is intentionally **not applied** until the owner approves the access model.
+Supabase security preflight originally reported that all 34 NERVA tables in the exposed `public` schema had Row Level Security disabled. The owner approved the deny-by-default access model, and the hardening is now applied and versioned.
 
 ## Intended access model
 
@@ -74,7 +74,7 @@ Supabase also reports six WARN findings for functions with mutable `search_path`
 - `public.nerva_guard_m04_authority_generation`
 - `public.nerva_guard_m04_evidence_head`
 
-These should be reviewed and schema-qualified before applying any `search_path` hardening so trigger behavior is not changed accidentally.
+These functions were reviewed before hardening. Their bodies were preserved and only the function-level `search_path` was pinned to `public, pg_temp`.
 
 ## Owner decision required
 
@@ -84,7 +84,6 @@ Approve one of:
 - **REJECT_RLS_CHANGE** — leave schema unchanged and record why this external security finding is accepted.
 
 Owner decision recorded: `APPROVE_DENY_BY_DEFAULT_RLS` on 2026-10-04. The deny-by-default posture was applied to Supabase and versioned as `packages/db/migrations/0010_nerva_release_security_hardening.sql`. Supabase security revalidation now reports only INFO `rls_enabled_no_policy` findings, which are intentional because no public/browser policies are allowed for M06.
-
 
 ## Applied verification
 
