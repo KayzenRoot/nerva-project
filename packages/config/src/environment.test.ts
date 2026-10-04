@@ -29,8 +29,7 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
   it('accepts Vercel-native POSTGRES_URL as a server-only database fallback', () => {
     const fallback = loadServerConfig({
       NERVA_ENVIRONMENT: 'TESTNET_DEMO',
-      POSTGRES_URL:
-        'postgresql://nerva:server-only@db.example.internal:5432/nerva?sslmode=require',
+      POSTGRES_URL: 'postgresql://nerva:server-only@db.example.internal:5432/nerva?sslmode=require',
     });
     expect(fallback.databaseUrl).toBe(
       'postgresql://nerva:server-only@db.example.internal:5432/nerva?sslmode=require&uselibpqcompat=true',
@@ -39,10 +38,8 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
 
     const explicit = loadServerConfig({
       NERVA_ENVIRONMENT: 'TESTNET_DEMO',
-      DATABASE_URL:
-        'postgresql://nerva:primary@db.primary.internal:5432/nerva?sslmode=require',
-      POSTGRES_URL:
-        'postgresql://nerva:fallback@db.fallback.internal:5432/nerva?sslmode=require',
+      DATABASE_URL: 'postgresql://nerva:primary@db.primary.internal:5432/nerva?sslmode=require',
+      POSTGRES_URL: 'postgresql://nerva:fallback@db.fallback.internal:5432/nerva?sslmode=require',
     });
     expect(explicit.databaseUrl).toBe(
       'postgresql://nerva:primary@db.primary.internal:5432/nerva?sslmode=require',
