@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "workOrder": "NERVA-WO-007",
+  "module": "M06",
+  "observedAt": "2026-10-04T17:50:02.687Z",
+  "supabase": {
+    "projectName": "nerva",
+    "projectId": "gnujsdlpaznoaeijvmez",
+    "organization": "Goodz Labs",
+    "organizationId": "buruzdxxxrljzqrfawev",
+    "region": "sa-east-1",
+    "status": "ACTIVE_HEALTHY",
+    "publicSchema": {
+      "tables": 34,
+      "rlsEnabled": 34,
+      "policies": 0,
+      "anonAuthenticatedTableGrants": 0,
+      "anonAuthenticatedSequenceUsageGrants": 0
+    },
+    "securityAdvisor": {
+      "errorCount": 0,
+      "warnCount": 0,
+      "infoFindings": {
+        "rls_enabled_no_policy": 34,
+        "disposition": "INTENTIONAL_DENY_BY_DEFAULT"
+      }
+    },
+    "searchPathWarningsResolved": 6
+  },
+  "preservedSafety": {
+    "mainnetEffect": "HARD_BLOCKED",
+    "livePerplWrites": "BLOCKED",
+    "browserDataApiAccess": "DENIED_BY_DEFAULT"
+  }
+}
