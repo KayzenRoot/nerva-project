@@ -1,6 +1,6 @@
 # NERVA Checkpoint
 
-Status: CANONICAL — NERVA-WO-006 / M05 APPROVED; effective on PR #16 merge
+Status: CANONICAL — NERVA-WO-006 / M05 APPROVED · MERGED · POST-MERGE VALIDATED
 
 Repository: `KayzenRoot/nerva-project`  
 GEF: `@gef-bootstrap/cli@1.1.2`
@@ -19,16 +19,18 @@ GEF: `@gef-bootstrap/cli@1.1.2`
 - Product implementation: STARTED
 - Runtime product code: M05 EXPERIENCE + DEMO + M04 SAFETY BOUNDARY
 - Last approved Work Order: NERVA-WO-006
-- CRITICAL/HIGH known defects: 0 at promotion audit
+- CRITICAL/HIGH known defects: 0
 
-## M05 proof
-- exact independently audited head: `bd0190a744befa413fac15f4f276d28b846a348e`
-- correction code head: `15025740199d2acd2145ff9af4d668164f678578`
-- hosted M01–M05 validation run: `37175160104` / SUCCESS
-- GEF validation run: `37175160256` / SUCCESS
-- Source Pack validation run: `37175160121` / SUCCESS
-- Socket Security PR Alerts / Project Report: SUCCESS
+## M05 accepted proof
+- independently audited implementation head: `bd0190a744befa413fac15f4f276d28b846a348e`
+- audit verdict: APPROVED
+- PR #16 accepted squash merge: `d4c34f5f57d730f42570f6a9db19dc54d72e93cb`
+- post-merge validator correction PR #17 accepted squash merge: `2f314582f54f3a4f1425b10b923fb77695f9cc52`
+- final M01–M05 post-merge validation: SUCCESS
+- final GEF 1.1.2 validation: SUCCESS
+- final Source Pack validation: SUCCESS
 - SonarCloud: SUCCESS
+- Socket Security Project Report: SUCCESS
 - Context Lock: 89 / 89 fingerprints
 - tests: 136 / 136 across 30 files
 - browser E2E: 5 / 5 journeys
@@ -41,7 +43,6 @@ GEF: `@gef-bootstrap/cli@1.1.2`
 - effectful mainnet execution: HARD_BLOCKED
 - live Perpl effect adapter: BLOCKED
 - DEMO_ONLY persistence/provider/effect path: NONE
-- verdict: APPROVED
 
 ## Carry-forward gates
 - Live Perpl effects remain blocked until a documented protective-only provider capability/scope and independently verifiable enrollment provenance exist.
@@ -54,4 +55,4 @@ GEF: `@gef-bootstrap/cli@1.1.2`
 - M05 competition/demo outcomes are synthetic where labeled DEMO_ONLY; no real wallet/provider financial effect is claimed.
 
 ## Next legal operation
-Merge PR #16 only after the M05 promotion candidate checks are green, then validate `main`. After successful post-merge validation, compile/admit `NERVA-WO-007` for M06 against the merged M05 baseline. No M06 implementation before that Work Order is admitted.
+Compile `NERVA-WO-007` for M06 against the merged M05 baseline, create a fresh Context Lock, run capability/release preflight, and admit M06 only after those gates pass. No M06 implementation is authorized before admission.

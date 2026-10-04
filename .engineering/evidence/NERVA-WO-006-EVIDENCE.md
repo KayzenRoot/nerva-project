@@ -1,6 +1,6 @@
 # NERVA-WO-006 Evidence Bundle
 
-Status: APPROVED · MERGED · POST_MERGE_VALIDATION_CORRECTION
+Status: APPROVED · MERGED · POST_MERGE_VALIDATED
 
 - Work Order: NERVA-WO-006
 - Issue: #15 · PR: #16
@@ -131,3 +131,16 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - Scope is governance-validator + evidence only. No product/runtime code, database schema, dependency, provider adapter or authority is changed.
 - `MAINNET EFFECT = HARD_BLOCKED` and `LIVE PERPL WRITES = BLOCKED` remain unchanged.
 - M06 remains `NOT_ADMITTED` and unstarted.
+
+
+## Canonical truth closeout
+
+- Final post-merge validation head before this documentation-only truth sync: `2f314582f54f3a4f1425b10b923fb77695f9cc52`.
+- M01–M05 validation run `37195788203`: PASS.
+- GEF 1.1.2 run `37195788213`: PASS.
+- Source Pack run `37195788263`: PASS.
+- SonarCloud and Socket Project Report: PASS.
+- Canonical Checkpoint, Checkpoint JSON, Source Hierarchy and accepted Checkpoint Delta were synchronized after audit found stale pre-merge/current-binding language.
+- The historical M05 validator allowlist was extended only to permit the Source Hierarchy canonical-truth sync; this does not expand runtime or financial authority.
+- This closeout changes governance/documentation truth only. It does not alter product/runtime code, database schema, dependencies, provider adapters, signing authority or M06 admission.
+- M06 remains `NOT_ADMITTED`.
