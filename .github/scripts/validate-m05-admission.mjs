@@ -257,7 +257,9 @@ if (promotedCheckpoint) {
 
 const implementationChanged = changed.some((path) => path.startsWith('apps/web/src/app/'));
 if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
-  throw new Error('M05 implementation changed but Evidence Bundle is still marked not started');
+  throw new Error(
+    'M05 implementation changed but Evidence Bundle is still marked not started',
+  );
 }
 
 let state = 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION';
