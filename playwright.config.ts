@@ -2,6 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.NERVA_PLAYWRIGHT_PORT ?? '3100');
 const externalBaseURL = process.env.NERVA_E2E_BASE_URL;
+const isVercelPreview = (() => {
+  if (!externalBaseURL) return false;
+  try {
+    return new URL(externalBaseURL).hostname.toLowerCase().endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+})();
 
 export default defineConfig({
   testDir: './apps/web/e2e',
@@ -15,6 +23,7 @@ export default defineConfig({
   expect: { timeout: 5_000 },
   use: {
     baseURL: externalBaseURL ?? `http://127.0.0.1:${port}`,
+    ...(isVercelPreview ? { extraHTTPHeaders: { 'x-vercel-skip-toolbar': '1' } } : {}),
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     ...devices['Desktop Chrome'],

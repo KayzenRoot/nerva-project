@@ -121,14 +121,24 @@ try {
     );
   }
   for (const [label, path, expectedCopy, expectedDocumentLanguage] of [
-    ['English default', '/', 'See the conditions before any future action.', 'en'],
+    [
+      'English default',
+      '/',
+      'Read-only market observations and policy simulation for perpetual markets on Monad.',
+      'en',
+    ],
     [
       'Brazilian Portuguese',
       '/?lang=pt-BR',
-      'Veja as condições antes de qualquer ação futura.',
+      'Observações de mercado somente para leitura e simulação de políticas para mercados perpétuos na Monad.',
       'pt-BR',
     ],
-    ['Spanish', '/?lang=es', 'Consulta las condiciones antes de una acción futura.', 'es'],
+    [
+      'Spanish',
+      '/?lang=es',
+      'Observaciones de mercado de solo lectura y simulación de políticas para mercados perpetuos en Monad.',
+      'es',
+    ],
   ]) {
     const page = await fetch(`http://127.0.0.1:${port}${path}`, {
       signal: AbortSignal.timeout(5000),
