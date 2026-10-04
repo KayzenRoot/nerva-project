@@ -68,7 +68,9 @@ const promotedCheckpoint =
   checkpoint.knownHigh === 0;
 
 if (!executionCheckpoint && !promotedCheckpoint) {
-  throw new Error('Canonical checkpoint is neither M05 execution state nor approved M05 promotion state');
+  throw new Error(
+    'Canonical checkpoint is neither M05 execution state nor approved M05 promotion state',
+  );
 }
 
 const head = git('rev-parse', 'HEAD');
@@ -143,7 +145,9 @@ const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .filter(Boolean);
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
-  throw new Error(`M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`);
+  throw new Error(
+    `M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`,
+  );
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
@@ -151,14 +155,32 @@ const brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-006-CODEX.
 const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-006-EVIDENCE.md', 'utf8');
 
 for (const section of [
-  'OBJECTIVE','CONTEXT','SCOPE','OUT OF SCOPE','FILES / SOURCES TO READ','REQUIREMENTS',
-  'ARCHITECTURE RULES','CONSTRAINTS','ACCEPTANCE CRITERIA','TESTS / PROOF OBLIGATIONS',
-  'DELIVERABLES','REVIEW FORMAT','STOP CONDITION',
+  'OBJECTIVE',
+  'CONTEXT',
+  'SCOPE',
+  'OUT OF SCOPE',
+  'FILES / SOURCES TO READ',
+  'REQUIREMENTS',
+  'ARCHITECTURE RULES',
+  'CONSTRAINTS',
+  'ACCEPTANCE CRITERIA',
+  'TESTS / PROOF OBLIGATIONS',
+  'DELIVERABLES',
+  'REVIEW FORMAT',
+  'STOP CONDITION',
 ]) {
-  if (!wo.includes(`## ${section}`)) throw new Error(`WO-006 missing section: ${section}`);
+  if (!wo.includes(`## ${section}`)) {
+    throw new Error(`WO-006 missing section: ${section}`);
+  }
 }
-if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('WO-006 stop marker missing');
-if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('M05 brief stop marker missing');
+
+if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  throw new Error('WO-006 stop marker missing');
+}
+
+if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  throw new Error('M05 brief stop marker missing');
+}
 
 if (promotedCheckpoint) {
   if (!evidence.includes(auditedHead) || !evidence.includes('Verdict: `APPROVED`')) {
@@ -176,7 +198,9 @@ if (promotedCheckpoint) {
     if (branchName !== lock.executionBranch) {
       throw new Error(`Unexpected M05 promotion branch: ${branchName}`);
     }
+
     git('merge-base', '--is-ancestor', auditedHead, 'HEAD');
+
     const promotionAllowed = new Set([
       '.engineering/CHECKPOINT.md',
       '.engineering/CHECKPOINT.json',
@@ -191,23 +215,43 @@ if (promotedCheckpoint) {
       .split(/\r?\n/)
       .filter(Boolean);
     const forbiddenPromotion = promotionChanged.filter((path) => !promotionAllowed.has(path));
+
     if (promotionChanged.length === 0 || forbiddenPromotion.length > 0) {
       throw new Error(`Invalid M05 promotion delta: ${forbiddenPromotion.join(', ')}`);
     }
-    console.log(JSON.stringify({
-      ok:true, base:lock.executionBase, auditedHead, head, branch:branchName, issue:lock.issueNumber,
-      fingerprints:fingerprints.length, promotionFiles:promotionChanged.length,
-      state:'NERVA_M05_APPROVED_CHECKPOINT_PROMOTED',
-    }));
+
+    console.log(
+      JSON.stringify({
+        ok: true,
+        base: lock.executionBase,
+        auditedHead,
+        head,
+        branch: branchName,
+        issue: lock.issueNumber,
+        fingerprints: fingerprints.length,
+        promotionFiles: promotionChanged.length,
+        state: 'NERVA_M05_APPROVED_CHECKPOINT_PROMOTED',
+      }),
+    );
     process.exit(0);
   }
 
   git('merge-base', '--is-ancestor', lock.executionBase, main);
-  console.log(JSON.stringify({
-    ok:true, base:lock.executionBase, auditedHead, currentMain:main, head, branch:branchName,
-    issue:lock.issueNumber, fingerprints:fingerprints.length,
-    state: mainPush ? 'NERVA_M05_POST_MERGE_CONTEXT_LOCK_HISTORICAL' : 'NERVA_M05_CONTEXT_LOCK_HISTORICAL',
-  }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      base: lock.executionBase,
+      auditedHead,
+      currentMain: main,
+      head,
+      branch: branchName,
+      issue: lock.issueNumber,
+      fingerprints: fingerprints.length,
+      state: mainPush
+        ? 'NERVA_M05_POST_MERGE_CONTEXT_LOCK_HISTORICAL'
+        : 'NERVA_M05_CONTEXT_LOCK_HISTORICAL',
+    }),
+  );
   process.exit(0);
 }
 
@@ -218,9 +262,19 @@ if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
 
 let state = 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION';
 if (implementationChanged) state = 'NERVA_WO_006_EXECUTION_IN_PROGRESS';
-if (evidence.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) state = 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT';
+if (evidence.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  state = 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT';
+}
 
-console.log(JSON.stringify({
-  ok:true, base:lock.executionBase, head, branch:branchName, issue:lock.issueNumber,
-  fingerprints:fingerprints.length, changedFiles:changed.length, state,
-}));
+console.log(
+  JSON.stringify({
+    ok: true,
+    base: lock.executionBase,
+    head,
+    branch: branchName,
+    issue: lock.issueNumber,
+    fingerprints: fingerprints.length,
+    changedFiles: changed.length,
+    state,
+  }),
+);
