@@ -26,7 +26,6 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
     expect(() => loadServerConfig({ NERVA_KILL_SWITCH_ENABLED: 'sometimes' })).toThrow();
   });
 
-
   it('accepts Vercel-native POSTGRES_URL as a server-only database fallback', () => {
     const fallback = loadServerConfig({
       NERVA_ENVIRONMENT: 'TESTNET_DEMO',
