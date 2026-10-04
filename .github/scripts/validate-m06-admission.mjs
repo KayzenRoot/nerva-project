@@ -9,9 +9,16 @@ const expectedBranch = 'feat/nerva-wo-007-m06-release-hardening';
 const gitCandidates =
   process.platform === 'win32'
     ? ['C:\\Program Files\\Git\\cmd\\git.exe', 'C:\\Program Files\\Git\\bin\\git.exe']
-    : ['/usr/bin/git', '/bin/git', '/usr/local/bin/git', '/opt/homebrew/bin/git', '/opt/local/bin/git'];
+    : [
+        '/usr/bin/git',
+        '/bin/git',
+        '/usr/local/bin/git',
+        '/opt/homebrew/bin/git',
+        '/opt/local/bin/git',
+      ];
 const gitExecutable = gitCandidates.find((candidate) => fs.existsSync(candidate));
-if (!gitExecutable) throw new Error('NERVA-WO-007 validation requires Git in a trusted system directory');
+if (!gitExecutable)
+  throw new Error('NERVA-WO-007 validation requires Git in a trusted system directory');
 const git = (...args) => execFileSync(gitExecutable, args, { encoding: 'utf8' }).trim();
 
 if (
@@ -69,27 +76,42 @@ const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-007.md', 'utf8');
 const brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-007-CODEX.md', 'utf8');
 const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-007-EVIDENCE.md', 'utf8');
 for (const section of [
-  'OBJECTIVE','CONTEXT','SCOPE','OUT OF SCOPE','FILES / SOURCES TO READ','REQUIREMENTS',
-  'ARCHITECTURE RULES','CONSTRAINTS','ACCEPTANCE CRITERIA','TESTS / PROOF OBLIGATIONS',
-  'DELIVERABLES','REVIEW FORMAT','STOP CONDITION'
+  'OBJECTIVE',
+  'CONTEXT',
+  'SCOPE',
+  'OUT OF SCOPE',
+  'FILES / SOURCES TO READ',
+  'REQUIREMENTS',
+  'ARCHITECTURE RULES',
+  'CONSTRAINTS',
+  'ACCEPTANCE CRITERIA',
+  'TESTS / PROOF OBLIGATIONS',
+  'DELIVERABLES',
+  'REVIEW FORMAT',
+  'STOP CONDITION',
 ]) {
   if (!wo.includes(`## ${section}`)) throw new Error(`WO-007 missing section: ${section}`);
 }
-if (!wo.includes('NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT')) throw new Error('WO-007 stop marker missing');
-if (!brief.includes('NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT')) throw new Error('WO-007 brief stop marker missing');
+if (!wo.includes('NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT'))
+  throw new Error('WO-007 stop marker missing');
+if (!brief.includes('NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT'))
+  throw new Error('WO-007 brief stop marker missing');
 
 let state = 'NERVA_WO_007_ADMITTED_READY_FOR_EXECUTION';
-if (!evidence.includes('M06 implementation: NOT_STARTED')) state = 'NERVA_WO_007_EXECUTION_IN_PROGRESS';
+if (!evidence.includes('M06 implementation: NOT_STARTED'))
+  state = 'NERVA_WO_007_EXECUTION_IN_PROGRESS';
 if (evidence.includes('NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT')) {
   state = 'NERVA_V0_1_METROPOLIS_RELEASE_READY_FOR_AUDIT';
 }
 
-console.log(JSON.stringify({
-  ok:true,
-  base:expectedBase,
-  head,
-  branch,
-  issue:19,
-  fingerprints:fingerprints.length,
-  state
-}));
+console.log(
+  JSON.stringify({
+    ok: true,
+    base: expectedBase,
+    head,
+    branch,
+    issue: 19,
+    fingerprints: fingerprints.length,
+    state,
+  }),
+);
