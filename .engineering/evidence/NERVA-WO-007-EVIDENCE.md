@@ -107,6 +107,8 @@ On code candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`, all seven ruleset-
 - `Socket Security: Pull Request Alerts`: <https://socket.dev>
 - `Socket Security: Project Report`: <https://socket.dev/dashboard/org/nexlabs/sbom/6320e232-53b9-4a18-ab6f-3aadb8675102>
 
+The Evidence Bundle / proposed Delta update was then committed as documentation-only HEAD `d20a422ec382ada9d01c04a554a4ca1d005e1db1`. All seven required checks passed again on that exact PR head (linux + windows-bounded: <https://github.com/KayzenRoot/nerva-project/actions/runs/37215677855>; gef-validation: <https://github.com/KayzenRoot/nerva-project/actions/runs/37215677856>; source-pack: <https://github.com/KayzenRoot/nerva-project/actions/runs/37215677850>; SonarCloud: <https://sonarcloud.io/dashboard?id=KayzenRoot_nerva-project&pullRequest=20>; Socket Alerts: <https://socket.dev>; Socket Project Report: <https://socket.dev/dashboard/org/nexlabs/sbom/2ee64cf1-b6eb-4559-996d-c382c35b0ef7>). The tested product/image candidate remains `fd89a2c`; `d20a422` changes evidence and the proposed Delta only.
+
 The first candidate analysis exposed one SonarCloud vulnerability, `docker:S6505`, plus six code-quality findings. `fd89a2c` fixed them by using the base-image digest without a tag, setting `npm ci --ignore-scripts`, avoiding repeated `Array#push`, making Next's `headers()` return a Promise directly, and using `String.raw` for Windows Git paths. SonarCloud passed on the corrected candidate. No lifecycle-script compatibility regression was observed: the corrected Docker image built successfully and all production journeys passed.
 
 ### Local TESTNET_DEMO recovery drill

@@ -23,6 +23,7 @@
 - Exact base `main@b778b470eff4ff997def001899530512065e5676`; exact code candidate `fd89a2c68f0116d2fe4344e47a796cfc88f2e5ef`.
 - Gate 1 ruleset `24457588` remains active with the seven required checks; zero approvals, resolved threads, squash, linear history, no force-push/delete, no bypass actors.
 - Context Lock 98/98, Source Pack 56 files/7 modules, GEF 1.1.2; full tests 139/139; exact candidate Linux/Windows/GEF/Source Pack/SonarCloud/Socket checks succeeded.
+- Evidence-only PR head `d20a422ec382ada9d01c04a554a4ca1d005e1db1` also passed all seven required hosted contexts: Linux, Windows bounded, GEF, Source Pack, SonarCloud, Socket Alerts, and Socket Project Report (run links in the Evidence Bundle).
 - Production build, production Playwright 6/6, migration/upgrade/replay/revocation checks, local TESTNET_DEMO health, and exact-image recovery restore/forward-migration proof are recorded in `.engineering/evidence/NERVA-WO-007-EVIDENCE.md`.
 - Dependency audit: zero HIGH/CRITICAL; four MODERATE advisories explicitly carried forward. No such advisory is represented as fixed.
 - Local image/recovery evidence is a loopback rehearsal, not a public deployment URL, public immutable registry receipt, or Metropolis demo deployment.
