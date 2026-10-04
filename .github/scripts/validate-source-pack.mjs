@@ -46,6 +46,12 @@ const required = [
   '.engineering/evidence/NERVA-WO-005-EVIDENCE.md',
   '.engineering/checkpoint-deltas/NERVA-WO-005-PROPOSED.md',
   'docs/M04-AGENT-WALLET-PERMISSIONS.md',
+  '.engineering/work-orders/NERVA-WO-006.md',
+  '.engineering/context-locks/NERVA-WO-006.json',
+  '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
+  '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
+  '.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md',
+  'docs/NERVA-M05-DEMO-RUNBOOK.md',
 ];
 
 const missing = required.filter((path) => !fs.existsSync(path));
@@ -58,7 +64,7 @@ const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'u
 if (checkpoint.phase !== 'IMPLEMENTATION_IN_PROGRESS') {
   throw new Error('Checkpoint phase drift');
 }
-for (const module of ['m00Status', 'm01Status', 'm02Status', 'm03Status', 'm04Status']) {
+for (const module of ['m00Status', 'm01Status', 'm02Status', 'm03Status', 'm04Status', 'm05Status']) {
   if (checkpoint[module] !== 'APPROVED') {
     throw new Error(`${module} approval not promoted`);
   }
@@ -66,45 +72,65 @@ for (const module of ['m00Status', 'm01Status', 'm02Status', 'm03Status', 'm04St
 if (checkpoint.sourcePackStatus !== 'CANONICAL_V0_1') {
   throw new Error('Source Pack is not canonical');
 }
-if (checkpoint.activeNextModule !== 'M05') {
+if (checkpoint.activeNextModule !== 'M06') {
   throw new Error('Next module drift');
 }
 if (checkpoint.nextModuleWorkOrder !== 'NOT_ADMITTED') {
-  throw new Error('M05 must remain unadmitted');
+  throw new Error('M06 must remain unadmitted');
 }
 if (checkpoint.implementationStatus !== 'STARTED') {
   throw new Error('Implementation state drift');
 }
-if (checkpoint.runtimeProductCode !== 'M04_AGENT_WALLET_BOUNDED_PERMISSIONS_VERIFIABLE_EVIDENCE') {
-  throw new Error('M04 runtime state drift');
+if (checkpoint.runtimeProductCode !== 'M05_EXPERIENCE_DEMO_M04_SAFETY_BOUNDARY') {
+  throw new Error('M05 runtime state drift');
 }
-if (checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-005') {
+if (checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-006') {
   throw new Error('Last approved Work Order drift');
 }
 if (checkpoint.knownCritical !== 0 || checkpoint.knownHigh !== 0) {
   throw new Error('Checkpoint has unresolved CRITICAL/HIGH');
 }
 
-const lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-005.json', 'utf8'));
-const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-005-EVIDENCE.md', 'utf8');
+const m04Lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-005.json', 'utf8'));
+const m04Evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-005-EVIDENCE.md', 'utf8');
 if (
-  lock.workOrder !== 'NERVA-WO-005' ||
-  lock.module !== 'M04' ||
-  lock.executionBase !== 'd13629e0dc2d66c4f8b2e512b82ce0d11aec1a93' ||
-  lock.executionBranch !== 'feat/nerva-wo-005-m04-agent-wallet-permissions-evidence' ||
-  lock.issueNumber !== 13 ||
-  Object.keys(lock.criticalInputs ?? {}).length !== 64
+  m04Lock.workOrder !== 'NERVA-WO-005' ||
+  m04Lock.module !== 'M04' ||
+  m04Lock.executionBase !== 'd13629e0dc2d66c4f8b2e512b82ce0d11aec1a93' ||
+  m04Lock.executionBranch !== 'feat/nerva-wo-005-m04-agent-wallet-permissions-evidence' ||
+  m04Lock.issueNumber !== 13 ||
+  Object.keys(m04Lock.criticalInputs ?? {}).length !== 64
 ) {
   throw new Error('NERVA-WO-005 Context Lock identity/fingerprint mismatch');
 }
-if (!evidence.includes('070badfa79323328b11840c4eb6c0326d31e2637')) {
+if (!m04Evidence.includes('070badfa79323328b11840c4eb6c0326d31e2637')) {
   throw new Error('M04 Evidence Bundle is missing the exact audited head');
 }
-if (!evidence.includes('Verdict: `APPROVED`')) {
+if (!m04Evidence.includes('Verdict: `APPROVED`')) {
   throw new Error('M04 Evidence Bundle is missing the approval receipt');
 }
-if (!evidence.includes('NERVA_M04_AGENT_WALLET_PERMISSIONS_EVIDENCE_READY_FOR_AUDIT')) {
-  throw new Error('M04 stop condition is missing from evidence');
+
+const m05Lock = JSON.parse(fs.readFileSync('.engineering/context-locks/NERVA-WO-006.json', 'utf8'));
+const m05Evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-006-EVIDENCE.md', 'utf8');
+if (
+  m05Lock.workOrder !== 'NERVA-WO-006' ||
+  m05Lock.module !== 'M05' ||
+  m05Lock.status !== 'LOCKED' ||
+  m05Lock.executionBase !== '5243c2808f258996c11e5e2fa9dffa5af96041cd' ||
+  m05Lock.executionBranch !== 'feat/nerva-wo-006-m05-product-demo' ||
+  m05Lock.issueNumber !== 15 ||
+  Object.keys(m05Lock.criticalInputs ?? {}).length !== 89
+) {
+  throw new Error('NERVA-WO-006 Context Lock identity/fingerprint mismatch');
+}
+if (!m05Evidence.includes('bd0190a744befa413fac15f4f276d28b846a348e')) {
+  throw new Error('M05 Evidence Bundle is missing the exact audited head');
+}
+if (!m05Evidence.includes('Verdict: `APPROVED`')) {
+  throw new Error('M05 Evidence Bundle is missing the approval receipt');
+}
+if (!m05Evidence.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
+  throw new Error('M05 stop condition is missing from evidence');
 }
 
 const roadmap = fs.readFileSync('.engineering/MODULE-ROADMAP.md', 'utf8');
@@ -120,8 +146,8 @@ console.log(
     requiredFiles: required.length,
     modules: 7,
     sourcePack: 'CANONICAL_V0_1',
-    m04: 'APPROVED',
-    nextModule: 'M05',
+    m05: 'APPROVED',
+    nextModule: 'M06',
     nextWorkOrder: 'NOT_ADMITTED',
     implementation: 'STARTED',
   }),

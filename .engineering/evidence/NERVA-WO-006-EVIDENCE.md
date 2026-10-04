@@ -1,6 +1,6 @@
 # NERVA-WO-006 Evidence Bundle
 
-Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT
+Status: APPROVED · CHECKPOINT_PROMOTED_AS_PR_16_GOVERNANCE_CANDIDATE
 
 - Work Order: NERVA-WO-006
 - Issue: #15 · PR: #16
@@ -11,10 +11,12 @@ Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT
 - Correction code head: `15025740199d2acd2145ff9af4d668164f678578`
 - Execution branch: `feat/nerva-wo-006-m05-product-demo`
 - Context Lock: `LOCKED` · 89/89 fingerprints matched at exact base before implementation; the validator rechecks all base blobs on candidate HEAD.
+- Independently audited final head: `bd0190a744befa413fac15f4f276d28b846a348e`
+- Audit verdict: `APPROVED` · review ID `5405457556`.
 
 ## M05 implementation record
 
-M05 is complete for audit. The canonical Checkpoint and Context Lock have not been promoted or rewritten. No M06 work has started. No database schema or provider/effect adapter has been added.
+M05 is independently APPROVED. The audited Checkpoint Delta has been promoted as the PR #16 governance candidate; it becomes effective canonical history on merge after promotion-head checks pass. The Context Lock remains immutable. M06 is NOT_ADMITTED and has not started. No database schema or provider/effect adapter has been added.
 
 - Visual product shell, live read-only state header and isolated `/demo` view are implemented.
 - DEMO_ONLY fixtures are immutable, versioned `nerva-m05-demo-v1` values held only in page memory.
@@ -23,7 +25,7 @@ M05 is complete for audit. The canonical Checkpoint and Context Lock have not be
 - Synthetic outcome and local trace are labeled and cannot call APIs, providers, wallets or persistence.
 - M03 policy templates use the existing compile endpoint, which reports `COMPILED_UNCONFIRMED` / `VALIDATION_ONLY`; there is no confirmation or persistence path in the M05 UI.
 - The M05 admission validator keeps checking all 89 blobs against the immutable execution base and permits only a reviewed M05 file list.
-- Checkpoint Delta proposal: `.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md` remains `PROPOSED_FOR_POST_AUDIT_REVIEW · NOT_APPLIED`.
+- Checkpoint Delta: `.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md` is `ACCEPTED AND PROMOTED AS PR #16 GOVERNANCE CANDIDATE`; effective on merge after promotion-head validation.
 
 ## SonarCloud and accessibility correction delta
 
@@ -102,3 +104,14 @@ The four MODERATE dependency carry-forwards remain recorded for release review; 
 - Hosted checks on correction code HEAD `15025740199d2acd2145ff9af4d668164f678578`: Linux and Windows bounded PASS ([workflow run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782355)); Source Pack PASS ([run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782366)); GEF 1.1.2 PASS ([run](https://github.com/KayzenRoot/nerva-project/actions/runs/37174782359)); SonarCloud PASS ([analysis](https://sonarcloud.io/dashboard?id=KayzenRoot_nerva-project&pullRequest=16)); Socket PR Alerts and Project Report PASS ([PR alerts](https://socket.dev), [project report](https://socket.dev/dashboard/org/nexlabs/sbom/6289a6bf-96c9-49cd-ae77-c78c207936d7)). CodeRabbit reports review skipped because the PR remains draft; it is not an approval.
 - This Evidence Bundle closeout is a documentation-only commit; all CI and hosted security checks are rerun against its exact pushed HEAD before stopping.
 - Remaining risk: four existing MODERATE dependency advisories remain for release review; performance is a local Windows sample, not a hosted latency guarantee. No actual wallet/provider effect is exercised. PR #16 remains draft/open and unmerged; no Checkpoint promotion or M06 work occurred.
+
+
+## Independent audit approval and Checkpoint promotion
+
+- Exact audited head: `bd0190a744befa413fac15f4f276d28b846a348e`.
+- Verdict: `APPROVED`.
+- Audit review ID: `5405457556`.
+- The previous three MEDIUM findings were closed: mobile navigation/AC27, canonical 90-second Guided Demo Contract/AC9–10, and persisted Flight Recorder lineage/M05-FR-001/AC21.
+- Promotion scope after the audited head is governance-only: canonical Checkpoint, Backlog, this Evidence Bundle, the accepted Checkpoint Delta and validators required to recognize the promoted M05 state.
+- M05 promotion preserves `MAINNET EFFECT = HARD_BLOCKED`, `LIVE PERPL WRITES = BLOCKED`, 0 known CRITICAL/HIGH defects and the four existing MODERATE dependency carry-forwards.
+- M06 is only the next module and remains `NOT_ADMITTED`; no M06 implementation is authorized by this promotion.

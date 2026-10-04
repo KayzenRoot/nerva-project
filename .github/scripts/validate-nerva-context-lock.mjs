@@ -50,17 +50,26 @@ if (fs.existsSync(m04LockPath)) {
   }
 
   const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
+  const m04PromotionState =
+    checkpoint.m03Status === 'APPROVED' &&
+    checkpoint.m04Status === 'APPROVED' &&
+    checkpoint.activeNextModule === 'M05' &&
+    checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED' &&
+    checkpoint.lastApprovedWorkOrder === 'NERVA-WO-005' &&
+    checkpoint.runtimeProductCode === 'M04_AGENT_WALLET_BOUNDED_PERMISSIONS_VERIFIABLE_EVIDENCE';
+  const m05PromotionState =
+    checkpoint.m04Status === 'APPROVED' &&
+    checkpoint.m05Status === 'APPROVED' &&
+    checkpoint.activeNextModule === 'M06' &&
+    checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED' &&
+    checkpoint.lastApprovedWorkOrder === 'NERVA-WO-006' &&
+    checkpoint.runtimeProductCode === 'M05_EXPERIENCE_DEMO_M04_SAFETY_BOUNDARY';
   if (
-    checkpoint.m03Status !== 'APPROVED' ||
-    checkpoint.m04Status !== 'APPROVED' ||
-    checkpoint.activeNextModule !== 'M05' ||
-    checkpoint.nextModuleWorkOrder !== 'NOT_ADMITTED' ||
-    checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-005' ||
-    checkpoint.runtimeProductCode !== 'M04_AGENT_WALLET_BOUNDED_PERMISSIONS_VERIFIABLE_EVIDENCE' ||
+    (!m04PromotionState && !m05PromotionState) ||
     checkpoint.knownCritical !== 0 ||
     checkpoint.knownHigh !== 0
   ) {
-    throw new Error('Checkpoint is not the approved M04 promotion state');
+    throw new Error('Checkpoint is not an approved M04/M05 promotion state');
   }
 
   const event = process.env.GITHUB_EVENT_NAME ?? 'local';

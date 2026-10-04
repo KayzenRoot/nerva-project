@@ -4,12 +4,13 @@ import fs from 'node:fs';
 const lockPath = '.engineering/context-locks/NERVA-WO-006.json';
 const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
 const checkpoint = JSON.parse(fs.readFileSync('.engineering/CHECKPOINT.json', 'utf8'));
+const auditedHead = 'bd0190a744befa413fac15f4f276d28b846a348e';
 
 const gitExecutable =
   process.platform === 'win32' ? String.raw`C:\Program Files\Git\cmd\git.exe` : '/usr/bin/git';
 
 if (!fs.existsSync(gitExecutable)) {
-  throw new Error('M05 admission validation requires Git at the trusted system path');
+  throw new Error('M05 validation requires Git at the trusted system path');
 }
 
 const git = (...args) => {
@@ -33,7 +34,7 @@ const expected = {
 
 for (const [key, value] of Object.entries(expected)) {
   if (lock[key] !== value) {
-    throw new Error(`M05 admission identity mismatch: ${key}`);
+    throw new Error(`M05 identity mismatch: ${key}`);
   }
 }
 
@@ -48,29 +49,43 @@ for (const [path, sha] of fingerprints) {
   }
 }
 
-if (
-  checkpoint.m04Status !== 'APPROVED' ||
-  checkpoint.activeNextModule !== 'M05' ||
-  checkpoint.nextModuleWorkOrder !== 'NOT_ADMITTED' ||
-  checkpoint.lastApprovedWorkOrder !== 'NERVA-WO-005' ||
-  checkpoint.knownCritical !== 0 ||
-  checkpoint.knownHigh !== 0
-) {
-  throw new Error('Canonical checkpoint does not admit M05 planning/execution package');
+const executionCheckpoint =
+  checkpoint.m04Status === 'APPROVED' &&
+  checkpoint.activeNextModule === 'M05' &&
+  checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED' &&
+  checkpoint.lastApprovedWorkOrder === 'NERVA-WO-005' &&
+  checkpoint.knownCritical === 0 &&
+  checkpoint.knownHigh === 0;
+
+const promotedCheckpoint =
+  checkpoint.m04Status === 'APPROVED' &&
+  checkpoint.m05Status === 'APPROVED' &&
+  checkpoint.activeNextModule === 'M06' &&
+  checkpoint.nextModuleWorkOrder === 'NOT_ADMITTED' &&
+  checkpoint.lastApprovedWorkOrder === 'NERVA-WO-006' &&
+  checkpoint.runtimeProductCode === 'M05_EXPERIENCE_DEMO_M04_SAFETY_BOUNDARY' &&
+  checkpoint.knownCritical === 0 &&
+  checkpoint.knownHigh === 0;
+
+if (!executionCheckpoint && !promotedCheckpoint) {
+  throw new Error('Canonical checkpoint is neither M05 execution state nor approved M05 promotion state');
 }
 
-if (git('rev-parse', 'origin/main') !== lock.executionBase) {
-  throw new Error('M05 admission base is stale');
-}
-
+const head = git('rev-parse', 'HEAD');
+const main = git('rev-parse', 'origin/main');
 const branchName =
   process.env.GITHUB_HEAD_REF ||
   (process.env.GITHUB_REF?.startsWith('refs/heads/')
     ? process.env.GITHUB_REF.slice('refs/heads/'.length)
     : git('branch', '--show-current'));
 
-if (branchName !== lock.executionBranch) {
-  throw new Error(`Unexpected M05 branch: ${branchName}`);
+if (executionCheckpoint) {
+  if (main !== lock.executionBase) {
+    throw new Error('M05 admission base is stale');
+  }
+  if (branchName !== lock.executionBranch) {
+    throw new Error(`Unexpected M05 branch: ${branchName}`);
+  }
 }
 
 const allowed = new Set([
@@ -79,6 +94,11 @@ const allowed = new Set([
   '.engineering/execution-briefs/NERVA-WO-006-CODEX.md',
   '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
   '.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md',
+  '.engineering/CHECKPOINT.md',
+  '.engineering/CHECKPOINT.json',
+  '.engineering/BACKLOG.md',
+  '.github/scripts/validate-source-pack.mjs',
+  '.github/scripts/validate-nerva-context-lock.mjs',
   '.github/scripts/validate-m05-admission.mjs',
   '.github/scripts/verify-m05-demo-boundary.mjs',
   '.github/workflows/m01-ci.yml',
@@ -121,68 +141,86 @@ const allowed = new Set([
 const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .split(/\r?\n/)
   .filter(Boolean);
-
 const foreign = changed.filter((path) => !allowed.has(path));
 if (foreign.length > 0) {
-  throw new Error(
-    `M05 execution changed files outside the admitted UI/demo scope: ${foreign.join(', ')}`,
-  );
+  throw new Error(`M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`);
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');
 const brief = fs.readFileSync('.engineering/execution-briefs/NERVA-WO-006-CODEX.md', 'utf8');
 const evidence = fs.readFileSync('.engineering/evidence/NERVA-WO-006-EVIDENCE.md', 'utf8');
 
-const requiredSections = [
-  'OBJECTIVE',
-  'CONTEXT',
-  'SCOPE',
-  'OUT OF SCOPE',
-  'FILES / SOURCES TO READ',
-  'REQUIREMENTS',
-  'ARCHITECTURE RULES',
-  'CONSTRAINTS',
-  'ACCEPTANCE CRITERIA',
-  'TESTS / PROOF OBLIGATIONS',
-  'DELIVERABLES',
-  'REVIEW FORMAT',
-  'STOP CONDITION',
-];
+for (const section of [
+  'OBJECTIVE','CONTEXT','SCOPE','OUT OF SCOPE','FILES / SOURCES TO READ','REQUIREMENTS',
+  'ARCHITECTURE RULES','CONSTRAINTS','ACCEPTANCE CRITERIA','TESTS / PROOF OBLIGATIONS',
+  'DELIVERABLES','REVIEW FORMAT','STOP CONDITION',
+]) {
+  if (!wo.includes(`## ${section}`)) throw new Error(`WO-006 missing section: ${section}`);
+}
+if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('WO-006 stop marker missing');
+if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) throw new Error('M05 brief stop marker missing');
 
-for (const section of requiredSections) {
-  if (!wo.includes(`## ${section}`)) {
-    throw new Error(`WO-006 missing section: ${section}`);
+if (promotedCheckpoint) {
+  if (!evidence.includes(auditedHead) || !evidence.includes('Verdict: `APPROVED`')) {
+    throw new Error('M05 approved promotion lacks independent audit receipt');
   }
-}
 
-if (!wo.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
-  throw new Error('WO-006 stop marker missing');
-}
+  const event = process.env.GITHUB_EVENT_NAME ?? 'local';
+  const mainPush =
+    event === 'push' &&
+    process.env.GITHUB_REF === 'refs/heads/main' &&
+    main === head &&
+    main !== lock.executionBase;
 
-if (!brief.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
-  throw new Error('M05 brief stop marker missing');
+  if (main === lock.executionBase) {
+    if (branchName !== lock.executionBranch) {
+      throw new Error(`Unexpected M05 promotion branch: ${branchName}`);
+    }
+    git('merge-base', '--is-ancestor', auditedHead, 'HEAD');
+    const promotionAllowed = new Set([
+      '.engineering/CHECKPOINT.md',
+      '.engineering/CHECKPOINT.json',
+      '.engineering/BACKLOG.md',
+      '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
+      '.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md',
+      '.github/scripts/validate-m05-admission.mjs',
+      '.github/scripts/validate-source-pack.mjs',
+      '.github/scripts/validate-nerva-context-lock.mjs',
+    ]);
+    const promotionChanged = git('diff', '--name-only', `${auditedHead}..HEAD`)
+      .split(/\r?\n/)
+      .filter(Boolean);
+    const forbiddenPromotion = promotionChanged.filter((path) => !promotionAllowed.has(path));
+    if (promotionChanged.length === 0 || forbiddenPromotion.length > 0) {
+      throw new Error(`Invalid M05 promotion delta: ${forbiddenPromotion.join(', ')}`);
+    }
+    console.log(JSON.stringify({
+      ok:true, base:lock.executionBase, auditedHead, head, branch:branchName, issue:lock.issueNumber,
+      fingerprints:fingerprints.length, promotionFiles:promotionChanged.length,
+      state:'NERVA_M05_APPROVED_CHECKPOINT_PROMOTED',
+    }));
+    process.exit(0);
+  }
+
+  git('merge-base', '--is-ancestor', lock.executionBase, main);
+  console.log(JSON.stringify({
+    ok:true, base:lock.executionBase, auditedHead, currentMain:main, head, branch:branchName,
+    issue:lock.issueNumber, fingerprints:fingerprints.length,
+    state: mainPush ? 'NERVA_M05_POST_MERGE_CONTEXT_LOCK_HISTORICAL' : 'NERVA_M05_CONTEXT_LOCK_HISTORICAL',
+  }));
+  process.exit(0);
 }
 
 const implementationChanged = changed.some((path) => path.startsWith('apps/web/src/app/'));
 if (implementationChanged && evidence.includes('EXECUTION_NOT_STARTED')) {
-  throw new Error('M05 implementation changed but the Evidence Bundle is still marked not started');
+  throw new Error('M05 implementation changed but Evidence Bundle is still marked not started');
 }
 
 let state = 'NERVA_WO_006_ADMITTED_READY_FOR_EXECUTION';
 if (implementationChanged) state = 'NERVA_WO_006_EXECUTION_IN_PROGRESS';
-if (evidence.includes('Status: NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) {
-  state = 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT';
-}
+if (evidence.includes('NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT')) state = 'NERVA_M05_PRODUCT_DEMO_READY_FOR_AUDIT';
 
-console.log(
-  JSON.stringify({
-    ok: true,
-    base: lock.executionBase,
-    head: git('rev-parse', 'HEAD'),
-    branch: branchName,
-    issue: lock.issueNumber,
-    fingerprints: fingerprints.length,
-    changedFiles: changed.length,
-    state,
-  }),
-);
+console.log(JSON.stringify({
+  ok:true, base:lock.executionBase, head, branch:branchName, issue:lock.issueNumber,
+  fingerprints:fingerprints.length, changedFiles:changed.length, state,
+}));
