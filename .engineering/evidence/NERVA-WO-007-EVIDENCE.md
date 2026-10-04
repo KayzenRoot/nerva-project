@@ -196,3 +196,13 @@ No final deployment/database readiness or M06 approval may be claimed until the 
 - `/api/health/ready` remains HTTP 503 only because `DATABASE_URL` cannot yet be transferred from the authenticated Supabase context into the Vercel secret environment through the currently exposed connector surface. No credential has been printed, copied into Git, or exposed to the browser.
 - Owner authorization for Metropolis GitHub OAuth was received, but this non-browser connector session cannot complete the interactive OAuth/account step. Public official portal confirms the event window as `1 Sep to 13 Oct`; authenticated deadline time zone, submission fields, track and bounty eligibility remain portal-gated.
 - M06 therefore remains draft/unmerged and the Checkpoint remains unpromoted.
+
+
+## Vercel/Supabase credential-bridge compatibility
+
+- NERVA server configuration now accepts `DATABASE_URL` first and Vercel-native `POSTGRES_URL` as a fallback.
+- `DATABASE_URL` remains authoritative when both are present.
+- Invalid non-PostgreSQL fallback URLs fail closed.
+- `publicConfig` does not expose the database URL.
+- This change permits the official Vercel/Supabase integration to provide the server-side connection through its native environment-variable contract without copying a database credential into Git or chat.
+- The secure integration/install step itself remains external and must still be objectively verified before `/api/health/ready` can be accepted as healthy.

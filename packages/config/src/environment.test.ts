@@ -26,6 +26,34 @@ describe('M01-CFG-001/M01-ENV-001 configuration boundary', () => {
     expect(() => loadServerConfig({ NERVA_KILL_SWITCH_ENABLED: 'sometimes' })).toThrow();
   });
 
+
+  it('accepts Vercel-native POSTGRES_URL as a server-only database fallback', () => {
+    const fallback = loadServerConfig({
+      NERVA_ENVIRONMENT: 'TESTNET_DEMO',
+      POSTGRES_URL: 'postgresql://nerva:server-only@db.example.internal:5432/nerva',
+    });
+    expect(fallback.databaseUrl).toBe(
+      'postgresql://nerva:server-only@db.example.internal:5432/nerva',
+    );
+    expect(publicConfig(fallback)).not.toHaveProperty('databaseUrl');
+
+    const explicit = loadServerConfig({
+      NERVA_ENVIRONMENT: 'TESTNET_DEMO',
+      DATABASE_URL: 'postgresql://nerva:primary@db.primary.internal:5432/nerva',
+      POSTGRES_URL: 'postgresql://nerva:fallback@db.fallback.internal:5432/nerva',
+    });
+    expect(explicit.databaseUrl).toBe(
+      'postgresql://nerva:primary@db.primary.internal:5432/nerva',
+    );
+
+    expect(() =>
+      loadServerConfig({
+        NERVA_ENVIRONMENT: 'TESTNET_DEMO',
+        POSTGRES_URL: 'https://not-postgres.example',
+      }),
+    ).toThrow(/PostgreSQL URL/i);
+  });
+
   it('keeps demo simulation independent from autonomous execution', () => {
     const config = loadServerConfig({
       NERVA_ENVIRONMENT: 'TESTNET_DEMO',

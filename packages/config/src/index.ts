@@ -172,8 +172,9 @@ export function loadServerConfig(
     .enum(['fatal', 'error', 'warn', 'info', 'debug'])
     .default('info')
     .parse(env.NERVA_LOG_LEVEL);
+  const databaseUrlCandidate = env.DATABASE_URL ?? env.POSTGRES_URL;
   const databaseUrl =
-    env.DATABASE_URL === undefined ? undefined : DatabaseUrlSchema.parse(env.DATABASE_URL);
+    databaseUrlCandidate === undefined ? undefined : DatabaseUrlSchema.parse(databaseUrlCandidate);
 
   return Object.freeze({
     environment,
