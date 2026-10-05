@@ -25,6 +25,11 @@ import {
 const copy = demoCopy;
 type DemoCopy = (typeof demoCopy)['en'];
 const localeLabels: Record<Locale, string> = { en: 'EN', 'pt-BR': 'PT', es: 'ES' };
+const recordingPathLabels: Record<Locale, string> = {
+  en: 'Open video recording path',
+  'pt-BR': 'Abrir percurso para gravação',
+  es: 'Abrir recorrido para grabación',
+};
 const journeyLabels: Record<Locale, readonly string[]> = {
   en: ['Context', 'Risk', 'Policy', 'Shock', 'Protection', 'Outcome', 'Flight Recorder'],
   'pt-BR': ['Contexto', 'Risco', 'Política', 'Choque', 'Proteção', 'Resultado', 'Flight Recorder'],
@@ -157,6 +162,13 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
         <div className="demo-ribbon" role="note">
           <span aria-hidden="true">◆</span> {text.label}
           <span className="demo-version">{DEMO_FIXTURE_VERSION}</span>
+          <Link
+            className="demo-recording-link"
+            data-testid="recording-path-link"
+            href={`/demo/recording/risk?lang=${locale}`}
+          >
+            {recordingPathLabels[locale]}
+          </Link>
         </div>
         <div id="main-content" className="page-content">
           <section className="page-heading demo-heading">

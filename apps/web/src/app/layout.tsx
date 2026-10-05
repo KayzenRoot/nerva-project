@@ -18,16 +18,30 @@ export async function generateMetadata(): Promise<Metadata> {
     title: copy.documentTitle,
     description: copy.documentDescription,
     applicationName: 'NERVA',
+    icons: {
+      icon: '/icon.png',
+      shortcut: '/icon.png',
+      apple: '/icon.png',
+    },
     openGraph: {
       title: copy.documentTitle,
       description: copy.documentDescription,
       siteName: 'NERVA',
       type: 'website',
+      images: [
+        {
+          url: '/branding/nerva-logo.png',
+          width: 1254,
+          height: 1254,
+          alt: 'Official NERVA logo',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: copy.documentTitle,
       description: copy.documentDescription,
+      images: ['/branding/nerva-logo.png'],
     },
   };
 }

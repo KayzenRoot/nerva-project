@@ -8,6 +8,9 @@ const coreRoutes = [
   '/policies?lang=en',
   '/permissions?lang=en',
   '/flight-recorder?lang=en',
+  '/demo/recording/risk?lang=en',
+  '/demo/recording/policy?lang=en',
+  '/demo/recording/flight-recorder?lang=en',
   '/metropolis/technical-demo',
   '/metropolis/pitch-video',
 ] as const;

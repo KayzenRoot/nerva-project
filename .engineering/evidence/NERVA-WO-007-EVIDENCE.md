@@ -278,3 +278,48 @@ Screenshots use 1440×900 desktop and 390×844 mobile viewports. A single unthro
 - Flight Recorder live records remain unavailable in this preview as captured above; this is an explicit availability limitation, not a financial-safety bypass.
 - No approved logo asset was present in the repository or the supplied text. The UI uses the new inline violet NERVA SVG mark, but its identity as the separately approved official logo is unverified; replace the mark when that approved source asset is available.
 - Global `npm run format:check` is not claimed as passing: the earlier global check reported five unrelated historical formatting files outside this visual-polish diff. The changed files pass targeted formatting and are not broadened to reformat those files.
+
+## NERVA-WO-007-CD-001 — video-readiness correction
+
+Status: implementation prepared for audit. This correction addresses only the three video-readiness findings from the latest PR #20 review; independent re-audit remains pending. The candidate is based on the reviewed branch head `4992569a5826ff2af7ca92ba7825f45a99110f68`, with the canonical base `main@b778b470eff4ff997def001899530512065e5676` and the M06 Context Lock still validating at 98/98 fingerprints.
+
+This section supersedes the earlier Visual & Demo Polish note that the approved logo was unavailable. That note describes the prior candidate; the owner-provided asset is integrated in this correction.
+
+### Finding responses
+
+1. **Approved logo integrated.** The owner-provided official NERVA PNG is installed at `apps/web/public/branding/nerva-logo.png` and used by the header/hero, favicon and Apple icon route, Open Graph image and Twitter card. `apps/web/src/app/icon.png` is the same official asset. Source and repository copies have SHA-256 `A66A716C907C2DD178E40898C4A220C6B351E6BA1977B62236BD221EF02A62E6`, at `1254 × 1254`. The old provisional inline SVG mark and generated SVG social image were removed. E2E checks the public image response and social metadata path and dimensions.
+2. **Flight Recorder recording surface added.** `/demo/recording/flight-recorder` renders a seven-stage, static synthetic narrative labeled `DEMO_ONLY · SYNTHETIC DATA · NOT PERSISTED`. It states that the stages are not provider evidence and that no database write, provider request, wallet, transaction or receipt exists. The route is a server-rendered display-only surface with no API request; `/flight-recorder` remains the truthful live read-only surface and continues to show its real unavailable state when the live read model is unavailable.
+3. **Risk and Policy recording surfaces populated.** `/demo/recording/risk` and `/demo/recording/policy` reuse the accepted `nerva-m05-demo-v1` / `protection-story` Guided Demo fixture. The risk view shows synthetic provenance and keeps `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` as `UNAVAILABLE_UNPROVEN`. The policy view presents trigger, `REDUCE_POSITION`, fraction, notional, slippage, market/position, cooldown, expiry and refusal in human-readable form, with display-only JSON available for inspection.
+
+### Isolation and safety evidence
+
+- The new routes make no `/api/*` requests, call no live/provider path, and persist no fixture or lineage. `npm run m05:demo:verify` confirms no provider, database, wallet or effect path in demo source.
+- The live Dashboard, Policies and Flight Recorder retain their `LIVE READ ONLY` labeling and do not contain the synthetic `DEMO-SNAPSHOT-01` fixture.
+- `npm run m03:safety:verify` confirms the action allowlist stays `REDUCE_POSITION`, `CLOSE_POSITION`, `NO_ACTION`; unproven metrics cannot authorize; mainnet effects are hard-blocked; live Perpl writes are blocked; custody remains none; and ambiguous retry stays blocked.
+- `NERVA_EXECUTION_ENABLED=false` remains visible on the recording surfaces. No migration, dependency, analytics integration, financial authority or M07 work was added.
+
+### Files and visual evidence
+
+Runtime changes are limited to `apps/web/src/app/nerva-brand.tsx`, `apps/web/src/app/layout.tsx`, `apps/web/src/app/demo/demo-view.tsx`, `apps/web/src/app/visual-polish.css`, the new `apps/web/src/app/demo/recording/` display-only route/model/copy/test files, and the public brand/icon assets. Test changes are in `apps/web/e2e/cd001-video-readiness.pw.ts` and the route list in `apps/web/e2e/visual-polish.pw.ts`. The new screenshot bundle is `.engineering/evidence/NERVA-WO-007-CD-001-artifacts/`:
+
+- `home-desktop.png` — 1440 × 900;
+- `home-mobile.png` — 390 × 844;
+- `risk-demo-desktop.png` and `policy-demo-desktop.png` — 1440 × 900;
+- `guided-demo-desktop.png` — 1440 × 900;
+- `guided-demo-mobile.png` — 390 × 844;
+- `flight-recorder-demo-desktop.png` — 1440 × 900.
+
+The E2E capture test verifies HTTP 200, natural image dimensions, no horizontal overflow, reduced-motion behavior, and zero serious/critical axe findings on all three recording surfaces at both required viewport sizes. The correction-specific Guided Demo captures show the approved brand asset.
+
+### Local validation
+
+- `npm test`: 32 files / 143 tests passed.
+- `npm run lint`, `npm run typecheck`, `npm run build`: passed.
+- `npm run test:e2e -- --grep "CD-001:"`: 4/4 passed; screenshots regenerated at the stated viewports and English, Brazilian Portuguese and Spanish copy verified on all three routes.
+- The most recent full local `npm run test:e2e`: 12/13 passed; all CD-001, M05 and visual-polish cases passed, while the existing M06 security test exceeded the 30-second timeout during context teardown in the Windows Next development server. `npm run test:e2e -- --grep "M06 security headers"` passed 1/1 in isolation. This is recorded as a local runner timing limitation; exact-preview/hosted validation remains pending.
+- Targeted Prettier check passed. Global `npm run format:check` remains blocked by five pre-existing, untouched files: `packages/config/src/environment.test.ts`, `packages/config/src/index.ts`, `packages/db/migrations/meta/_journal.json`, `docs/NERVA-M06-RELEASE-RUNBOOK.md`, and `docs/NERVA-M06-SUPABASE-RLS-PROPOSAL.md`.
+- `npm run context:validate`, `npm run sourcepack:validate`, `npm run gef:verify`, `npm run gef:package:verify`, `npm run workspace:validate`, `npm run deps:boundary`, `npm run m03:safety:verify`, `npm run m05:demo:verify`, `npm run security:client-bundle`, and `npm run security:audit`: passed. The audit reports zero HIGH/CRITICAL and the same four MODERATE transitive advisories already carried forward above.
+
+### Exact-head hosted validation
+
+Pending push of the correction candidate. Record the final candidate SHA, exact-head required checks, Vercel deployment identity/URL, and public HTTP 200 evidence here before declaring this correction ready for audit. PR #20 must remain open/draft/unmerged; the Checkpoint remains unpromoted.
