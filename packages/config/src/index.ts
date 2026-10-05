@@ -172,8 +172,19 @@ export function loadServerConfig(
     .enum(['fatal', 'error', 'warn', 'info', 'debug'])
     .default('info')
     .parse(env.NERVA_LOG_LEVEL);
-  const databaseUrl =
-    env.DATABASE_URL === undefined ? undefined : DatabaseUrlSchema.parse(env.DATABASE_URL);
+  const explicitDatabaseUrl = env.DATABASE_URL;
+  const vercelPostgresUrl = env.POSTGRES_URL;
+  const databaseUrlCandidate = explicitDatabaseUrl ?? vercelPostgresUrl;
+  let databaseUrl =
+    databaseUrlCandidate === undefined ? undefined : DatabaseUrlSchema.parse(databaseUrlCandidate);
+
+  if (databaseUrl && explicitDatabaseUrl === undefined && vercelPostgresUrl !== undefined) {
+    const parsed = new URL(databaseUrl);
+    if (parsed.searchParams.get('sslmode') === 'require') {
+      parsed.searchParams.set('uselibpqcompat', 'true');
+      databaseUrl = parsed.toString();
+    }
+  }
 
   return Object.freeze({
     environment,

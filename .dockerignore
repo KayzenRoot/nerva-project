@@ -1,11 +1,14 @@
 .git
+.github
 .gef
 .gef-private
+.engineering
 node_modules
 **/node_modules
 **/.next
-coverage
 **/coverage
+**/playwright-report
+**/test-results
 .env
 .env.*
 !.env.example

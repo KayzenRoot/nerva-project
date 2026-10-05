@@ -2,7 +2,8 @@ import { mkdir } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect, type Page } from '@playwright/test';
 
-const screenshots = '.engineering/evidence/NERVA-WO-006-artifacts';
+const screenshots =
+  process.env.NERVA_EVIDENCE_SCREENSHOT_DIR ?? '.engineering/evidence/NERVA-WO-006-artifacts';
 
 async function assertRefusedScenario(page: Page, scenario: string, reason: string) {
   await page.getByRole('button', { name: new RegExp(scenario, 'i') }).click();
@@ -220,10 +221,12 @@ test('M05-UI-002/RESP-001/A11Y-001/I18N-001: mobile, keyboard and Spanish critic
     page.getByText('Efecto en mainnet: HARD_BLOCKED · Escrituras Perpl en vivo: BLOCKED').first(),
   ).toBeVisible();
   await page.goto('/?lang=pt-BR');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
   await expect(page.getByRole('link', { name: /iniciar demo guiada/i })).toBeVisible();
   await expect(page.getByText('Risco determinístico')).toBeVisible();
   await expect(page.getByText('ATUALIDADE').first()).toBeVisible();
   await page.goto('/?lang=es');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await expect(page.getByRole('link', { name: /iniciar demo guiada/i })).toBeVisible();
   await expect(page.getByText('Riesgo determinista')).toBeVisible();
   await expect(page.getByText('VIGENCIA').first()).toBeVisible();

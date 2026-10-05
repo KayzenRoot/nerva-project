@@ -1,0 +1,33 @@
+FROM node@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS build
+
+ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app
+
+COPY . .
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+    && npm run build --workspace=@nerva/web
+
+FROM node@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c AS runner
+
+ARG VCS_REF
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000 \
+    NERVA_ENVIRONMENT=TESTNET_DEMO \
+    NERVA_EXECUTION_ENABLED=false \
+    NERVA_KILL_SWITCH_ENABLED=true \
+    NERVA_DEMO_SIMULATION_ENABLED=true
+WORKDIR /app
+
+LABEL org.opencontainers.image.source="https://github.com/KayzenRoot/nerva-project" \
+      org.opencontainers.image.revision="$VCS_REF" \
+      org.nerva.mainnet-effect="HARD_BLOCKED" \
+      org.nerva.live-perpl-effects="BLOCKED"
+
+COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
+COPY --from=build --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
+
+USER node
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]

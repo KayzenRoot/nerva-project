@@ -144,9 +144,12 @@ const allowed = new Set([
 const changed = git('diff', '--name-only', `${lock.executionBase}..HEAD`)
   .split(/\r?\n/)
   .filter(Boolean);
-const foreign = changed.filter((path) => !allowed.has(path));
-if (foreign.length > 0) {
-  throw new Error(`M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`);
+const enforceM05Scope = executionCheckpoint || main === lock.executionBase;
+if (enforceM05Scope) {
+  const foreign = changed.filter((path) => !allowed.has(path));
+  if (foreign.length > 0) {
+    throw new Error(`M05 changed files outside admitted/promotion scope: ${foreign.join(', ')}`);
+  }
 }
 
 const wo = fs.readFileSync('.engineering/work-orders/NERVA-WO-006.md', 'utf8');

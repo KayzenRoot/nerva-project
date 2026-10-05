@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { locales, type Locale } from '../i18n.ts';
 import { demoCopy, phaseLabels, scenarioNames, scenarioReasons } from './demo-copy.ts';
+import { NervaBrand } from '../nerva-brand.tsx';
 import {
   DEMO_FIXTURE_VERSION,
   DEMO_SCENARIOS,
@@ -24,6 +25,16 @@ import {
 const copy = demoCopy;
 type DemoCopy = (typeof demoCopy)['en'];
 const localeLabels: Record<Locale, string> = { en: 'EN', 'pt-BR': 'PT', es: 'ES' };
+const recordingPathLabels: Record<Locale, string> = {
+  en: 'Open video recording path',
+  'pt-BR': 'Abrir percurso para gravação',
+  es: 'Abrir recorrido para grabación',
+};
+const journeyLabels: Record<Locale, readonly string[]> = {
+  en: ['Context', 'Risk', 'Policy', 'Shock', 'Protection', 'Outcome', 'Flight Recorder'],
+  'pt-BR': ['Contexto', 'Risco', 'Política', 'Choque', 'Proteção', 'Resultado', 'Flight Recorder'],
+  es: ['Contexto', 'Riesgo', 'Política', 'Impacto', 'Protección', 'Resultado', 'Flight Recorder'],
+};
 
 function decisionNotice(
   refusalReason: string | undefined,
@@ -113,7 +124,7 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
       </a>
       <aside className="sidebar" aria-label="NERVA">
         <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA<span className="brand-mark">●</span>
+          <NervaBrand />
         </Link>
         <nav className="primary-nav" aria-label={text.primaryNav}>
           {links(locale, text).map(([href, label]) => (
@@ -151,6 +162,13 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
         <div className="demo-ribbon" role="note">
           <span aria-hidden="true">◆</span> {text.label}
           <span className="demo-version">{DEMO_FIXTURE_VERSION}</span>
+          <Link
+            className="demo-recording-link"
+            data-testid="recording-path-link"
+            href={`/demo/recording/risk?lang=${locale}`}
+          >
+            {recordingPathLabels[locale]}
+          </Link>
         </div>
         <div id="main-content" className="page-content">
           <section className="page-heading demo-heading">
@@ -190,6 +208,24 @@ export function DemoView({ locale }: { readonly locale: Locale }) {
                 max={GUIDED_DEMO_DURATION_SECONDS}
                 value={state.elapsedSeconds}
               />
+              <ol className="guided-steps" aria-label={text.guided} tabIndex={0}>
+                {journeyLabels[locale].map((label, index) => {
+                  const stepState =
+                    index < phaseIndex ? 'complete' : index === phaseIndex ? 'current' : 'pending';
+                  return (
+                    <li
+                      key={label}
+                      data-step-state={stepState}
+                      aria-current={stepState === 'current' ? 'step' : undefined}
+                    >
+                      <span className="guided-step-number">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span>{label}</span>
+                    </li>
+                  );
+                })}
+              </ol>
               <div className="phase-summary" aria-live="polite">
                 <span className="phase-number">{phaseIndex + 1}</span>
                 <div>

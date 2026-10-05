@@ -1,6 +1,6 @@
 # NERVA Project
 
-NERVA is a Monad-native, non-custodial risk and policy platform. M04 is approved for promotion/merge and adds wallet/agent identity, bounded capability grants, owner-signed EIP-712 authorization, read-only EIP-7702 observation, session/revocation/replay protection and verifiable permission evidence integrated with the M03 boundary. M05 remains NOT_ADMITTED.
+NERVA is a Monad-native, non-custodial risk and policy platform. M00–M05 are approved. The M06 release-hardening candidate is being reviewed in draft PR #20 and is not merged or release-approved. M04 provides wallet/agent identity, bounded capability grants, owner-signed EIP-712 authorization, read-only EIP-7702 observation, session/revocation/replay protection and verifiable permission evidence integrated with the M03 boundary.
 
 The current Perpl documentation grants only broad `trade` scope to order writes and requires separate on-chain order-forwarding permission; NERVA has no proven protective-only write scope, so the Perpl effect adapter stays hard-blocked. `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN` and `FUNDING_DIRECTION` remain unproven/unknown and cannot authorize actions. See [M02 Observation and Risk Operations](docs/M02-OBSERVATION-RISK.md) and [M03 Policy, Simulation and Execution Safety](docs/M03-POLICY-SIM-EXEC.md).
 
@@ -41,7 +41,19 @@ The product interface defaults to English and includes Brazilian Portuguese and 
 
 The `.env.example` contains `replace-me` placeholders for local development; Compose fallback credentials are local only. Replace local values before sharing an environment, keep production credentials out of source, and pass them through the deployment secret store.
 
-## M01 safety guarantees
+## M06 release posture
+
+- `MAINNET_EXECUTION` is hard-blocked at startup and by the policy boundary. The release image defaults execution OFF and the global kill switch ON.
+- Live Perpl writes remain blocked. Perpl observation is opt-in and disabled in the local release profile.
+- The DEMO experience uses deterministic synthetic data, keeps its demo label visible, and does not use provider, wallet, database, or execution paths.
+- `LIQUIDATION_DISTANCE`, `MAINTENANCE_MARGIN`, and `FUNDING_DIRECTION` remain unproven and non-authoritative.
+- Four MODERATE advisories remain in the development-only `drizzle-kit` / legacy `@esbuild-kit` dependency tree. The current upstream stable release still declares that dependency; see the M06 Evidence Bundle for the disposition and residual risk. There are no known HIGH or CRITICAL npm audit findings.
+- A local production-like image can be built from an exact Git SHA with `Dockerfile.web` and `compose.m06-release.yaml`. It binds only to loopback and is a deployment rehearsal, not a public Metropolis deployment.
+- M06 public deployment, portal eligibility and final V0.1 audit remain pending; this PR does not promote the Checkpoint.
+
+See the [M06 release and recovery runbook](docs/NERVA-M06-RELEASE-RUNBOOK.md) and [M06 evidence](.engineering/evidence/NERVA-WO-007-EVIDENCE.md).
+
+## V0.1 safety guarantees
 
 - Structured policies use the strict `PolicySchemaV0_1`; unknown fields and unsupported versions fail closed.
 - Policy transitions validate the strict V0.1 payload, reject expired policy versions, and bind confirmation to an immutable version hash. Eligibility and execution transitions derive authority, version identity, expiry, and digest from factory-issued immutable policy and plan values instead of caller-supplied success flags.
@@ -73,10 +85,16 @@ npm run sourcepack:validate
 npm run gef:package:verify
 npm run gef:verify
 npm run m03:safety:verify
+npm run m05:demo:verify
+npm run m03:benchmark
+npm run m04:benchmark
+npm run test:e2e
 npm run db:upgrade-smoke
 ```
 
-Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance, including a clean M01-to-M03 schema build and a disposable accepted-M02-to-M03 migration upgrade, deterministic replay/adversarial/recovery fixtures, and a one-position p95 risk benchmark. A bounded Windows lane covers domain, contracts, config, policy, execution, Perpl adapter and risk engine. External provider availability and credentials are not required in CI; no live testnet effect is represented by fixtures.
+Hosted CI runs the full Linux checks against an ephemeral PostgreSQL 18.6 instance, including a clean schema build, disposable accepted migration upgrade, deterministic replay/adversarial/recovery fixtures, browser journeys and risk/policy/permission benchmarks. A bounded Windows lane covers domain, contracts, config, policy, execution, Perpl adapter and risk engine. External provider availability and credentials are not required in CI; no live testnet effect is represented by fixtures.
+
+For a local, loopback-only production image rehearsal, follow the exact-SHA procedure in [the M06 runbook](docs/NERVA-M06-RELEASE-RUNBOOK.md). Do not use local synthetic results as proof of provider behavior or a public deployment.
 
 ## Additional contracts
 

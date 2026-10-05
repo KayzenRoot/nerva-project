@@ -71,6 +71,13 @@
       "when": 1791061849777,
       "tag": "0009_natural_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791136200000,
+      "tag": "0010_nerva_release_security_hardening",
+      "breakpoints": true
     }
   ]
 }

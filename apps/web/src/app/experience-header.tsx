@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { locales, type Locale } from './i18n.ts';
+import { NervaBrand } from './nerva-brand.tsx';
 
 const labels: Record<
   Locale,
@@ -81,7 +82,7 @@ export function ExperienceHeader({
     <>
       <header className="experience-header">
         <Link className="brand" href={`/?lang=${locale}`} aria-label="NERVA">
-          NERVA<span className="brand-mark">●</span>
+          <NervaBrand />
         </Link>
         <nav className="experience-nav" aria-label={primaryNavLabels[locale]}>
           {links.map(([href, label, key]) => (

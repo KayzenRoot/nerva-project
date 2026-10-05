@@ -52,6 +52,11 @@ const required = [
   '.engineering/evidence/NERVA-WO-006-EVIDENCE.md',
   '.engineering/checkpoint-deltas/NERVA-WO-006-PROPOSED.md',
   'docs/NERVA-M05-DEMO-RUNBOOK.md',
+  '.engineering/work-orders/NERVA-WO-007.md',
+  '.engineering/context-locks/NERVA-WO-007.json',
+  '.engineering/execution-briefs/NERVA-WO-007-CODEX.md',
+  '.engineering/evidence/NERVA-WO-007-EVIDENCE.md',
+  '.engineering/checkpoint-deltas/NERVA-WO-007-PROPOSED.md',
 ];
 
 const missing = required.filter((path) => !fs.existsSync(path));
