@@ -320,6 +320,13 @@ The E2E capture test verifies HTTP 200, natural image dimensions, no horizontal 
 - Targeted Prettier check passed. Global `npm run format:check` remains blocked by five pre-existing, untouched files: `packages/config/src/environment.test.ts`, `packages/config/src/index.ts`, `packages/db/migrations/meta/_journal.json`, `docs/NERVA-M06-RELEASE-RUNBOOK.md`, and `docs/NERVA-M06-SUPABASE-RLS-PROPOSAL.md`.
 - `npm run context:validate`, `npm run sourcepack:validate`, `npm run gef:verify`, `npm run gef:package:verify`, `npm run workspace:validate`, `npm run deps:boundary`, `npm run m03:safety:verify`, `npm run m05:demo:verify`, `npm run security:client-bundle`, and `npm run security:audit`: passed. The audit reports zero HIGH/CRITICAL and the same four MODERATE transitive advisories already carried forward above.
 
+### Production CSP correction found during preview validation
+
+- Initial correction candidate `46582e7a728ba98a3b2c012260d6bae4da6f9adc` deployed READY as Vercel deployment `4d6G5TEN6QW1NU5L6cuUhjkzW7Ae`. Its public branch preview returned HTTP 200 for all three `/demo/recording/{risk,policy,flight-recorder}` pages and `/api/health/live` + `/api/health/ready`.
+- The full browser suite against that production preview ran 14 tests: 9 passed and 5 failed because the production CSP reported blocked inline style attributes. The logo's Next `Image` output included an inline style; the reduced-motion test also injected an inline style. No CSP relaxation was made.
+- `NervaSymbol` now uses a same-origin `<img>` with explicit intrinsic dimensions, avoiding Next Image's inline style. The reduced-motion E2E now inspects computed CSS and `scroll-behavior` without mutating the page. This correction preserves the existing production CSP.
+- Post-correction local evidence: lint, typecheck and production build passed; CD-001 E2E passed 4/4. Exact-preview retest and required checks for the corrected candidate are pending push.
+
 ### Exact-head hosted validation
 
-Pending push of the correction candidate. Record the final candidate SHA, exact-head required checks, Vercel deployment identity/URL, and public HTTP 200 evidence here before declaring this correction ready for audit. PR #20 must remain open/draft/unmerged; the Checkpoint remains unpromoted.
+Pending push of the CSP correction candidate. Record its final SHA, exact-head required checks, Vercel deployment identity/URL, complete preview E2E result, and public HTTP evidence here before declaring this correction ready for audit. PR #20 must remain open/draft/unmerged; the Checkpoint remains unpromoted.

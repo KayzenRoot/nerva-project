@@ -157,12 +157,16 @@ test('CD-001: recording surfaces fit desktop/mobile, honor reduced motion, and p
       );
       expect(dimensions.reducedMotion).toBe(true);
 
-      const motionDurations = await page.locator('.recording-surface').evaluate((element) => {
-        element.setAttribute('style', 'animation-duration: 5s; transition-duration: 5s');
-        const style = getComputedStyle(element);
-        return [style.animationDuration, style.transitionDuration];
+      const motion = await page.locator('.recording-surface').evaluate((element) => {
+        const surfaceStyle = getComputedStyle(element);
+        return {
+          animationDuration: surfaceStyle.animationDuration,
+          transitionDuration: surfaceStyle.transitionDuration,
+          rootScrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+        };
       });
-      for (const duration of motionDurations) {
+      expect(motion.rootScrollBehavior).toBe('auto');
+      for (const duration of [motion.animationDuration, motion.transitionDuration]) {
         const milliseconds = duration.endsWith('ms')
           ? Number.parseFloat(duration)
           : Number.parseFloat(duration) * 1000;

@@ -1,8 +1,6 @@
-import Image from 'next/image';
-
 export function NervaSymbol({ className = '' }: { readonly className?: string }) {
   return (
-    <Image
+    <img
       alt=""
       aria-hidden="true"
       className={`nerva-symbol ${className}`.trim()}
@@ -10,6 +8,7 @@ export function NervaSymbol({ className = '' }: { readonly className?: string })
       loading="eager"
       src="/branding/nerva-logo.png"
       width={1254}
+      decoding="async"
     />
   );
 }
