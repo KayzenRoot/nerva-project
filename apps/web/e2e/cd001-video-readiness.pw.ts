@@ -120,7 +120,7 @@ test('CD-001: official logo, synthetic recording path, and live isolation are ex
   await expect(page.getByTestId('recording-flight-recorder')).toContainText('DRY_RUN_ONLY');
   await expect(page.getByTestId('recording-flight-recorder')).toContainText('NOT PERSISTED');
 
-  const iconResponse = await page.goto(new URL('/icon.png', page.url()).toString());
+  const iconResponse = await page.request.get('/icon.png');
   expect(iconResponse?.status()).toBe(200);
   expect(iconResponse?.headers()['content-type']).toContain('image/png');
 

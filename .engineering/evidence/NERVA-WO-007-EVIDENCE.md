@@ -326,6 +326,7 @@ The E2E capture test verifies HTTP 200, natural image dimensions, no horizontal 
 - The full browser suite against that production preview ran 14 tests: 9 passed and 5 failed because the production CSP reported blocked inline style attributes. The logo's Next `Image` output included an inline style; the reduced-motion test also injected an inline style. No CSP relaxation was made.
 - `NervaSymbol` now uses a same-origin `<img>` with explicit intrinsic dimensions, avoiding Next Image's inline style. The reduced-motion E2E now inspects computed CSS and `scroll-behavior` without mutating the page. This correction preserves the existing production CSP.
 - Post-correction local evidence: lint, typecheck and production build passed; CD-001 E2E passed 4/4. Exact-preview retest and required checks for the corrected candidate are pending push.
+- The first exact-preview rerun after the image correction passed 13/14 tests. The remaining CD-001 console check navigated to `/icon.png` as a top-level document; the browser's built-in image viewer emitted CSP inline-style messages. The logo asset itself loaded correctly and every other preview regression passed. The test now fetches the icon through Playwright's request context instead of opening the browser's image viewer.
 
 ### Exact-head hosted validation
 
